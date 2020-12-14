@@ -7,6 +7,8 @@ target_include_directories(Catch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 add_executable(tests_univariate
         univariate/tests.cpp
+        univariate/tests_tools.cpp univariate/tests_tools.hpp
+        univariate/dtw.cpp univariate/references/dtw/dtw.cpp
         )
 
 target_include_directories(tests_univariate PRIVATE univariate/references)

@@ -29,6 +29,9 @@ project(tempo VERSION ${VERSION})
 add_library(tempo INTERFACE)
 target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_sources(tempo INTERFACE
+        include/tempo/univariate/elastic_distances/distances.hpp
+        include/tempo/univariate/elastic_distances/dtw/dtw.hpp
+        include/tempo/utils/utils.hpp
         include/tempo/utils/version.hpp
         )
 
