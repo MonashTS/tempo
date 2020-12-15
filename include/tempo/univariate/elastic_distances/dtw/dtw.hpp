@@ -15,13 +15,13 @@ namespace tempo::univariate::elastic_distances {
          *  Double buffered implementation using O(n) space.
          *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning).
          *  A tight cutoff can allow a lot of pruning, speeding up the process considerably.
-         *  Actual implementation assuming that some pre-condition are fullfilled.
+         *  Actual implementation assuming that some pre-condition are fulfilled.
          * @tparam FloatType    The floating number type used to represent the series.
          * @tparam dist     Distance function, default to square euclidean distance for FloatType.
          * @param lines     Pointer to the "line series". Must be the longest series. Cannot be null.
          * @param nblines   Length of the line series. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
          * @param cols      Pointer to the "column series". Must be the shortest series. Cannot be null.
-         * @param nbcols    Length of the columnseries. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
+         * @param nbcols    Length of the column series. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
          * @return  DTW between the two series or +INF if early abandoned.
