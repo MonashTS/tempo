@@ -18,8 +18,8 @@ namespace ttools {
     constexpr size_t def_max_size{15};
 
     // Default value range for series
-    constexpr double minv{-5};
-    constexpr double maxv{5};
+    constexpr double minv{0};
+    constexpr double maxv{1};
 
     // Pseudo random number generator
     using PRNG = mt19937_64;
