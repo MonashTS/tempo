@@ -12,6 +12,7 @@ add_executable(tests_univariate
         univariate/cdtw.cpp univariate/references/dtw/cdtw.cpp
         univariate/wdtw.cpp univariate/references/dtw/wdtw.cpp
         univariate/elementwise.cpp
+        univariate/lcss.cpp univariate/references/lcss/lcss.cpp
         )
 
 target_include_directories(tests_univariate PRIVATE univariate/references)

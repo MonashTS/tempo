@@ -53,15 +53,6 @@ namespace tempo {
     template<typename T>
     [[nodiscard]] inline T max(T a, T b, T c) { return std::max<T>(a, std::max<T>(b, c)); }
 
-    /*
-    /// Check if two FloatType numbers are within EPSILON (true = similar, false = not similar)
-    template<typename FloatType>
-    [[nodiscard]] inline bool sim(FloatType a, FloatType b, FloatType e=EPSILON<FloatType>) {
-        return std::fabs(a - b) < e ? true : false;
-    }
-    */
-
-
 
     // --- --- --- --- --- ---
     // --- Unsigned arithmetic
