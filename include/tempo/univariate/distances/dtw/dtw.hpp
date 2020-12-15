@@ -3,13 +3,13 @@
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
-namespace tempo::univariate::elastic_distances {
+namespace tempo::univariate::distances {
 
     namespace internal {
 
-        /** Constrained Dynamic Time Warping with cutoff point for early abandoning and pruning.
+        /** Dynamic Time Warping with cutoff point for early abandoning and pruning.
          *  Double buffered implementation using O(n) space.
-         *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning, large window).
+         *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning).
          *  A tight cutoff can allow a lot of pruning, speeding up the process considerably.
          *  Actual implementation assuming that some pre-conditions are fulfilled.
          * @tparam FloatType    The floating number type used to represent the series.
@@ -18,8 +18,6 @@ namespace tempo::univariate::elastic_distances {
          * @param nblines   Length of the line series. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
          * @param cols      Pointer to the "column series". Must be the shortest series. Cannot be null.
          * @param nbcols    Length of the column series. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
-         * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
-         *                  Must be 0<=w<=nblines and nblines - nbcols <= w
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
          * @return  DTW between the two series or +INF if early abandoned.
@@ -27,10 +25,9 @@ namespace tempo::univariate::elastic_distances {
          */
         template<typename FloatType = double, auto dist = square_dist < FloatType>>
 
-        [[nodiscard]] inline FloatType cdtw(
+        [[nodiscard]] inline FloatType dtw(
                 const FloatType *lines, size_t nblines,
                 const FloatType *cols, size_t nbcols,
-                const size_t w,
                 FloatType cutoff
         ) {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -38,8 +35,6 @@ namespace tempo::univariate::elastic_distances {
             assert(lines != nullptr && nblines != 0 && nblines < MAX_SERIES_LENGTH);
             assert(cols != nullptr && nbcols != 0 && nbcols < MAX_SERIES_LENGTH);
             assert(nbcols <= nblines);
-            assert(w <= nblines);
-            assert(nblines-nbcols<=w);
             // Adapt constants to the floating point type
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
@@ -52,24 +47,41 @@ namespace tempo::univariate::elastic_distances {
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Double buffer allocation, no initialisation required (border condition manage in the code).
-            // Base indices for the 'c'urrent row and the 'p'revious row. Account for the extra cell (+1 and +2)
-            std::vector<FloatType> buffers_v((1 + nbcols) * 2, POSITIVE_INFINITY);
-            auto* buffers = buffers_v.data();
-            size_t c{0+1}, p{nbcols+2};
+            // Base indices for the 'c'urrent row and the 'p'revious row.
+            auto buffers = std::unique_ptr<double[]>(new double[nbcols * 2]);
+            size_t c{0}, p{nbcols};
 
             // Line & column counters
             size_t i{0}, j{0};
 
             // Cost accumulator. Also used as the "left neighbour".
-            double cost{0};
+            double cost;
 
             // EAP variables: track where to start the next line, and the position of the previous pruning point.
             // Must be init to 0: index 0 is the next starting index and also the "previous pruning point"
             size_t next_start{0}, prev_pp{0};
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-            // Initialisation of the top border: already initialized to +INF. Initialise the left corner to 0.
-            buffers[c-1] = 0;
+            // Initialisation of the first line.
+            {
+                const double li = lines[i];
+                // Fist cell is a special case.
+                // Check against the original upper bound dealing with the case where we have both series of length 1.
+                cost = dist(lines[i], cols[0]);
+                if (cost > original_ub) { return POSITIVE_INFINITY; }
+                buffers[c + 0] = cost;
+                // All other cells. Checking against "ub" is OK as the only case where the last cell of this line is the
+                // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
+                size_t curr_pp = 1;
+                for (j = 1; j == curr_pp && j < nbcols; ++j) {
+                    const auto d = dist(li, cols[j]);
+                    cost = cost + d;
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { ++curr_pp; }
+                }
+                ++i;
+                prev_pp = curr_pp;
+            }
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Main loop
@@ -77,15 +89,15 @@ namespace tempo::univariate::elastic_distances {
                 // --- --- --- Swap and variables init
                 std::swap(c, p);
                 const double li = lines[i];
-                const size_t jStart = std::max(cap_start_index_to_window(i, w), next_start);
-                const size_t jStop = cap_stop_index_to_window_or_end(i, w, nbcols);
-                next_start = jStart;
                 size_t curr_pp = next_start; // Next pruning point init at the start of the line
                 j = next_start;
-                // --- --- --- Stage 0: Initialise the left border
+                // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
                 {
-                    cost = POSITIVE_INFINITY;
-                    buffers[c+next_start-1] = POSITIVE_INFINITY;
+                    const auto d = dist(li, cols[j]);
+                    cost = buffers[p + j] + d;
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { curr_pp = j + 1; } else { ++next_start; }
+                    ++j;
                 }
                 // --- --- --- Stage 1: Up to the previous pruning point while advancing next_start: diag and top
                 for (; j == next_start && j < prev_pp; ++j) {
@@ -102,7 +114,7 @@ namespace tempo::univariate::elastic_distances {
                     if (cost <= ub) { curr_pp = j + 1; }
                 }
                 // --- --- --- Stage 3: At the previous pruning point. Check if we are within bounds.
-                if (j < jStop) { // If so, two cases.
+                if (j < nbcols) { // If so, two cases.
                     const auto d = dist(li, cols[j]);
                     if (j == next_start) { // Case 1: Advancing next start: only diag.
                         cost = buffers[p + j - 1] + d;
@@ -129,7 +141,7 @@ namespace tempo::univariate::elastic_distances {
                 }
                 // --- --- --- Stage 4: After the previous pruning point: only prev.
                 // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
-                for (; j == curr_pp && j < jStop; ++j) {
+                for (; j == curr_pp && j < nbcols; ++j) {
                     const auto d = dist(li, cols[j]);
                     cost = cost + d;
                     buffers[c + j] = cost;
@@ -149,10 +161,10 @@ namespace tempo::univariate::elastic_distances {
     } // End of namespace internal
 
     // --- --- --- --- ---
-    // --- CDTW
+    // --- DTW
     // --- --- --- --- ---
 
-    /** Constrained Dynamic Time Warping.
+    /** Dynamic Time Warping.
      *  Compute an upper bound and used the DTW with pruning and early abandoning function.
      *  Any valid path in the cost matrix represent an upper bound. We compute such a path using the squared euclidean
      *  distance, augmented by a straight line when length are disparate.
@@ -162,14 +174,12 @@ namespace tempo::univariate::elastic_distances {
      * @param length1   Length of the first series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param series2   Pointer to the second series' values.
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
-     * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
      * @return  DTW between the two series
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
-    [[nodiscard]] FloatType cdtw(
+    [[nodiscard]] FloatType dtw(
             const FloatType *series1, size_t length1,
-            const FloatType *series2, size_t length2,
-            size_t w
+            const FloatType *series2, size_t length2
     ) {
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
@@ -183,9 +193,6 @@ namespace tempo::univariate::elastic_distances {
         const auto[lines, nblines, cols, nbcols] =
         (length1 > length2) ?
         std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-        // Cap the windows and check that, given the constraint, an alignment is possible
-        if (w > nblines) { w = nblines; }
-        if (nblines - nbcols > w) { return POSITIVE_INFINITY; }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Compute a cutoff point using the diagonal
@@ -201,16 +208,13 @@ namespace tempo::univariate::elastic_distances {
         }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::cdtw<FloatType, dist>(lines, nblines, cols, nbcols, w, cutoff);
+        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
     }
 
     /// Helper for the above, using vectors
     template<typename FloatType=double, auto dist = square_dist < FloatType>>
-    [[nodiscard]] inline FloatType cdtw(
-            const std::vector<FloatType>& series1,
-            const std::vector<FloatType>& series2,
-            const size_t w){
-        return cdtw<FloatType, dist>(USE(series1), USE(series2), w);
+    [[nodiscard]] inline FloatType dtw(const std::vector<FloatType>& series1, const std::vector<FloatType>& series2){
+        return dtw<FloatType, dist>(USE(series1), USE(series2));
     }
 
     // --- --- --- --- ---
@@ -227,17 +231,15 @@ namespace tempo::univariate::elastic_distances {
      * @param length1   Length of the first series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param series2   Pointer to the second series' values.
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
-     * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
      * @return  DTW between the two series or +INF if early abandoned.
      *          Warning: a result different from +INF does not warrant a cost < cutoff.
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
-    [[nodiscard]] FloatType cdtw(
+    [[nodiscard]] FloatType dtw(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
-            size_t w,
             FloatType cutoff
     ) {
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -252,22 +254,18 @@ namespace tempo::univariate::elastic_distances {
         const auto[lines, nblines, cols, nbcols] =
         (length1 > length2) ?
         std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-        // Cap the windows and check that, given the constraint, an alignment is possible
-        if (w > nblines) { w = nblines; }
-        if (nblines - nbcols > w) { return POSITIVE_INFINITY; }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::cdtw<FloatType, dist>(lines, nblines, cols, nbcols, w, cutoff);
+        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
     }
 
     /// Helper for the above, using vectors
     template<typename FloatType=double, auto dist = square_dist<FloatType>>
-    [[nodiscard]] inline FloatType cdtw(
+    [[nodiscard]] inline FloatType dtw(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
-            const size_t w,
             FloatType cutoff){
-        return cdtw<FloatType, dist>(USE(series1), USE(series2), w, cutoff);
+        return dtw<FloatType, dist>(USE(series1), USE(series2), cutoff);
     }
 
-} // End of namespace tempo::univariate::elastic_distances
+} // End of namespace tempo::univariate::distances

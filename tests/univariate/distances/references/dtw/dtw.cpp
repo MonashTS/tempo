@@ -1,20 +1,19 @@
-#include "cdtw.hpp"
+#include "dtw.hpp"
 
 namespace reference {
 
     using namespace std;
     using namespace tempo;
-    using namespace tempo::univariate::elastic_distances;
+    using namespace tempo::univariate::distances;
 
-    /// Naive DTW with a window. Reference code.
-    double cdtw_matrix(
-            const double *series1, ssize_t length1,
-            const double *series2, ssize_t length2,
-            size_t w){
+    /// Naive DTW without a window. Reference code.
+    double dtw_matrix(
+            const double *series1, size_t length1,
+            const double *series2, size_t length2) {
 
         constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
 
-        // Check lengths. Be explicit in the conditions
+        // Check lengths. Be explicit in the conditions.
         if (length1 == 0 && length2 == 0) { return 0; }
         if (length1 == 0 && length2 != 0) { return POSITIVE_INFINITY; }
         if (length1 != 0 && length2 == 0) { return POSITIVE_INFINITY; }
@@ -29,11 +28,9 @@ namespace reference {
         // For each line
         // Note: series1 and series2 are 0-indexed while the matrix is 1-indexed (0 being the borders)
         //       hence, we have i-1 and j-1 when accessing series1 and series2
-        for (long i = 1; i <= length1; i++) {
+        for (size_t i = 1; i <= length1; i++) {
             auto series1_i = series1[i - 1];
-            long jStart = max<long>(1, i - w);
-            long jStop = min<long>(i + w, length2);
-            for (long j = jStart; j <= jStop; j++) {
+            for (size_t j = 1; j <= length2; j++) {
                 double prev = matrix[i][j - 1];
                 double diag = matrix[i - 1][j - 1];
                 double top = matrix[i - 1][j];

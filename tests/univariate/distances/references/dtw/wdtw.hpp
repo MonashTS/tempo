@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <tempo/utils/utils.hpp>
-#include <tempo/univariate/elastic_distances/distances.hpp>
+#include <tempo/univariate/distances/distances.hpp>
 
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

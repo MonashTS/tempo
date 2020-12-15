@@ -1,12 +1,12 @@
 #define CATCH_CONFIG_FAST_COMPILE
 
 #include <catch.hpp>
-#include <tempo/univariate/elastic_distances/dtw/cdtw.hpp>
+#include <tempo/univariate/distances/dtw/cdtw.hpp>
 
 #include "tests_tools.hpp"
 #include "references/dtw/cdtw.hpp"
 
-using namespace tempo::univariate::elastic_distances;
+using namespace tempo::univariate::distances;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

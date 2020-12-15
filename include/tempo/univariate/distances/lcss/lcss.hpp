@@ -3,7 +3,7 @@
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
-namespace tempo::univariate::elastic_distances {
+namespace tempo::univariate::distances {
 
     namespace internal {
 
@@ -195,4 +195,4 @@ namespace tempo::univariate::elastic_distances {
     }
 
 
-} // End of namespace tempo::univariate::elastic_distances
+} // End of namespace tempo::univariate::distances

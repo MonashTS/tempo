@@ -1,7 +1,7 @@
 #pragma once
 
 
-namespace tempo::univariate::elastic_distances {
+namespace tempo::univariate::distances {
 
     /// Helper macro
     #define USE(series) series.data(), series.size()

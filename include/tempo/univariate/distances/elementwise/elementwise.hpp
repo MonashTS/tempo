@@ -3,7 +3,7 @@
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
-namespace tempo::univariate::elastic_distances {
+namespace tempo::univariate::distances {
 
     // --- --- --- --- --- ---
     // Element Wise
@@ -99,4 +99,4 @@ namespace tempo::univariate::elastic_distances {
         return elementwise<FloatType, dist>(USE(series1), USE(series2), cutoff);
     }
 
-} // End of namespace tempo::univariate::elastic_distances
+} // End of namespace tempo::univariate::distances

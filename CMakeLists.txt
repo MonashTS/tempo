@@ -29,12 +29,12 @@ project(tempo VERSION ${VERSION})
 # Creating the library
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(TEMPO_SRC
-        include/tempo/univariate/elastic_distances/distances.hpp
-        include/tempo/univariate/elastic_distances/dtw/dtw.hpp
-        include/tempo/univariate/elastic_distances/dtw/cdtw.hpp
-        include/tempo/univariate/elastic_distances/dtw/wdtw.hpp
-        include/tempo/univariate/elastic_distances/elementwise/elementwise.hpp
-        include/tempo/univariate/elastic_distances/lcss/lcss.hpp
+        include/tempo/univariate/distances/distances.hpp
+        include/tempo/univariate/distances/dtw/dtw.hpp
+        include/tempo/univariate/distances/dtw/cdtw.hpp
+        include/tempo/univariate/distances/dtw/wdtw.hpp
+        include/tempo/univariate/distances/elementwise/elementwise.hpp
+        include/tempo/univariate/distances/lcss/lcss.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/version.hpp
         )
