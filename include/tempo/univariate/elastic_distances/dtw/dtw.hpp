@@ -15,7 +15,7 @@ namespace tempo::univariate::elastic_distances {
          *  Double buffered implementation using O(n) space.
          *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning).
          *  A tight cutoff can allow a lot of pruning, speeding up the process considerably.
-         *  Actual implementation assuming that some pre-condition are fulfilled.
+         *  Actual implementation assuming that some pre-conditions are fulfilled.
          * @tparam FloatType    The floating number type used to represent the series.
          * @tparam dist     Distance function, default to square euclidean distance for FloatType.
          * @param lines     Pointer to the "line series". Must be the longest series. Cannot be null.
@@ -60,6 +60,7 @@ namespace tempo::univariate::elastic_distances {
             double cost;
 
             // EAP variables: track where to start the next line, and the position of the previous pruning point.
+            // Must be init to 0: index 0 is the next starting index and also the "previous pruning point"
             size_t next_start{0}, prev_pp{0};
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

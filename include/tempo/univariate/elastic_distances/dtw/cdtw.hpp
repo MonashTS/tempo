@@ -15,7 +15,7 @@ namespace tempo::univariate::elastic_distances {
          *  Double buffered implementation using O(n) space.
          *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning, large window).
          *  A tight cutoff can allow a lot of pruning, speeding up the process considerably.
-         *  Actual implementation assuming that some pre-condition are fulfilled.
+         *  Actual implementation assuming that some pre-conditions are fulfilled.
          * @tparam FloatType    The floating number type used to represent the series.
          * @tparam dist     Distance function, default to square euclidean distance for FloatType.
          * @param lines     Pointer to the "line series". Must be the longest series. Cannot be null.
@@ -55,7 +55,7 @@ namespace tempo::univariate::elastic_distances {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Double buffer allocation, no initialisation required (border condition manage in the code).
             // Base indices for the 'c'urrent row and the 'p'revious row. Account for the extra cell (+1 and +2)
-            std::vector<double> buffers_v((1 + nbcols) * 2, POSITIVE_INFINITY);
+            std::vector<FloatType> buffers_v((1 + nbcols) * 2, POSITIVE_INFINITY);
             auto* buffers = buffers_v.data();
             size_t c{0+1}, p{nbcols+2};
 
@@ -82,12 +82,12 @@ namespace tempo::univariate::elastic_distances {
                 const size_t jStart = std::max(cap_start_index_to_window(i, w), next_start);
                 const size_t jStop = cap_stop_index_to_window_or_end(i, w, nbcols);
                 next_start = jStart;
-                size_t curr_pp = jStart; // Next pruning point init at the start of the line
-                j = jStart;
+                size_t curr_pp = next_start; // Next pruning point init at the start of the line
+                j = next_start;
                 // --- --- --- Stage 0: Initialise the left border
                 {
                     cost = POSITIVE_INFINITY;
-                    buffers[c+jStart-1] = POSITIVE_INFINITY;
+                    buffers[c+next_start-1] = POSITIVE_INFINITY;
                 }
                 // --- --- --- Stage 1: Up to the previous pruning point while advancing next_start: diag and top
                 for (; j == next_start && j < prev_pp; ++j) {
