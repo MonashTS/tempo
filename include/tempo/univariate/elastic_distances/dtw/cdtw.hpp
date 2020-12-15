@@ -46,6 +46,8 @@ namespace tempo::univariate::elastic_distances {
             assert(nblines-nbcols<=w);
             // Adapt constants to the floating point type
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
+
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Create the two upper bounds:
             // * The "original upper bound" is the cutoff point + epsilon (to deal with numerical instability).
             // * The upper bound (most commonly used in the code) is the original_ub tightened using the last alignment cost.
