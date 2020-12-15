@@ -1,5 +1,4 @@
-#ifndef EAPDISTANCES_TTOOLS_HPP
-#define EAPDISTANCES_TTOOLS_HPP
+#pragma once
 
 #include <catch.hpp>
 #include <tempo/utils/utils.hpp>
@@ -88,5 +87,3 @@ namespace ttools {
 
 
 } // End of namespace testing tools
-
-#endif
