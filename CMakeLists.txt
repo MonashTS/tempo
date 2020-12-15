@@ -33,6 +33,7 @@ set(TEMPO_SRC
         include/tempo/univariate/elastic_distances/dtw/dtw.hpp
         include/tempo/univariate/elastic_distances/dtw/cdtw.hpp
         include/tempo/univariate/elastic_distances/dtw/wdtw.hpp
+        include/tempo/univariate/elastic_distances/elementwise/elementwise.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/version.hpp
         )
