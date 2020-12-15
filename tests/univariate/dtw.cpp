@@ -101,9 +101,8 @@ TEST_CASE("DTW Fixed length", "[dtw]") {
 TEST_CASE("DTW variable length", "[dtw]") {
 
     // Create a random dataset
-    constexpr int nbitems = ttools::def_nbitems*5;
-    constexpr int maxlength = 250;
-    const auto fset = ttools::get_set_variable_length(ttools::prng, nbitems, 0, maxlength);
+    constexpr int nbitems = ttools::def_nbitems;
+    const auto fset = ttools::get_set_variable_length(ttools::prng, nbitems);
 
     SECTION("DTW(s,s) == 0") {
         for (const auto &series: fset) {
