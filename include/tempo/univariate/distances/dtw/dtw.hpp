@@ -165,6 +165,7 @@ namespace tempo::univariate {
     // --- --- --- --- ---
 
     /** Dynamic Time Warping.
+     *  Double buffered implementation using O(n) space.
      *  Compute an upper bound and used the DTW with pruning and early abandoning function.
      *  Any valid path in the cost matrix represent an upper bound. We compute such a path using the squared euclidean
      *  distance, augmented by a straight line when length are disparate.

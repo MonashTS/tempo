@@ -16,7 +16,8 @@ namespace tempo::univariate {
     } // End of namespace internal
 
 
-    /** LCSS (Longest Common SubSequence) on a FloatType buffer.
+    /** Longest Common SubSequence (LCSS).
+     *  Double buffered implementation using O(n) space.
      * @tparam FloatType    The floating number type used to represent the series.
      * @param series1   Pointer to the first series' values
      * @param length1   Length of the first series
@@ -101,7 +102,8 @@ namespace tempo::univariate {
     // LCSS with cut-off
     // --- --- --- --- --- ---
 
-    /** LCSS (Longest Common SubSequence) on a FloatType buffer.
+    /** Longest Common SubSequence (LCSS), with cut-off point for early abandoning.
+     *  Double buffered implementation using O(n) space.
      * @tparam FloatType    The floating number type used to represent the series.
      * @param series1   Pointer to the first series' values
      * @param length1   Length of the first series
