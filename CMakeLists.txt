@@ -28,15 +28,16 @@ project(tempo VERSION ${VERSION})
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Creating the library
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-add_library(tempo INTERFACE)
-target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_sources(tempo INTERFACE
+set(TEMPO_SRC
         include/tempo/univariate/elastic_distances/distances.hpp
         include/tempo/univariate/elastic_distances/dtw/dtw.hpp
         include/tempo/univariate/elastic_distances/dtw/cdtw.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/version.hpp
         )
+add_library(tempo INTERFACE)
+target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_sources(tempo INTERFACE ${TEMPO_SRC})
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Adding the tests
