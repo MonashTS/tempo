@@ -209,7 +209,7 @@ namespace tempo::univariate::elastic_distances {
         }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::dtw(lines, nblines, cols, nbcols, cutoff);
+        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
     }
 
     /// Helper for the above, using vectors
@@ -257,7 +257,7 @@ namespace tempo::univariate::elastic_distances {
         std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::dtw(lines, nblines, cols, nbcols, cutoff);
+        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
     }
 
     /// Helper for the above, using vectors
