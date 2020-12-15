@@ -167,8 +167,6 @@ TEST_CASE("DTW variable length", "[dtw]") {
                     bsf = v;
                 }
 
-                INFO("ref = " << v_ref << " " << bsf_ref << " dtw = " << v << " " << bsf);
-                INFO("size i, j = " << fset[i].size() << ", " << fset[j].size());
                 REQUIRE(idx_ref == idx);
 
                 // --- --- --- --- --- --- --- --- --- --- --- ---
