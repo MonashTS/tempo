@@ -1,5 +1,4 @@
-#ifndef TEST_REFERENCES_EAPDISTANCES_DTW_HPP
-#define TEST_REFERENCES_EAPDISTANCES_DTW_HPP
+#pragma once
 
 #include <vector>
 #include <tempo/utils/utils.hpp>
@@ -22,5 +21,3 @@ namespace reference {
     }
 
 } // End of namespace references
-
-#endif
