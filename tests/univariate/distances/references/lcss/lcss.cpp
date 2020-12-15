@@ -4,7 +4,7 @@ namespace reference {
 
     using namespace std;
     using namespace tempo;
-    using namespace tempo::univariate::distances;
+    using namespace tempo::univariate;
 
     double lcss_matrix(
             const double *series1, ssize_t length1,

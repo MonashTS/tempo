@@ -3,7 +3,7 @@
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
-namespace tempo::univariate::distances {
+namespace tempo::univariate {
 
     namespace internal {
 
@@ -268,4 +268,4 @@ namespace tempo::univariate::distances {
         return dtw<FloatType, dist>(USE(series1), USE(series2), cutoff);
     }
 
-} // End of namespace tempo::univariate::distances
+} // End of namespace tempo::univariate

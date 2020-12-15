@@ -4,7 +4,7 @@ namespace reference {
 
     using namespace std;
     using namespace tempo;
-    using namespace tempo::univariate::distances;
+    using namespace tempo::univariate;
 
     /// Reference implementation on a matrix
     double wdtw_matrix(const double *series1, size_t length1_, const double *series2, size_t length2_, const double *weights) {

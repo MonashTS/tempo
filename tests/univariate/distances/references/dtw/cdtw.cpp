@@ -4,7 +4,7 @@ namespace reference {
 
     using namespace std;
     using namespace tempo;
-    using namespace tempo::univariate::distances;
+    using namespace tempo::univariate;
 
     /// Naive DTW with a window. Reference code.
     double cdtw_matrix(

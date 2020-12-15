@@ -6,7 +6,7 @@
 #include "tests_tools.hpp"
 #include "references/dtw/dtw.hpp"
 
-using namespace tempo::univariate::distances;
+using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
