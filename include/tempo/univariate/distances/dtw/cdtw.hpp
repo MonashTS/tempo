@@ -85,7 +85,7 @@ namespace tempo::univariate {
                 // --- --- --- Stage 0: Initialise the left border
                 {
                     cost = POSITIVE_INFINITY;
-                    buffers[c+next_start-1] = POSITIVE_INFINITY;
+                    buffers[c+jStart-1] = cost;
                 }
                 // --- --- --- Stage 1: Up to the previous pruning point while advancing next_start: diag and top
                 for (; j == next_start && j < prev_pp; ++j) {
