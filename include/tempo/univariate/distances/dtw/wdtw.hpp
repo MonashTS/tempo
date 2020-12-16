@@ -21,11 +21,9 @@ namespace tempo::univariate {
          * @param weights   Pointer to the weights. Must be at least as long as nblines.
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
-         * @return  DTW between the two series or +INF if early abandoned.
-         *          Warning: a result different from +INF does not warrant a cost < cutoff.
+         * @return WTW between the two series or +INF if early abandoned.
          */
         template<typename FloatType = double, auto dist = square_dist < FloatType>>
-
         [[nodiscard]] inline FloatType wdtw(
                 const FloatType *lines, size_t nblines,
                 const FloatType *cols, size_t nbcols,
@@ -204,7 +202,7 @@ namespace tempo::univariate {
     * @param series2   Pointer to the second series' values.
     * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
     * @param weights   Pointer to the weights. Must be at least as long as nblines.
-    * @return  DTW between the two series
+    * @return WTW between the two series or +INF if early abandoned.
     */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType wdtw(
@@ -264,8 +262,7 @@ namespace tempo::univariate {
      * @param weights   Pointer to the weights. Must be at least as long as nblines.
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
-     * @return  DTW between the two series or +INF if early abandoned.
-     *          Warning: a result different from +INF does not warrant a cost < cutoff.
+     * @return WTW between the two series or +INF if early abandoned.
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType wdtw(

@@ -59,7 +59,7 @@ namespace tempo::univariate {
      * @param length1   Length of the first series
      * @param series2   Second series
      * @param length2   Length of the second series
-     * @return Sum of element wise distances or +INF if different lengths
+     * @return Sum of element wise distances or +INF if different lengths or early abandoned
      */
     template<typename FloatType=double, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline double elementwise(

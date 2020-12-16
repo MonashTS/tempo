@@ -35,8 +35,7 @@ namespace tempo::univariate {
          * @param co        Cost of the Split and Merge operations, also added to Move operations. Must have c>=0.
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
-         * @return  DTW between the two series or +INF if early abandoned.
-         *          Warning: a result different from +INF does not warrant a cost < cutoff.
+         * @return MSM between the two series or +INF if early abandoned.
          */
         template<typename FloatType = double>
         [[nodiscard]] FloatType msm(
@@ -215,7 +214,7 @@ namespace tempo::univariate {
      * @param series2   Pointer to the second series' values.
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param co        Cost of the Split and Merge operations, also added to Move operations. Must have c>=0.
-     * @return  DTW between the two series
+     * @return MSM between the two series
      */
     template<typename FloatType = double>
     [[nodiscard]] FloatType msm(
@@ -274,8 +273,7 @@ namespace tempo::univariate {
      * @param co        Cost of the Split and Merge operations, also added to Move operations. Must have c>=0.
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
-     * @return  DTW between the two series or +INF if early abandoned.
-     *          Warning: a result different from +INF does not warrant a cost < cutoff.
+     * @return MSM between the two series or +INF if early abandoned.
      */
     template<typename FloatType = double>
     [[nodiscard]] FloatType msm(

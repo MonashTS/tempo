@@ -24,7 +24,7 @@ namespace tempo::univariate {
          *                  Must be 0<=w<=nblines and nblines - nbcols <= w
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
-         * @return ERP value or +INF if, given w, no alignment is possible
+         * @return ERP value or +INF if early abandoned, or , given w, no alignment is possible
          */
         template<typename FloatType=double, auto dist = square_dist<FloatType>>
         [[nodiscard]] double erp(
@@ -246,7 +246,7 @@ namespace tempo::univariate {
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param gValue    "Gap Value"
      * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
-     * @return          ERP value or +INF if, given w, no alignment is possible
+     * @return ERP value or +INF if, given w, no alignment is possible
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType erp(
@@ -312,7 +312,7 @@ namespace tempo::univariate {
      * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
-     * @return          ERP value or +INF if early abandoned, or , given w, no alignment is possible
+     * @return ERP value or +INF if early abandoned, or , given w, no alignment is possible
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType erp(

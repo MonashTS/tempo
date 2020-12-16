@@ -20,8 +20,7 @@ namespace tempo::univariate {
          * @param nbcols    Length of the column series. Must be 0 < nbcols <= nblines < tempo::MAX_SERIES_LENGTH.
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
-         * @return  DTW between the two series or +INF if early abandoned.
-         *          Warning: a result different from +INF does not warrant a cost < cutoff.
+         * @return DTW between the two series or +INF if early abandoned.
          */
         template<typename FloatType = double, auto dist = square_dist < FloatType>>
 
@@ -168,7 +167,7 @@ namespace tempo::univariate {
      * @param length1   Length of the first series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param series2   Pointer to the second series' values.
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
-     * @return  DTW between the two series
+     * @return DTW between the two series
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType dtw(
@@ -221,8 +220,7 @@ namespace tempo::univariate {
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
-     * @return  DTW between the two series or +INF if early abandoned.
-     *          Warning: a result different from +INF does not warrant a cost < cutoff.
+     * @return DTW between the two series or +INF if early abandoned.
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType dtw(

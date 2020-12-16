@@ -22,8 +22,7 @@ namespace tempo::univariate {
          *                  Must be 0<=w<=nblines and nblines - nbcols <= w
          * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
          *                  May lead to early abandoning.
-         * @return  DTW between the two series or +INF if early abandoned.
-         *          Warning: a result different from +INF does not warrant a cost < cutoff.
+         * @return CDTW between the two series or +INF if early abandoned or, given w, no alignment is possible.
          */
         template<typename FloatType = double, auto dist = square_dist < FloatType>>
 
@@ -163,7 +162,7 @@ namespace tempo::univariate {
      * @param series2   Pointer to the second series' values.
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
      * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
-     * @return  DTW between the two series
+     * @return CDTW between the two series or +INF if, given w, no alignment is possible.
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType cdtw(
@@ -224,8 +223,7 @@ namespace tempo::univariate {
      * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
-     * @return  DTW between the two series or +INF if early abandoned.
-     *          Warning: a result different from +INF does not warrant a cost < cutoff.
+     * @return CDTW between the two series or +INF if early abandoned or, given w, no alignment is possible.
      */
     template<typename FloatType = double, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType cdtw(

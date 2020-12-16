@@ -112,7 +112,7 @@ namespace tempo::univariate {
      * @param cutoff.   Attempt to prune computation of alignments with cost > cutoff.
      *                  May lead to early abandoning.
      * @return LCSS dissimilarity measure [0,1] where 0 stands for identical series and 1 completely distinct,
-     *         or +INF if, given w, no alignment is possible
+     *         or +INF if early abandoned, or, given w, no alignment is possible
      */
     template<typename FloatType=double>
     [[nodiscard]] FloatType lcss(
