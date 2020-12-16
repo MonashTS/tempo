@@ -155,8 +155,8 @@ namespace tempo::univariate {
     /** Constrained Dynamic Time Warping.
      *  Double buffered implementation using O(n) space.
      *  Compute an upper bound before calling the function with pruning.
-     *  Any valid path in the cost matrix represent an upper bound. We compute such a path using the squared euclidean
-     *  distance, augmented by a straight line when length are disparate.
+     *  Any valid path in the cost matrix represent an upper bound.
+     *  We compute such a path using the diagonal, then going down in the last column when lengths are disparate.
      * @tparam FloatType    The floating number type used to represent the series.
      * @tparam dist     Distance function, default to square euclidean distance for FloatType.
      * @param series1   Pointer to the first series' values.
