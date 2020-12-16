@@ -28,7 +28,7 @@ namespace tempo::univariate {
         [[nodiscard]] inline FloatType dtw(
                 const FloatType *lines, size_t nblines,
                 const FloatType *cols, size_t nbcols,
-                FloatType cutoff
+                const FloatType cutoff
         ) {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // In debug mode, check preconditions
@@ -39,12 +39,9 @@ namespace tempo::univariate {
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-            // Create the two upper bounds:
-            // * The "original upper bound" is the cutoff point + epsilon (to deal with numerical instability).
-            // * The upper bound (most commonly used in the code) is the original_ub tightened using the last alignment cost.
-            // const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
-            // const FloatType ub = original_ub - dist(lines[nblines - 1], cols[nbcols - 1]);
-            const FloatType original_ub = cutoff;
+            // Create a new tighter upper bounds (most commonly used in the code).
+            // First, take the "next float" after "cutoff" to deal with numerical instability.
+            // Then, subtract the cost of the last alignment.
             const FloatType ub = nextafter(cutoff, POSITIVE_INFINITY) - dist(lines[nblines - 1], cols[nbcols - 1]);
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -70,7 +67,7 @@ namespace tempo::univariate {
                 // Fist cell is a special case.
                 // Check against the original upper bound dealing with the case where we have both series of length 1.
                 cost = dist(lines[i], cols[0]);
-                if (cost > original_ub) { return POSITIVE_INFINITY; }
+                if (cost > cutoff) { return POSITIVE_INFINITY; }
                 buffers[c + 0] = cost;
                 // All other cells. Checking against "ub" is OK as the only case where the last cell of this line is the
                 // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
@@ -118,8 +115,8 @@ namespace tempo::univariate {
                         buffers[c + j] = cost;
                         if (cost <= ub) { curr_pp = j + 1; }
                         else {
-                            // Special case if we are on the last alignment: return the actual cost if we are <= original_ub
-                            if (i == nblines - 1 && j == nbcols - 1 && cost <= original_ub) { return cost; }
+                            // Special case if we are on the last alignment: return the actual cost if we are <= cutoff
+                            if (i == nblines - 1 && j == nbcols - 1 && cost <= cutoff) { return cost; }
                             else { return POSITIVE_INFINITY; }
                         }
                     } else { // Case 2: Not advancing next start: possible path in previous cells: left and diag.
@@ -132,7 +129,7 @@ namespace tempo::univariate {
                     if (j == next_start) {
                         // But only if we are above the original UB
                         // Else set the next starting point to the last valid column
-                        if (cost > original_ub) { return POSITIVE_INFINITY; }
+                        if (cost > cutoff) { return POSITIVE_INFINITY; }
                         else { next_start = nbcols - 1; }
                     }
                 }
@@ -150,7 +147,7 @@ namespace tempo::univariate {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Finalisation
             // Check for last alignment (i==nblines implied, Stage 4 implies j<=nbcols). Cost must be <= original bound.
-            if (j == nbcols && cost <= original_ub) { return cost; }
+            if (j == nbcols && cost <= cutoff) { return cost; }
             else { return POSITIVE_INFINITY; }
         }
 
@@ -178,34 +175,27 @@ namespace tempo::univariate {
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        // Compute a cutoff point using the diagonal
-        FloatType cutoff{0};
-        // Counter, will first go over the columns, and then complete the lines
-        size_t i{0};
-        // We have less columns than lines: cover all the columns first.
-        for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
-        // Then go down in the last column
-        if(i<nblines) {
-            const auto lc = cols[nbcols - 1];
-            for (; i < nblines; ++i) { cutoff += dist(lines[i], lc); }
+        const auto check_result = check_order_series(series1, length1, series2, length2);
+        switch (check_result.index()) {
+            case 0: { return std::get<0>(check_result);}
+            case 1: {
+                const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+                // Compute a cutoff point using the diagonal
+                FloatType cutoff{0};
+                // Counter, will first go over the columns, and then complete the lines
+                size_t i{0};
+                // We have less columns than lines: cover all the columns first.
+                for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
+                // Then go down in the last column
+                if(i<nblines) {
+                    const auto lc = cols[nbcols - 1];
+                    for (; i < nblines; ++i) { cutoff += dist(lines[i], lc); }
+                }
+                // Call
+                return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
+            }
+            default: should_not_happen();
         }
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
     }
 
     /// Helper for the above, using vectors

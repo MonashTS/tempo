@@ -74,10 +74,16 @@ namespace tempo::univariate {
         assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
         // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
         if (length1 != length2) { return POSITIVE_INFINITY; }
+
+        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+        // Create a new tighter upper bounds (most commonly used in the code).
+        // First, take the "next float" after "cutoff" to deal with numerical instability.
+        // Then, subtract the cost of the last alignment.
         // Adjust the lower bound, taking the last alignment into account
         const FloatType lastA = dist(series1[length1-1], series2[length1-1]);
-        const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
-        const FloatType ub = original_ub - lastA;
+        const FloatType ub = std::nextafter(cutoff, POSITIVE_INFINITY) - lastA;
+
+        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Compute the Euclidean-like distance up to, excluding, the last alignment
         double cost = 0;
         for (size_t i{0}; i < length1-1; ++i) { // Stop before the last: counted in the bound!
@@ -86,7 +92,7 @@ namespace tempo::univariate {
         }
         // Add the last alignment and check the result
         cost+=lastA;
-        if(cost>original_ub){return POSITIVE_INFINITY;} else { return cost; }
+        if(cost>cutoff){return POSITIVE_INFINITY;} else { return cost; }
     }
 
     /// Helper for the above, using vectors

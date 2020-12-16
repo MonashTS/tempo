@@ -41,13 +41,14 @@ namespace tempo::univariate {
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-            // Create the two upper bounds:
-            // * The "original upper bound" is the cutoff point + epsilon (to deal with numerical instability).
-            // * The upper bound (most commonly used in the code) is the original_ub tightened using the last alignment cost.
-            const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
-            const auto lastl = nblines-1;
-            const auto lastc = nbcols-1;
-            const FloatType ub = original_ub - (dist(lines[lastl], cols[lastc])*weights[absdiff(lastl, lastc)]);
+            // Create a new tighter upper bounds (most commonly used in the code).
+            // First, take the "next float" after "cutoff" to deal with numerical instability.
+            // Then, subtract the cost of the last alignment.
+            const FloatType ub = initBlock{
+                const auto ll = nblines-1;
+                const auto lc = nbcols-1;  // Precondition: ll>=lc, so ll-lc>=0, well defined for unsigned size_t.
+                return nextafter(cutoff, POSITIVE_INFINITY) -dist(lines[ll], cols[lc])*weights[ll-lc];
+            };
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Double buffer allocation, init to +INF.
@@ -105,8 +106,8 @@ namespace tempo::univariate {
                         buffers[c + j] = cost;
                         if (cost <= ub) { curr_pp = j + 1; }
                         else {
-                            // Special case if we are on the last alignment: return the actual cost if we are <= original_ub
-                            if (i == nblines - 1 && j == nbcols - 1 && cost <= original_ub) { return cost; }
+                            // Special case if we are on the last alignment: return the actual cost if we are <= cutoff
+                            if (i == nblines - 1 && j == nbcols - 1 && cost <= cutoff) { return cost; }
                             else { return POSITIVE_INFINITY; }
                         }
                     } else { // Case 2: Not advancing next start: possible path in previous cells: left and diag.
@@ -119,7 +120,7 @@ namespace tempo::univariate {
                     if (j == next_start) {
                         // But only if we are above the original UB
                         // Else set the next starting point to the last valid column
-                        if (cost > original_ub) { return POSITIVE_INFINITY; }
+                        if (cost > cutoff) { return POSITIVE_INFINITY; }
                         else { next_start = nbcols - 1; }
                     }
                 }
@@ -138,7 +139,7 @@ namespace tempo::univariate {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Finalisation
             // Check for last alignment (i==nblines implied, Stage 4 implies j<=nbcols). Cost must be <= original bound.
-            if (j == nbcols && cost <= original_ub) { return cost; }
+            if (j == nbcols && cost <= cutoff) { return cost; }
             else { return POSITIVE_INFINITY; }
         }
 
