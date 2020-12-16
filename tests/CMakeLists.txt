@@ -12,6 +12,7 @@ add_executable(tests_univariate
         univariate/distances/cdtw.cpp univariate/distances/references/dtw/cdtw.cpp
         univariate/distances/wdtw.cpp univariate/distances/references/dtw/wdtw.cpp
         univariate/distances/elementwise.cpp
+        univariate/distances/erp.cpp univariate/distances/references/erp/erp.cpp
         univariate/distances/lcss.cpp univariate/distances/references/lcss/lcss.cpp
         )
 
