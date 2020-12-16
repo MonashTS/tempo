@@ -212,34 +212,28 @@ namespace tempo::univariate {
             const FloatType *series2, size_t length2,
             const FloatType *weights
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
+       const auto check_result = check_order_series(series1, length1, series2, length2);
+       switch (check_result.index()) {
+           case 0: { return std::get<0>(check_result);}
+           case 1: {
+               const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
 
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        // Compute a cutoff point using the diagonal
-        FloatType cutoff{0};
-        // Counter, will first go over the columns, and then complete the lines
-        size_t i{0};
-        // We have less columns than lines: cover all the columns first.
-        for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i])*weights[0]; }
-        // Then go down in the last column
-        if(i<nblines) {
-            const auto lc = cols[nbcols - 1];
-            for (; i < nblines; ++i) { cutoff += dist(lines[i], lc)*weights[i-nbcols+1]; }
-        }
+               // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+               // Compute a cutoff point using the diagonal
+               FloatType cutoff{0};
+               // We have less columns than lines: cover all the columns first.
+               for (size_t i{0}; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i])*weights[0]; }
+               // Then go down in the last column
+               if(nbcols<nblines) {
+                   const auto lc = cols[nbcols - 1];
+                   for (size_t i{nbcols}; i < nblines; ++i) { cutoff += dist(lines[i], lc)*weights[i-nbcols+1]; }
+               }
 
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::wdtw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+               // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+               return internal::wdtw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+           }
+           default: should_not_happen();
+       }
     }
 
     /// Helper for the above, using vectors
@@ -280,21 +274,15 @@ namespace tempo::univariate {
             const FloatType *weights,
             FloatType cutoff
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::wdtw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+        const auto check_result = check_order_series(series1, length1, series2, length2);
+        switch (check_result.index()) {
+            case 0: { return std::get<0>(check_result);}
+            case 1: {
+                const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+                return internal::wdtw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+            }
+            default: should_not_happen();
+        }
     }
 
     /// Helper for the above, using vectors
