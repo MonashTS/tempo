@@ -51,7 +51,7 @@ namespace tempo::univariate {
             const FloatType ub = original_ub - dist(lines[nblines - 1], cols[nbcols - 1]);
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-            // Double buffer allocation, no initialisation required (border condition manage in the code).
+            // Double buffer allocation, init to +INF.
             // Base indices for the 'c'urrent row and the 'p'revious row. Account for the extra cell (+1 and +2)
             std::vector<FloatType> buffers_v((1 + nbcols) * 2, POSITIVE_INFINITY);
             auto* buffers = buffers_v.data();
