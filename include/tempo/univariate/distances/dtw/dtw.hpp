@@ -42,8 +42,10 @@ namespace tempo::univariate {
             // Create the two upper bounds:
             // * The "original upper bound" is the cutoff point + epsilon (to deal with numerical instability).
             // * The upper bound (most commonly used in the code) is the original_ub tightened using the last alignment cost.
-            const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
-            const FloatType ub = original_ub - dist(lines[nblines - 1], cols[nbcols - 1]);
+            // const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
+            // const FloatType ub = original_ub - dist(lines[nblines - 1], cols[nbcols - 1]);
+            const FloatType original_ub = cutoff;
+            const FloatType ub = nextafter(cutoff, POSITIVE_INFINITY) - dist(lines[nblines - 1], cols[nbcols - 1]);
 
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Double buffer allocation, no initialisation required (border condition manage in the code).
@@ -74,8 +76,7 @@ namespace tempo::univariate {
                 // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
                 size_t curr_pp = 1;
                 for (j = 1; j == curr_pp && j < nbcols; ++j) {
-                    const auto d = dist(li, cols[j]);
-                    cost = cost + d;
+                    cost = cost + dist(li, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { ++curr_pp; }
                 }
@@ -93,31 +94,27 @@ namespace tempo::univariate {
                 j = next_start;
                 // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
                 {
-                    const auto d = dist(li, cols[j]);
-                    cost = buffers[p + j] + d;
+                    cost = buffers[p + j] + dist(li, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { curr_pp = j + 1; } else { ++next_start; }
                     ++j;
                 }
                 // --- --- --- Stage 1: Up to the previous pruning point while advancing next_start: diag and top
                 for (; j == next_start && j < prev_pp; ++j) {
-                    const auto d = dist(li, cols[j]);
-                    cost = std::min(buffers[p + j - 1], buffers[p + j]) + d;
+                    cost = std::min(buffers[p + j - 1], buffers[p + j]) + dist(li, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { curr_pp = j + 1; } else { ++next_start; }
                 }
                 // --- --- --- Stage 2: Up to the previous pruning point without advancing next_start: left, diag and top
                 for (; j < prev_pp; ++j) {
-                    const auto d = dist(li, cols[j]);
-                    cost = min(cost, buffers[p + j - 1], buffers[p + j]) + d;
+                    cost = min(cost, buffers[p + j - 1], buffers[p + j]) + dist(li, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { curr_pp = j + 1; }
                 }
                 // --- --- --- Stage 3: At the previous pruning point. Check if we are within bounds.
                 if (j < nbcols) { // If so, two cases.
-                    const auto d = dist(li, cols[j]);
                     if (j == next_start) { // Case 1: Advancing next start: only diag.
-                        cost = buffers[p + j - 1] + d;
+                        cost = buffers[p + j - 1] + dist(li, cols[j]);
                         buffers[c + j] = cost;
                         if (cost <= ub) { curr_pp = j + 1; }
                         else {
@@ -126,7 +123,7 @@ namespace tempo::univariate {
                             else { return POSITIVE_INFINITY; }
                         }
                     } else { // Case 2: Not advancing next start: possible path in previous cells: left and diag.
-                        cost = std::min(cost, buffers[p + j - 1]) + d;
+                        cost = std::min(cost, buffers[p + j - 1]) + dist(li, cols[j]);
                         buffers[c + j] = cost;
                         if (cost <= ub) { curr_pp = j + 1; }
                     }
@@ -142,8 +139,7 @@ namespace tempo::univariate {
                 // --- --- --- Stage 4: After the previous pruning point: only prev.
                 // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
                 for (; j == curr_pp && j < nbcols; ++j) {
-                    const auto d = dist(li, cols[j]);
-                    cost = cost + d;
+                    cost = cost + dist(li, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { ++curr_pp; }
                 }
@@ -243,21 +239,15 @@ namespace tempo::univariate {
             const FloatType *series2, size_t length2,
             FloatType cutoff
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
+        const auto check_result = check_order_series(series1, length1, series2, length2);
+        switch (check_result.index()) {
+            case 0: { return std::get<0>(check_result);}
+            case 1: {
+                const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+                return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
+            }
+            default: should_not_happen();
+        }
     }
 
     /// Helper for the above, using vectors
