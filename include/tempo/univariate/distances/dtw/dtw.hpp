@@ -177,21 +177,22 @@ namespace tempo::univariate {
     ) {
         const auto check_result = check_order_series(series1, length1, series2, length2);
         switch (check_result.index()) {
-            case 0: { return std::get<0>(check_result);}
+            case 0: { return std::get<0>(check_result); }
             case 1: {
                 const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+
+                // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                 // Compute a cutoff point using the diagonal
                 FloatType cutoff{0};
-                // Counter, will first go over the columns, and then complete the lines
-                size_t i{0};
                 // We have less columns than lines: cover all the columns first.
-                for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
+                for (size_t i{0}; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
                 // Then go down in the last column
-                if(i<nblines) {
+                if(nbcols<nblines) {
                     const auto lc = cols[nbcols - 1];
-                    for (; i < nblines; ++i) { cutoff += dist(lines[i], lc); }
+                    for (size_t i {nbcols}; i < nblines; ++i) { cutoff += dist(lines[i], lc); }
                 }
-                // Call
+
+                // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                 return internal::dtw<FloatType, dist>(lines, nblines, cols, nbcols, cutoff);
             }
             default: should_not_happen();
