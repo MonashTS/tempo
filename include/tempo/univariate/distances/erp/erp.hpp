@@ -135,7 +135,7 @@ namespace tempo::univariate {
                     // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
                     for (; j == curr_pp && j < jStop; ++j) {
                         cost = cost + dist(gValue, cols[j]),  // Previous
-                        buffers[c + j] = cost;
+                                buffers[c + j] = cost;
                         if (cost <= ub) { ++curr_pp; }
                     }
                     // --- --- ---
@@ -255,34 +255,29 @@ namespace tempo::univariate {
             FloatType gValue,
             size_t w
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-        // Cap the windows and check that, given the constraint, an alignment is possible
-        if (w > nblines) { w = nblines; }
-        if (nblines - nbcols > w) {return POSITIVE_INFINITY; }
+        const auto check_result = check_order_series(series1, length1, series2, length2);
+        switch (check_result.index()) {
+            case 0: { return std::get<0>(check_result); }
+            case 1: {
+                const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+                // Cap the windows and check that, given the constraint, an alignment is possible
+                if (w > nblines) { w = nblines; }
+                if (nblines - nbcols > w) { return POSITIVE_INFINITY<FloatType>; }
 
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        // Compute a cutoff point using the diagonal
-        FloatType cutoff{0};
-        // Counter, will first go over the columns, and then complete the lines
-        size_t i{0};
-        // We have less columns than lines: cover all the columns first (diag)
-        for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
-        // Then go down in the last column (above)
-        for (; i < nblines; ++i) { cutoff += dist(lines[i], gValue); }
+                // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+                // Compute a cutoff point using the diagonal
+                FloatType cutoff{0};
+                // We have less columns than lines: cover all the columns first (diag)
+                for (size_t i{0}; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
+                // Then go down in the last column (above)
+                for (size_t i{nbcols}; i < nblines; ++i) { cutoff += dist(lines[i], gValue); }
 
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::erp<FloatType, dist>(lines, nblines, cols, nbcols, gValue, w, cutoff);
+                // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+                return internal::erp<FloatType, dist>(lines, nblines, cols, nbcols, gValue, w, cutoff);
+            }
+            default: should_not_happen();
+        }
+
     }
 
 
@@ -327,24 +322,19 @@ namespace tempo::univariate {
             size_t w,
             FloatType cutoff
     ) {
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
-        // Pre-conditions. Accept nullptr if length is 0
-        assert((series1 != nullptr || length1 == 0) && length1 < MAX_SERIES_LENGTH);
-        assert((series2 != nullptr || length2 == 0) && length2 < MAX_SERIES_LENGTH);
-        // Check sizes. If both series are empty, return 0, else if one is empty and not the other, maximal error.
-        if (length1 == 0 && length2 == 0) { return 0; }
-        else if ((length1 == 0) != (length2 == 0)) { return POSITIVE_INFINITY; }
-        // Use the smallest size as the columns (which will be the allocation size)
-        const auto[lines, nblines, cols, nbcols] =
-        (length1 > length2) ?
-        std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
-        // Cap the windows and check that, given the constraint, an alignment is possible
-        if (w > nblines) { w = nblines; }
-        if (nblines - nbcols > w) { return POSITIVE_INFINITY; }
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        return internal::erp<FloatType, dist>(lines, nblines, cols, nbcols, gValue, w, cutoff);
+        const auto check_result = check_order_series(series1, length1, series2, length2);
+        switch (check_result.index()) {
+            case 0: { return std::get<0>(check_result);}
+            case 1: {
+                const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
+                // Cap the windows and check that, given the constraint, an alignment is possible
+                if (w > nblines) { w = nblines; }
+                if (nblines - nbcols > w) { return POSITIVE_INFINITY<FloatType>; }
+                // Call
+                return internal::erp<FloatType, dist>(lines, nblines, cols, nbcols, gValue, w, cutoff);
+            }
+            default: should_not_happen();
+        }
     }
 
     /// Helper for the above, using vectors
