@@ -232,14 +232,12 @@ namespace tempo::univariate {
                 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                 // Compute a cutoff point using the diagonal.
                 FloatType cutoff{0};
-                // Counter, will first go over the columns, and then complete the lines
-                size_t i{0};
                 // We have less columns than lines: cover all the columns first.
-                for (; i < nbcols; ++i) { cutoff += std::abs(lines[i] - cols[i]); } // Diag: Move
+                for (size_t i{0}; i < nbcols; ++i) { cutoff += std::abs(lines[i] - cols[i]); } // Diag: Move
                 // Then go down in the last column
-                if(i<nblines) {
+                if(nbcols<nblines) {
                     const auto lc = cols[nbcols - 1];
-                    for (; i < nblines; ++i) {
+                    for (size_t i{nbcols}; i < nblines; ++i) {
                         cutoff += internal::split_merge_cost(lines[i], lines[i - 1], lc, co);   // Above: Split/Merge
                     }
                 }
