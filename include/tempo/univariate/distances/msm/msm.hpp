@@ -7,6 +7,21 @@ namespace tempo::univariate {
 
     namespace internal {
 
+        /** Cost function used when transforming X=(x1, x2, ... xi) into Y = (y1, ..., yj) by Split or Merge (symmetric)
+         * @param new_point in either X or Y
+         * @param xi Last point of X
+         * @param yj Last point of Y
+         * @param c cost of split and merge operation
+         * @return msm cost of the xi-yj alignment (without "recursive" part)
+         */
+        inline double split_merge_cost(double new_point, double xi, double yj, double c) {
+            if (((xi <= new_point) && (new_point <= yj)) || ((yj <= new_point) && (new_point <= xi))) {
+                return c;
+            } else {
+                return c + std::min(std::abs(new_point - xi), std::abs(new_point - yj));
+            }
+        }
+
         /** Move Split Merge metric with cutoff point for early abandoning and pruning.
          *  Double buffered implementation using O(n) space.
          *  Worst case scenario has a O(n²) time complexity (no pruning nor early abandoning).
@@ -40,7 +55,149 @@ namespace tempo::univariate {
             // Adapt constants to the floating point type
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
-            return POSITIVE_INFINITY;
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // Create the two upper bounds:
+            // * The "original upper bound" is the cutoff point + epsilon (to deal with numerical instability).
+            // * The upper bound (most commonly used in the code) is the original_ub tightened using the last alignment cost.
+            const FloatType original_ub = std::nextafter(cutoff, POSITIVE_INFINITY);
+            // Note that the last alignment can only computed if we have nbcols >= 2
+            // Tighten the upper bound with the last alignment minimum possible cost
+            const FloatType ub = initBlock{
+                if(nbcols>=2) {
+                    const auto li = lines[nblines - 1];
+                    const auto li1 = lines[nblines - 2];
+                    const auto cj = cols[nbcols - 1];
+                    const auto cj1 = cols[nbcols - 2];
+                    const auto la = min(
+                            std::abs(li - cj),                  // Diag: Move
+                            split_merge_cost(cj, li, cj1, co),  // Previous: Split/Merge
+                            split_merge_cost(li, li1, cj, co)   // Above: Split/Merge
+                    );
+                    return FloatType(original_ub - la);
+                } else {
+                    return FloatType(original_ub);
+                }
+            };
+
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // Double buffer allocation, no initialisation required (border condition manage in the code).
+            // Base indices for the 'c'urrent row and the 'p'revious row.
+            auto buffers = std::unique_ptr<double[]>(new double[nbcols * 2]);
+            size_t c{0}, p{nbcols};
+
+            // Line & column counters
+            size_t i{0}, j{0};
+
+            // Cost accumulator. Also used as the "left neighbour".
+            double cost{0};
+
+            // EAP variables: track where to start the next line, and the position of the previous pruning point.
+            // Must be init to 0: index 0 is the next starting index and also the "previous pruning point"
+            size_t next_start{0}, prev_pp{0};
+
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // Initialisation: compute the first line. Required as the main loop starts at line=1, not 0.
+            {
+                const auto l0 = lines[0];
+                // First cell (0,0) is a special case. Early abandon if above the cut-off point.
+                {
+                    cost = std::abs(l0 - cols[0]); // Very first cell
+                    buffers[c + 0] = cost;
+                    if (cost <= ub) { prev_pp = 1; } else { return POSITIVE_INFINITY; }
+                }
+                // Rest of the line, a cell only depends on the previous cell. Stop when > ub, update prev_pp.
+                for (j=1; j < nbcols; ++j) {
+                    cost = cost + split_merge_cost(cols[j], l0, cols[j - 1], co);
+                    if (cost <= ub) { buffers[c + j] = cost; prev_pp = j + 1; } else { break; }
+                }
+                // Next line.
+                ++i;
+            }
+
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // Main loop
+            for (; i < nblines; ++i) {
+                // --- --- --- Swap and variables init
+                std::swap(c, p);
+                const double li = lines[i];
+                const double li1 = lines[i - 1];
+                size_t curr_pp = next_start; // Next pruning point init at the start of the line
+                j = next_start;
+                // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
+                {
+                    cost = buffers[p + j] + split_merge_cost(li, li1, cols[j], co);
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { curr_pp = j + 1; } else { ++next_start; }
+                    ++j;
+                }
+                // --- --- --- Stage 1: Up to the previous pruning point while advancing next_start: diag and top
+                for (; j == next_start && j < prev_pp; ++j) {
+                    const double cj = cols[j];
+                    cost = std::min(
+                            buffers[p + j - 1] + std::abs(li - cj),             // Diag: Move
+                            buffers[p + j] + split_merge_cost(li, li1, cj, co)  // Above: Split/Merge
+                    );
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { curr_pp = j + 1; } else { ++next_start; }
+                }
+                // --- --- --- Stage 2: Up to the previous pruning point without advancing next_start: left, diag and top
+                for (; j < prev_pp; ++j) {
+                    const double cj = cols[j];
+                    cost = min(
+                            buffers[p + j - 1] + std::abs(li - cj),               // Diag: Move
+                            cost + split_merge_cost(cj, li, cols[j - 1], co),     // Previous: Split/Merge
+                            buffers[p + j] + split_merge_cost(li, li1, cj, co)    // Above: Split/Merge
+                    );
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { curr_pp = j + 1; }
+                }
+                // --- --- --- Stage 3: At the previous pruning point. Check if we are within bounds.
+                if (j < nbcols) { // If so, two cases.
+                    const double cj = cols[j];
+                    if (j == next_start) { // Case 1: Advancing next start: only diag.
+                        cost = buffers[p + j - 1] + std::abs(li - cj);            // Diag: Move
+                        buffers[c + j] = cost;
+                        if (cost <= ub) { curr_pp = j + 1; }
+                        else {
+                            // Special case if we are on the last alignment: return the actual cost if we are <= original_ub
+                            if (i == nblines - 1 && j == nbcols - 1 && cost <= original_ub) { return cost; }
+                            else { return POSITIVE_INFINITY; }
+                        }
+                    } else { // Case 2: Not advancing next start: possible path in previous cells: left and diag.
+                        cost = std::min(
+                                buffers[p + j - 1] + std::abs(li - cj),               // Diag: Move
+                                cost + split_merge_cost(cj, li, cols[j - 1], co)      // Previous: Split/Merge
+                        );
+                        buffers[c + j] = cost;
+                        if (cost <= ub) { curr_pp = j + 1; }
+                    }
+                    ++j;
+                } else { // Previous pruning point is out of bound: exit if we extended next start up to here.
+                    if (j == next_start) {
+                        // But only if we are above the original UB
+                        // Else set the next starting point to the last valid column
+                        if (cost > original_ub) { return POSITIVE_INFINITY; }
+                        else { next_start = nbcols - 1; }
+                    }
+                }
+                // --- --- --- Stage 4: After the previous pruning point: only prev.
+                // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
+                for (; j == curr_pp && j < nbcols; ++j) {
+                    cost = cost + split_merge_cost(cols[j], li, cols[j - 1], co);      // Previous: Split/Merge
+                    buffers[c + j] = cost;
+                    if (cost <= ub) { ++curr_pp; }
+                }
+                // --- --- ---
+                prev_pp = curr_pp;
+            } // End of main loop for(;i<nblines;++i)
+
+            // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            // Finalisation
+            // Check for last alignment (i==nblines implied, Stage 4 implies j<=nbcols). Cost must be <= original bound.
+            if (j == nbcols && cost <= original_ub) { return cost; }
+            else { return POSITIVE_INFINITY; }
+
         }
 
     } // End of namespace internal
