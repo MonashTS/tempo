@@ -239,17 +239,19 @@ namespace tempo::univariate {
         std::tuple(series1, length1, series2, length2) : std::tuple(series2, length2, series1, length1);
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        // Compute a cutoff point using the diagonal
-        FloatType cutoff{POSITIVE_INFINITY};
-        //// Counter, will first go over the columns, and then complete the lines
-        //size_t i{0};
-        //// We have less columns than lines: cover all the columns first.
-        //for (; i < nbcols; ++i) { cutoff += dist(lines[i], cols[i]); }
-        //// Then go down in the last column
-        //if(i<nblines) {
-        //    const auto lc = cols[nbcols - 1];
-        //    for (; i < nblines; ++i) { cutoff += dist(lines[i], lc); }
-        //}
+        // Compute a cutoff point using the diagonal.
+        FloatType cutoff{0};
+        // Counter, will first go over the columns, and then complete the lines
+        size_t i{0};
+        // We have less columns than lines: cover all the columns first.
+        for (; i < nbcols; ++i) { cutoff += std::abs(lines[i] - cols[i]); } // Diag: Move
+        // Then go down in the last column
+        if(i<nblines) {
+            const auto lc = cols[nbcols - 1];
+            for (; i < nblines; ++i) {
+                cutoff += internal::split_merge_cost(lines[i], lines[i - 1], lc, co);   // Above: Split/Merge
+            }
+        }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         return internal::msm<FloatType>(lines, nblines, cols, nbcols, co, cutoff);
