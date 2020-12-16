@@ -36,6 +36,7 @@ set(TEMPO_SRC
         include/tempo/univariate/distances/elementwise/elementwise.hpp
         include/tempo/univariate/distances/erp/erp.hpp
         include/tempo/univariate/distances/lcss/lcss.hpp
+        include/tempo/univariate/distances/msm/msm.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/version.hpp
         )

@@ -14,6 +14,7 @@ add_executable(tests_univariate
         univariate/distances/elementwise.cpp
         univariate/distances/erp.cpp univariate/distances/references/erp/erp.cpp
         univariate/distances/lcss.cpp univariate/distances/references/lcss/lcss.cpp
+        univariate/distances/msm.cpp univariate/distances/references/msm/msm.cpp
         )
 
 target_include_directories(tests_univariate PRIVATE univariate/references)
