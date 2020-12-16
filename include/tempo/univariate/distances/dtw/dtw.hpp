@@ -48,14 +48,14 @@ namespace tempo::univariate {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Double buffer allocation, no initialisation required (border condition manage in the code).
             // Base indices for the 'c'urrent row and the 'p'revious row.
-            auto buffers = std::unique_ptr<double[]>(new double[nbcols * 2]);
+            auto buffers = std::unique_ptr<FloatType[]>(new FloatType[nbcols * 2]);
             size_t c{0}, p{nbcols};
 
             // Line & column counters
             size_t i{0}, j{0};
 
             // Cost accumulator. Also used as the "left neighbour".
-            double cost;
+            FloatType cost;
 
             // EAP variables: track where to start the next line, and the position of the previous pruning point.
             // Must be init to 0: index 0 is the next starting index and also the "previous pruning point"
@@ -64,7 +64,7 @@ namespace tempo::univariate {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Initialisation of the first line.
             {
-                const double li = lines[i];
+                const FloatType li = lines[i];
                 // Fist cell is a special case.
                 // Check against the original upper bound dealing with the case where we have both series of length 1.
                 cost = dist(lines[i], cols[0]);
@@ -88,7 +88,7 @@ namespace tempo::univariate {
             for (; i < nblines; ++i) {
                 // --- --- --- Swap and variables init
                 std::swap(c, p);
-                const double li = lines[i];
+                const FloatType li = lines[i];
                 size_t curr_pp = next_start; // Next pruning point init at the start of the line
                 j = next_start;
                 // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
