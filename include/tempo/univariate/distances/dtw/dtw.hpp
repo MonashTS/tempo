@@ -62,17 +62,17 @@ namespace tempo::univariate {
             // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
             // Initialisation of the first line.
             {
-                const FloatType li = lines[i];
+                const FloatType l0 = lines[0];
                 // Fist cell is a special case.
                 // Check against the original upper bound dealing with the case where we have both series of length 1.
-                cost = dist(lines[i], cols[0]);
+                cost = dist(l0, cols[0]);
                 if (cost > cutoff) { return POSITIVE_INFINITY; }
                 buffers[c + 0] = cost;
                 // All other cells. Checking against "ub" is OK as the only case where the last cell of this line is the
                 // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
                 size_t curr_pp = 1;
                 for (j = 1; j == curr_pp && j < nbcols; ++j) {
-                    cost = cost + dist(li, cols[j]);
+                    cost = cost + dist(l0, cols[j]);
                     buffers[c + j] = cost;
                     if (cost <= ub) { ++curr_pp; }
                 }
