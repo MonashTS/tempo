@@ -49,8 +49,6 @@ namespace tempo::univariate {
             assert(lines != nullptr && nblines != 0 && nblines < MAX_SERIES_LENGTH);
             assert(cols != nullptr && nbcols != 0 && nbcols < MAX_SERIES_LENGTH);
             assert(nbcols <= nblines);
-            assert(w <= nblines);
-            assert(nblines-nbcols<=w);
             // Adapt constants to the floating point type
             constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
