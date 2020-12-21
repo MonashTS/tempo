@@ -7,13 +7,11 @@
 using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
 
-
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 // Testing
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 TEST_CASE("TWE Fixed length", "[twe]") {
-    //Catch::StringMaker<double>::precision = 15;
 
     // Create a random dataset
     constexpr int nbitems = ttools::def_nbitems;
@@ -45,11 +43,10 @@ TEST_CASE("TWE Fixed length", "[twe]") {
                     const auto &series2 = fset[i + 1];
 
                     double vref = reference::twe_Marteau(series1, series2, nu, lambda);
-                    INFO("Exact same operation order. Expect exact floating point equality.")
+                    INFO("Not exact same operation orders. Requires approximative equality.")
 
                     double v = twe(series1, series2, nu, lambda);
-                    REQUIRE(vref == v);
-                    // REQUIRE(vref == Approx(v));
+                    REQUIRE(vref == Approx(v));
 
                     double v_eap = twe(series1, series2, nu, lambda, POSITIVE_INFINITY);
                     REQUIRE(v == v_eap);
@@ -144,11 +141,10 @@ TEST_CASE("TWE variable length", "[twe]") {
                     const auto &series2 = fset[i + 1];
 
                     double vref = reference::twe_Marteau(series1, series2, nu, lambda);
-                    INFO("Exact same operation order. Expect exact floating point equality.")
+                    INFO("Not exact same operation orders. Requires approximated equality.")
 
                     double v = twe(series1, series2, nu, lambda);
-                    REQUIRE(vref == v);
-                    //REQUIRE(vref == Approx(v));
+                    REQUIRE(vref == Approx(v));
 
                     double v_eap = twe(series1, series2, nu, lambda, POSITIVE_INFINITY);
                     REQUIRE(v == v_eap);
