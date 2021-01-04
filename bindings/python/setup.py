@@ -74,15 +74,14 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name='tempo.distances',
-    url = 'https://github.com/MonashTS/tempo.distances',
+    name='pytempo',
     version='0.0.1',
     author='Matthieu Herrmann',
     author_email='',
     description='Collection of time series distances with early abandoning and pruning',
     long_description='',
-    packages=find_packages('src/tempo'),
-    ext_modules=[CMakeExtension('tempo.distances', '.')],
+    packages=find_packages('src/pytempo'),
+    ext_modules=[CMakeExtension('pytempo', '.')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )
