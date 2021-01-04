@@ -80,7 +80,6 @@ setup(
     author_email='',
     description='Collection of time series distances with early abandoning and pruning',
     long_description='',
-    packages=find_packages('src/pytempo'),
     ext_modules=[CMakeExtension('pytempo', '.')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
