@@ -29,6 +29,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ cpp EXCLUDE_FROM_ALL)
 set(PYTHON_BINDINGS
         src/pytempo/utils.hpp
         src/pytempo/bindings.cpp
+
+        # --- --- --- Univariate
+        # --- Distances
         src/pytempo/univariate/distances/pybind_dtw.hpp
         src/pytempo/univariate/distances/pybind_erp.hpp
         src/pytempo/univariate/distances/pybind_lcss.hpp
@@ -36,6 +39,9 @@ set(PYTHON_BINDINGS
         src/pytempo/univariate/distances/pybind_squaredED.hpp
         src/pytempo/univariate/distances/pybind_twe.hpp
         src/pytempo/univariate/distances/bindings.hpp
+        # --- Transforms
+        src/pytempo/univariate/transforms/bindings.hpp
+        src/pytempo/univariate/transforms/pybind_derivative.hpp
         )
 
 # We create the submodule "distances" in the python "tempo" module

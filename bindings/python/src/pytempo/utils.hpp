@@ -13,7 +13,12 @@ namespace pytempo {
 
     /// Alias for numpy array: must be made of double, dense c style, with conversion (copy to dense) if not.
     using nparray_t = py::array_t<double, py::array::c_style | py::array::forcecast>;
+
+    /// Alias for reference constant numpy array
     using nparray = const nparray_t&;
+
+    /// Alias for mutable numpy array
+    using nparray_mut = nparray_t&;
 
     /// Using literals
     using namespace pybind11::literals;
