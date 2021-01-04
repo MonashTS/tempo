@@ -1,4 +1,5 @@
 #!/bin/python3
+
 import pytempo
 import numpy as np
 
@@ -38,3 +39,13 @@ print(f"If cut-off = {v}, no early abandoning: dtw(s1, s2, {co2}) = {ea2}")
 co3 = v - 1
 ea3 = ud.dtw(s1, s2, co3)
 print(f"If cut-off < {v}, early abandoning: dtw(s1, s2, {co3}) = {ea3}")
+
+# --- --- --- Transforms
+ut = univariate.transforms
+dir_mod(ut)
+
+deriv_s1 = ut.derivative(s1)
+deriv_s2 = np.empty(0)
+ut.derivative(s2, deriv_s2)
+print(f"Derivative of s1 = {deriv_s1}")
+print(f"Derivative of s2 = {deriv_s2}")

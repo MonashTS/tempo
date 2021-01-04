@@ -18,6 +18,9 @@ namespace pytempo::univariate {
     }
 
     inline void derivative_out(nparray series1, nparray_mut out) {
+        std::vector<ssize_t> shape (series1.shape(), series1.shape()+series1.ndim());
+        out.resize(shape, false);
+        cpp::derivative(USE(series1), out.mutable_data());
     }
 
     // --- --- --- --- --- ---
@@ -30,10 +33,13 @@ namespace pytempo::univariate {
               "series"_a
         );
 
-        m.def("derivative", &derivative_out,
-              "Return the derivative of the series in the out array, resized to the length of the input."
-              "series"_a, "out"_a
-        );
+        const auto* txt =
+                "Return the derivative of the series in the out array (resized if necessary)."
+                "\nAllow to reuse an array, possibly saving costly allocation."
+                "\nBest used when no resizing is required."
+                "\nWarning: do not keep references on 'out': resizing will invalidate them!";
+
+        m.def("derivative", &derivative_out, txt, "series"_a, "out"_a );
 
     }
 }
