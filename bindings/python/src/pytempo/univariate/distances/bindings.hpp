@@ -10,12 +10,12 @@ namespace pytempo::univariate {
     /// Add a submodule named "distances" into "m", and register the various (univariate) distances.
     inline void submod_distances(py::module& m){
         auto sm = m.def_submodule("distances");
-        pytempo::init_dtw(sm);
-        pytempo::init_erp(sm);
-        pytempo::init_lcss(sm);
-        pytempo::init_msm(sm);
-        pytempo::init_squaredED(sm);
-        pytempo::init_twe(sm);
+        init_dtw(sm);
+        init_erp(sm);
+        init_lcss(sm);
+        init_msm(sm);
+        init_squaredED(sm);
+        init_twe(sm);
     }
 
 }

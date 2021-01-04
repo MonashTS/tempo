@@ -7,7 +7,7 @@ namespace cpp = tempo::univariate;
 
 #include "../../utils.hpp"
 
-namespace pytempo {
+namespace pytempo::univariate {
 
     // --- --- --- --- --- ---
     // DTW
