@@ -21,6 +21,12 @@ before calling the version with cut-off.
 This allows to prune computation even when no cut-off point is provided
 (note that no early abandoning can occur under these conditions).
 
+## Usage with CMake and C++
+Download the sources and link to Tempo adding in your CMakeLists.txt:
+```cmake
+add_subdirectory(path_to_tempo)
+target_link_libraries(<target> PRIVATE tempo)
+```
 
 ## Python3 Bindings
 Bindings tested for Python3. All commands here assume a Python3 environment.
