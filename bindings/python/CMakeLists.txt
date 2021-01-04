@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.17)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Project configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-project(pytempo VERSION 0.0.1)
+project(pytempo LANGUAGES CXX VERSION 0.0.1)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
@@ -27,14 +27,15 @@ add_subdirectory(lib/pybind11-2.6.1)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ cpp EXCLUDE_FROM_ALL)
 
 set(PYTHON_BINDINGS
-        src/tempo/univariate/distances/utils.hpp
-        src/tempo/univariate/distances/pybind_dtw.hpp
-        src/tempo/univariate/distances/pybind_erp.hpp
-        src/tempo/univariate/distances/pybind_lcss.hpp
-        src/tempo/univariate/distances/pybind_msm.hpp
-        src/tempo/univariate/distances/pybind_squaredED.hpp
-        src/tempo/univariate/distances/pybind_twe.hpp
-        src/tempo/univariate/distances/bindings.cpp
+        src/pytempo/utils.hpp
+        src/pytempo/bindings.cpp
+        src/pytempo/univariate/distances/pybind_dtw.hpp
+        src/pytempo/univariate/distances/pybind_erp.hpp
+        src/pytempo/univariate/distances/pybind_lcss.hpp
+        src/pytempo/univariate/distances/pybind_msm.hpp
+        src/pytempo/univariate/distances/pybind_squaredED.hpp
+        src/pytempo/univariate/distances/pybind_twe.hpp
+        src/pytempo/univariate/distances/bindings.hpp
         )
 
 # We create the submodule "distances" in the python "tempo" module
