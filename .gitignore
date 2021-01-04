@@ -15,3 +15,8 @@ _deps
 
 # IDE
 .idea
+
+# Python bindings
+bindings/python/build
+bindings/python/dist
+bindings/python/pytempo.egg-info
