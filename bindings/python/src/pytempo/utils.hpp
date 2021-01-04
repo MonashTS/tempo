@@ -6,8 +6,7 @@
 
 #define USE(series) series.data(), series.size()
 
-namespace python::tempo {
-    namespace cpp = ::tempo::univariate;
+namespace pytempo {
 
     /// Alias for pybind11 namespace
     namespace py = pybind11;

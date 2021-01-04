@@ -3,10 +3,11 @@
 #include <tempo/univariate/distances/dtw/dtw.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
+namespace cpp = tempo::univariate;
 
 #include "../../utils.hpp"
 
-namespace python::tempo {
+namespace pytempo {
 
     // --- --- --- --- --- ---
     // DTW

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <tempo/univariate/distances/msm/msm.hpp>
+namespace cpp = tempo::univariate;
 
 #include "../../utils.hpp"
 
-namespace python::tempo {
+namespace pytempo {
 
 
     // --- --- --- --- --- ---
