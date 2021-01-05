@@ -247,10 +247,10 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType wdtw(
-            const TSeries<FloatType>& series1,
-            const TSeries<FloatType>& series2,
+            const TSeries<FloatType, LabelType>& series1,
+            const TSeries<FloatType, LabelType>& series2,
             const std::vector<FloatType>& weights
     ){
         assert(weights.size() >= std::max(series1.length(), series2.length()));
@@ -306,10 +306,10 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType wdtw(
-            const TSeries<FloatType>& series1,
-            const TSeries<FloatType>& series2,
+            const TSeries<FloatType, LabelType>& series1,
+            const TSeries<FloatType, LabelType>& series2,
             const std::vector<FloatType>& weights,
             FloatType cutoff){
         assert(weights.size() >= std::max(series1.size(), series2.size()));
