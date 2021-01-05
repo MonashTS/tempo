@@ -13,7 +13,7 @@ namespace tempo {
      *  Can own or not the underlying data.
      *  Once created, a series cannot be modified.
      */
-    template<typename FloatType=double, typename LabelType=std::string>
+    template<typename FloatType, typename LabelType>
     class TSeries: private Uncopyable {
     protected:
 
@@ -24,16 +24,16 @@ namespace tempo {
         const FloatType* data_{nullptr};
 
         /// Length of the series (if multivariate, same length for each "dimension")
-        const size_t length_{0};
+        size_t length_{0};
 
         /// Number of "dimensions" (series are always 2D, so this is the number of "tracks")
-        const size_t nbdim_{1};
+        size_t nbdim_{1};
 
         /// Record if the series has any missing data, represented by NaN
-        const bool has_missing_{false};
+        bool has_missing_{false};
 
         /// Record if the series was given a label
-        const std::optional<LabelType> label_{};
+        std::optional<LabelType> label_{};
 
     public:
 
@@ -140,7 +140,7 @@ namespace tempo {
                 } else {
                     data_ = other.data_;
                 }
-                nbdim_ = other.nb_dimensions_;
+                nbdim_ = other.nbdim_;
                 length_ = other.length_;
                 has_missing_ = other.has_missing_;
                 label_ = std::move(other.label_);

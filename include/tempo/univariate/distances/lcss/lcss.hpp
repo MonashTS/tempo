@@ -9,7 +9,7 @@ namespace tempo::univariate {
     namespace internal {
 
         /// Check if two FloatType numbers are within EPSILON (1 = similar, 0 = not similar)
-        template<typename FloatType=double>
+        template<typename FloatType>
         [[nodiscard]] bool sim(FloatType a, FloatType b, FloatType e) {
             return std::fabs(a - b) < e;
         }
@@ -30,7 +30,7 @@ namespace tempo::univariate {
      * @return LCSS dissimilarity measure [0,1] where 0 stands for identical series and 1 completely distinct,
      *         or +INF if, given the w, no alignment is possible
      */
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] FloatType lcss(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -88,7 +88,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline FloatType lcss(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
@@ -98,7 +98,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string>
+    template<typename FloatType, typename LabelType>
     [[nodiscard]] inline FloatType lcss(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,
@@ -125,7 +125,7 @@ namespace tempo::univariate {
      * @return LCSS dissimilarity measure [0,1] where 0 stands for identical series and 1 completely distinct,
      *         or +INF if early abandoned, or, given w, no alignment is possible
      */
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] FloatType lcss(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -195,7 +195,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline FloatType lcss(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
@@ -205,7 +205,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string>
+    template<typename FloatType, typename LabelType>
     [[nodiscard]] inline FloatType lcss(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,

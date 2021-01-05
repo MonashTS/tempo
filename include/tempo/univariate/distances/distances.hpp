@@ -9,11 +9,11 @@
 namespace tempo::univariate {
 
     /// Type alias for a tuple representing (lines, nblines, cols, nbcosl)
-    template<typename FloatType=double>
+    template<typename FloatType>
     using lico_t = std::tuple<const FloatType*, size_t, const FloatType*, size_t>;
 
     /// Helper function checking and ordering the length of the series
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline std::variant<FloatType, lico_t<FloatType>> check_order_series(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2

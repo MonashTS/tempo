@@ -24,7 +24,7 @@ namespace tempo::univariate {
          *                  May lead to early abandoning.
          * @return WTW between the two series or +INF if early abandoned.
          */
-        template<typename FloatType = double, auto dist = square_dist < FloatType>>
+        template<typename FloatType, auto dist = square_dist < FloatType>>
         [[nodiscard]] inline FloatType wdtw(
                 const FloatType *lines, size_t nblines,
                 const FloatType *cols, size_t nbcols,
@@ -164,13 +164,13 @@ namespace tempo::univariate {
      * @param i Index of the point in [1..m] (m=length of the sequence)
      * @return the weight for index i
      */
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline FloatType compute_weight(FloatType g, FloatType half_max_length, FloatType i) {
         return WDTW_MAX_WEIGHT / (1 + exp(-g * (i - half_max_length)));
     }
 
     /// Populate the weights_array of size length with weights derive from the g factor
-    template<typename FloatType=double>
+    template<typename FloatType>
     inline void populate_weights(FloatType g, FloatType *weights_array, size_t length) {
         FloatType half_max_length = FloatType(length) / 2;
         for (size_t i{0}; i < length; ++i) {
@@ -179,7 +179,7 @@ namespace tempo::univariate {
     }
 
     /// Create a vector of weights
-    template<typename FloatType=double>
+    template<typename FloatType>
     inline std::vector<FloatType> generate_weights(FloatType g, size_t length){
         std::vector<FloatType> weights(length, 0);
         populate_weights(g, weights.data(), length);
@@ -205,7 +205,7 @@ namespace tempo::univariate {
     * @param weights   Pointer to the weights. Must be at least as long as nblines.
     * @return WTW between the two series or +INF if early abandoned.
     */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType wdtw(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -236,7 +236,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType wdtw(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -247,7 +247,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist < FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType wdtw(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,
@@ -276,7 +276,7 @@ namespace tempo::univariate {
      *                  May lead to early abandoning.
      * @return WTW between the two series or +INF if early abandoned.
      */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType wdtw(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -295,7 +295,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType wdtw(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -306,7 +306,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType wdtw(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,

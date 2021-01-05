@@ -26,7 +26,7 @@ namespace tempo::univariate {
          *                  May lead to early abandoning.
          * @return ERP value or +INF if early abandoned, or , given w, no alignment is possible
          */
-        template<typename FloatType=double, auto dist = square_dist<FloatType>>
+        template<typename FloatType, auto dist = square_dist<FloatType>>
         [[nodiscard]] double erp(
                 const double *lines, size_t nblines,
                 const double *cols, size_t nbcols,
@@ -248,7 +248,7 @@ namespace tempo::univariate {
      * @param w         Half-window parameter (looking at w cells on each side of the diagonal)
      * @return ERP value or +INF if, given w, no alignment is possible
      */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType erp(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -282,7 +282,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType erp(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
@@ -294,7 +294,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist < FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType erp(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,
@@ -326,7 +326,7 @@ namespace tempo::univariate {
      *                  May lead to early abandoning.
      * @return ERP value or +INF if early abandoned, or , given w, no alignment is possible
      */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType erp(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -350,7 +350,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType erp(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -362,7 +362,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType erp(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,

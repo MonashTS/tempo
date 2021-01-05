@@ -10,7 +10,7 @@ namespace tempo::univariate {
      * @param length        Length of the series
      * @param out           Pointer where to write the derivative. Must be able to store 'length' values.
      */
-    template<typename FloatType=double>
+    template<typename FloatType>
     void derivative(const FloatType *series, size_t length, FloatType *out) {
         if (length > 2) {
             for (size_t i{1}; i < length - 1; ++i) {

@@ -23,7 +23,7 @@ namespace tempo::univariate {
          *                  May lead to early abandoning.
          * @return DTW between the two series or +INF if early abandoned.
          */
-        template<typename FloatType = double, auto dist = square_dist < FloatType>>
+        template<typename FloatType, auto dist = square_dist < FloatType>>
 
         [[nodiscard]] inline FloatType dtw(
                 const FloatType *lines, size_t nblines,
@@ -170,7 +170,7 @@ namespace tempo::univariate {
      * @param length2   Length of the second series. Must be < tempo::MAX_SERIES_LENGTH.
      * @return DTW between the two series
      */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType dtw(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2
@@ -200,13 +200,13 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType dtw(const std::vector<FloatType>& series1, const std::vector<FloatType>& series2){
         return dtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist < FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType dtw(const TSeries<FloatType, LabelType>& series1, const std::vector<FloatType>& series2){
         return dtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length());
     }
@@ -229,7 +229,7 @@ namespace tempo::univariate {
      *                  May lead to early abandoning.
      * @return DTW between the two series or +INF if early abandoned.
      */
-    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    template<typename FloatType, auto dist = square_dist < FloatType>>
     [[nodiscard]] FloatType dtw(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -247,7 +247,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType dtw(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -256,7 +256,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType dtw(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,

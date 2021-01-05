@@ -38,7 +38,7 @@ namespace tempo::univariate {
          *                  May lead to early abandoning.
          * @return MSM between the two series or +INF if early abandoned.
          */
-        template<typename FloatType = double>
+        template<typename FloatType>
         [[nodiscard]] FloatType msm(
                 const FloatType *lines, size_t nblines,
                 const FloatType *cols, size_t nbcols,
@@ -215,7 +215,7 @@ namespace tempo::univariate {
      * @param co        Cost of the Split and Merge operations, also added to Move operations. Must have c>=0.
      * @return MSM between the two series
      */
-    template<typename FloatType = double>
+    template<typename FloatType>
     [[nodiscard]] FloatType msm(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -248,7 +248,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline FloatType msm(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -258,7 +258,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string>
+    template<typename FloatType, typename LabelType>
     [[nodiscard]] inline FloatType msm(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,
@@ -284,7 +284,7 @@ namespace tempo::univariate {
      *                  May lead to early abandoning.
      * @return MSM between the two series or +INF if early abandoned.
      */
-    template<typename FloatType = double>
+    template<typename FloatType>
     [[nodiscard]] FloatType msm(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -303,7 +303,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double>
+    template<typename FloatType>
     [[nodiscard]] inline FloatType msm(
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
@@ -314,7 +314,7 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string>
+    template<typename FloatType, typename LabelType>
     [[nodiscard]] inline FloatType msm(
             const TSeries<FloatType, LabelType>& series1,
             const TSeries<FloatType, LabelType>& series2,

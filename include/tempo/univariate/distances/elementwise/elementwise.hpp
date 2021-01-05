@@ -20,7 +20,7 @@ namespace tempo::univariate {
      * @param length2   Length of the second series
      * @return Sum of element wise distances or +INF if different lengths
      */
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline double elementwise(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2
@@ -39,7 +39,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType elementwise(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2) {
@@ -62,7 +62,7 @@ namespace tempo::univariate {
      * @param length2   Length of the second series
      * @return Sum of element wise distances or +INF if different lengths or early abandoned
      */
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline double elementwise(
             const FloatType *series1, size_t length1,
             const FloatType *series2, size_t length2,
@@ -97,7 +97,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using vectors
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType elementwise(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
@@ -107,7 +107,7 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
+    template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType elementwise(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,
