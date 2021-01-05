@@ -258,10 +258,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double>
+    template<typename FloatType=double, typename LabelType=std::string>
     [[nodiscard]] inline FloatType msm(
-            const TSeries<FloatType>& series1,
-            const TSeries<FloatType>& series2,
+            const TSeries<FloatType, LabelType>& series1,
+            const TSeries<FloatType, LabelType>& series2,
             const FloatType co){
         return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co);
     }
@@ -314,10 +314,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double>
+    template<typename FloatType=double, typename LabelType=std::string>
     [[nodiscard]] inline FloatType msm(
-            const TSeries<FloatType>& series1,
-            const TSeries<FloatType>& series2,
+            const TSeries<FloatType, LabelType>& series1,
+            const TSeries<FloatType, LabelType>& series2,
             const FloatType co,
             FloatType cutoff){
         return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co, cutoff);
