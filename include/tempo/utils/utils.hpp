@@ -9,8 +9,23 @@
 #include <random>
 #include <stdexcept>
 #include <vector>
+#include <iterator>
+#include <type_traits>
 
 namespace tempo {
+
+
+    /// Contains static assertion tools
+    namespace stassert {
+
+        /// Helpers extracting the value type of an iterator type and removing the cv qualifiers
+        template<typename Iterator>
+        using value_type = typename std::remove_cv<typename std::iterator_traits<Iterator>::value_type>::type;
+
+        /// Helper checking the type parameter of an iteratori
+        template<typename TargetType, typename Iterator>
+        constexpr bool is_iterator_value_type = std::is_same_v<TargetType, value_type<Iterator>>;
+    }
 
 
     // --- --- --- --- --- ---
