@@ -3,7 +3,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 #include "references/lcss/lcss.hpp"
 
 using namespace tempo::univariate;

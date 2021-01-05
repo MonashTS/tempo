@@ -5,9 +5,14 @@ target_include_directories(Catch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Univariate
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-add_executable(tests_univariate
-        univariate/distances/tests.cpp
-        univariate/distances/tests_tools.cpp univariate/distances/tests_tools.hpp
+add_executable(tests
+        # --- --- --- Entry point
+        tests.cpp
+        # --- --- --- Univariate
+        # --- Tools
+        univariate/tests_tools.cpp univariate/tests_tools.hpp
+
+        # --- Distances
         univariate/distances/dtw.cpp univariate/distances/references/dtw/dtw.cpp
         univariate/distances/cdtw.cpp univariate/distances/references/dtw/cdtw.cpp
         univariate/distances/wdtw.cpp univariate/distances/references/dtw/wdtw.cpp
@@ -18,8 +23,8 @@ add_executable(tests_univariate
         univariate/distances/twe.cpp univariate/distances/references/twe/twe.cpp
         )
 
-target_include_directories(tests_univariate PRIVATE univariate/references)
+target_include_directories(tests PRIVATE univariate/references)
 
-target_link_libraries(tests_univariate PRIVATE project_options)
-target_link_libraries(tests_univariate PRIVATE Catch)
-target_link_libraries(tests_univariate PRIVATE tempo)
+target_link_libraries(tests PRIVATE project_options)
+target_link_libraries(tests PRIVATE Catch)
+target_link_libraries(tests PRIVATE tempo)

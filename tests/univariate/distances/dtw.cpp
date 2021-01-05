@@ -3,7 +3,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/dtw/dtw.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 #include "references/dtw/dtw.hpp"
 
 using namespace tempo::univariate;

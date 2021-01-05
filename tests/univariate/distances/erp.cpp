@@ -3,7 +3,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/erp/erp.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 #include "references/erp/erp.hpp"
 
 using namespace tempo::univariate;

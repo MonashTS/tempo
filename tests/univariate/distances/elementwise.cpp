@@ -3,7 +3,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/elementwise/elementwise.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 
 using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;

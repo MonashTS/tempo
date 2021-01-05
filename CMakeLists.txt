@@ -29,7 +29,7 @@ project(tempo VERSION ${VERSION})
 # Creating the library
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(TEMPO_SRC
-        # --- --- --- tseries
+        # --- --- --- TSeries
         include/tempo/tseries/tseries.hpp
         # --- --- --- Univariate
         # --- Distances

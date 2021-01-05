@@ -3,7 +3,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 #include "references/msm/msm.hpp"
 
 using namespace tempo::univariate;

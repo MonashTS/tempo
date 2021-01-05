@@ -1,7 +1,7 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 
-#include "tests_tools.hpp"
+#include "../tests_tools.hpp"
 #include "references/twe/twe.hpp"
 
 using namespace tempo::univariate;
