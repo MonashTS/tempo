@@ -107,10 +107,10 @@ namespace tempo::univariate {
     }
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType elementwise(
-            const TSeries<FloatType> &series1,
-            const TSeries<FloatType> &series2,
+            const TSeries<FloatType, LabelType> &series1,
+            const TSeries<FloatType, LabelType> &series2,
             FloatType cutoff
     ) {
         return elementwise<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), cutoff);
