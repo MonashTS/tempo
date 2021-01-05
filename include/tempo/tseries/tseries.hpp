@@ -12,9 +12,13 @@ namespace tempo {
     /** Helper for times series data. Prevent us from implicitly copying the series.
      *  Can own or not the underlying data.
      *  Once created, a series cannot be modified.
+      * @tparam FloatType   Type of the values of the series. Must be a floating point type with NAN support.
+      * @tparam LabelType   Type of the label. Must be copy-constructible.
      */
     template<typename FloatType, typename LabelType>
     class TSeries: private Uncopyable {
+        static_assert(std::is_floating_point_v<FloatType>);
+        static_assert(std::is_copy_constructible_v<LabelType>);
     protected:
 
         /// When owning: backend storage
