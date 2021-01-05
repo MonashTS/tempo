@@ -305,7 +305,7 @@ namespace tempo::univariate {
         return wdtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights.data(), cutoff);
     }
 
-    /// Helper for the above, using vectors
+    /// Helper for the above, using TSeries
     template<typename FloatType=double, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType wdtw(
             const TSeries<FloatType>& series1,
