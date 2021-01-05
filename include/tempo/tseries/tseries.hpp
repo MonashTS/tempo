@@ -13,7 +13,7 @@ namespace tempo {
      *  Can own or not the underlying data.
      *  Once created, a series cannot be modified.
      */
-    template<typename FloatType=double>
+    template<typename FloatType=double, typename LabelType=std::string>
     class TSeries: private Uncopyable {
     protected:
 
@@ -33,7 +33,7 @@ namespace tempo {
         const bool has_missing_{false};
 
         /// Record if the series was given a label
-        const std::optional<std::string> label_{};
+        const std::optional<LabelType> label_{};
 
     public:
 
@@ -52,7 +52,7 @@ namespace tempo {
          * @param has_missing       Set the flag. Not checked against the data (so you better be right).
          * @param label             Optional class label
          */
-        TSeries(std::vector<FloatType> &&data, size_t nb_dimensions, bool has_missing, std::optional<std::string> label)
+        TSeries(std::vector<FloatType> &&data, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
                 : data_v_(std::move(data)), nbdim_(nb_dimensions), has_missing_(has_missing),
                   label_(std::move(label)) {
 
@@ -77,7 +77,7 @@ namespace tempo {
          * @param nb_dimensions     1 for univariate, more than 1 for multivariate.
          * @param label             Optional class label
          */
-        TSeries(std::vector<FloatType> &&data, size_t nb_dimensions, const std::optional<std::string>& label):
+        TSeries(std::vector<FloatType> &&data, size_t nb_dimensions, const std::optional<LabelType>& label):
                 TSeries(std::move(data), nb_dimensions, false, label) {
             has_missing_ = std::any_of(data_, data_+nbdim_*length_, std::isnan);
         }
@@ -87,12 +87,12 @@ namespace tempo {
          * @param data
          * @param info_source
          */
-        TSeries(std::vector<FloatType> &&data, const TSeries<FloatType>& info_source) :
+        TSeries(std::vector<FloatType> &&data, const TSeries<FloatType, LabelType>& info_source) :
                 TSeries(std::move(data), info_source.nbdim_, info_source.has_missing_, info_source.label_){ }
 
         /** Constructor with a raw pointer.
          *  The new instance does not own the data and will not free the memory when destroyed. */
-        TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<std::string> label)
+        TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
                 : data_(data_ptr), length_(length), nbdim_(nb_dimensions), has_missing_(has_missing),
                   label_(std::move(label)) {
 
@@ -112,8 +112,8 @@ namespace tempo {
         /** Factory function creating a non-owning series from another one.
          *  Be sure thath the backing instance lives longer than the new one!
          */
-        static TSeries<FloatType> from(const TSeries<FloatType>& backing){
-            return std::move(TSeries<FloatType>(
+        static TSeries<FloatType, LabelType> from(const TSeries<FloatType, LabelType>& backing){
+            return std::move(TSeries<FloatType, LabelType>(
                     backing.data_, backing.length_, backing.nbdim_, backing.has_missing_, backing.label_
             ));
         }
@@ -158,7 +158,7 @@ namespace tempo {
 
         [[nodiscard]] inline bool has_missing() const { return has_missing_; }
 
-        [[nodiscard]] inline const std::optional<std::string> &label() const { return label_; }
+        [[nodiscard]] inline const std::optional<LabelType> &label() const { return label_; }
 
         [[nodiscard]] inline const double *data() const { return data_; }
 
