@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -93,6 +94,16 @@ namespace tempo::univariate {
             const std::vector<FloatType> &series2,
             FloatType epsilon, size_t w) {
         return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w);
+    }
+
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double>
+    [[nodiscard]] inline FloatType lcss(
+            const TSeries<FloatType> &series1,
+            const TSeries<FloatType> &series2,
+            FloatType epsilon, size_t w) {
+        return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w);
     }
 
 
@@ -190,6 +201,16 @@ namespace tempo::univariate {
             const std::vector<FloatType> &series2,
             FloatType epsilon, size_t w, FloatType cutoff) {
         return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w, cutoff);
+    }
+
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double>
+    [[nodiscard]] inline FloatType lcss(
+            const TSeries<FloatType> &series1,
+            const TSeries<FloatType> &series2,
+            FloatType epsilon, size_t w, FloatType cutoff) {
+        return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w, cutoff);
     }
 
 
