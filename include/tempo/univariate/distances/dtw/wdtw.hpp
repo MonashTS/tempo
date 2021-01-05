@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -245,6 +246,17 @@ namespace tempo::univariate {
         return wdtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights.data());
     }
 
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline FloatType wdtw(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const std::vector<FloatType>& weights
+    ){
+        assert(weights.size() >= std::max(series1.length(), series2.length()));
+        return wdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights.data());
+    }
+
     // --- --- --- --- ---
     // --- WDTW with cutoff
     // --- --- --- --- ---
@@ -291,6 +303,17 @@ namespace tempo::univariate {
             FloatType cutoff){
         assert(weights.size() >= std::max(series1.size(), series2.size()));
         return wdtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights.data(), cutoff);
+    }
+
+    /// Helper for the above, using vectors
+    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    [[nodiscard]] inline FloatType wdtw(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const std::vector<FloatType>& weights,
+            FloatType cutoff){
+        assert(weights.size() >= std::max(series1.size(), series2.size()));
+        return wdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights.data(), cutoff);
     }
 
 
