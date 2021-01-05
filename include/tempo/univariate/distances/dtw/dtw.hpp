@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -204,6 +205,12 @@ namespace tempo::univariate {
         return dtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline FloatType dtw(const TSeries<FloatType>& series1, const std::vector<FloatType>& series2){
+        return dtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length());
+    }
+
     // --- --- --- --- ---
     // --- DTW with cutoff
     // --- --- --- --- ---
@@ -246,6 +253,15 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series2,
             FloatType cutoff){
         return dtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
+    }
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    [[nodiscard]] inline FloatType dtw(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            FloatType cutoff){
+        return dtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), cutoff);
     }
 
 } // End of namespace tempo::univariate
