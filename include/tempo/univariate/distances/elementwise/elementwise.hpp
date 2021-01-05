@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -103,6 +104,16 @@ namespace tempo::univariate {
             FloatType cutoff
     ) {
         return elementwise<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
+    }
+
+    /// Helper for the above, using vectors
+    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    [[nodiscard]] inline FloatType elementwise(
+            const TSeries<FloatType> &series1,
+            const TSeries<FloatType> &series2,
+            FloatType cutoff
+    ) {
+        return elementwise<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), cutoff);
     }
 
 } // End of namespace tempo::univariate
