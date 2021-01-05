@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -255,6 +256,16 @@ namespace tempo::univariate {
         return msm<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), co);
     }
 
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double>
+    [[nodiscard]] inline FloatType msm(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const FloatType co){
+        return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co);
+    }
+
     // --- --- --- --- ---
     // --- MSM with cutoff
     // --- --- --- --- ---
@@ -299,6 +310,17 @@ namespace tempo::univariate {
             const FloatType co,
             FloatType cutoff){
         return msm<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), co, cutoff);
+    }
+
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType=double>
+    [[nodiscard]] inline FloatType msm(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const FloatType co,
+            FloatType cutoff){
+        return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co, cutoff);
     }
 
 } // End of namespace tempo::univariate
