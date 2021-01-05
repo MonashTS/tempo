@@ -268,7 +268,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series2,
             const FloatType nu, const FloatType lambda
     ){
-        return twe<FloatType, dist>(USE(series1), USE(series2), nu, lambda);
+        return twe<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda);
     }
 
     // --- --- --- --- ---
@@ -317,7 +317,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series2,
             const FloatType nu, const FloatType lambda,
             const FloatType cutoff){
-        return twe<FloatType, dist>(USE(series1), USE(series2), nu, lambda, cutoff);
+        return twe<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda, cutoff);
     }
 
 } // End of namespace tempo::univariate

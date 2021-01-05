@@ -13,12 +13,12 @@ namespace pytempo::univariate {
 
     inline double erp(nparray series1, nparray series2, double gValue, size_t w) {
         check(series1, series2);
-        return cpp::erp(USE(series1), USE(series2), gValue, w);
+        return cpp::erp(series1.data(), series1.size(), series2.data(), series2.size(), gValue, w);
     }
 
     inline double erp_ea(nparray series1, nparray series2, double gValue, size_t w, double cutoff) {
         check(series1, series2);
-        return cpp::erp(USE(series1), USE(series2), gValue, w, cutoff);
+        return cpp::erp(series1.data(), series1.size(), series2.data(), series2.size(), gValue, w, cutoff);
     }
 
 

@@ -19,7 +19,7 @@ namespace reference {
             const std::vector<double> &series1,
             const std::vector<double> &series2,
             size_t w) {
-        return cdtw_matrix(USE(series1), USE(series2), w);
+        return cdtw_matrix(series1.data(), series1.size(), series2.data(), series2.size(), w);
     }
 
 } // End of namespace references

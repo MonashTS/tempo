@@ -14,12 +14,12 @@ namespace pytempo::univariate {
 
     inline double twe(nparray series1, nparray series2, double nu, double lambda) {
         check(series1, series2);
-        return cpp::twe(USE(series1), USE(series2), nu, lambda);
+        return cpp::twe(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda);
     }
 
     inline double twe_ea(nparray series1, nparray series2, double nu, double lambda, double cutoff) {
         check(series1, series2);
-        return cpp::twe(USE(series1), USE(series2), nu, lambda, cutoff);
+        return cpp::twe(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda, cutoff);
     }
 
 

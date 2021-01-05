@@ -15,12 +15,12 @@ namespace pytempo::univariate {
 
     inline double dtw(nparray series1, nparray series2) {
         check(series1, series2);
-        return cpp::dtw(USE(series1), USE(series2));
+        return cpp::dtw(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
     inline double dtw_ea(nparray series1, nparray series2, double cutoff) {
         check(series1, series2);
-        return cpp::dtw(USE(series1), USE(series2), cutoff);
+        return cpp::dtw(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
     }
 
 
@@ -31,12 +31,12 @@ namespace pytempo::univariate {
 
     inline double cdtw(nparray series1, nparray series2, size_t w) {
         check(series1, series2);
-        return cpp::cdtw(USE(series1), USE(series2), w);
+        return cpp::cdtw(series1.data(), series1.size(), series2.data(), series2.size(), w);
     }
 
     inline double cdtw_ea(nparray series1, nparray series2, size_t w, double cutoff) {
         check(series1, series2);
-        return cpp::cdtw(USE(series1), USE(series2), w, cutoff);
+        return cpp::cdtw(series1.data(), series1.size(), series2.data(), series2.size(), w, cutoff);
     }
 
 
@@ -50,7 +50,7 @@ namespace pytempo::univariate {
         if (weights.size() < std::max(series1.size(), series2.size())) {
             throw std::invalid_argument("Weights array is too short: must be at least as long as the longest series.");
         }
-        return cpp::wdtw(USE(series1), USE(series2), weights.data());
+        return cpp::wdtw(series1.data(), series1.size(), series2.data(), series2.size(), weights.data());
     }
 
     inline double wdtw_ea(nparray series1, nparray series2, nparray weights, double cutoff) {
@@ -58,7 +58,7 @@ namespace pytempo::univariate {
         if (weights.size() < std::max(series1.size(), series2.size())) {
             throw std::invalid_argument("Weights array is too short: must be at least as long as the longest series.");
         }
-        return cpp::wdtw(USE(series1), USE(series2), weights.data(), cutoff);
+        return cpp::wdtw(series1.data(), series1.size(), series2.data(), series2.size(), weights.data(), cutoff);
     }
 
     py::array_t<double> wdtw_weights(size_t length, double g) {

@@ -5,9 +5,6 @@
 
 namespace tempo::univariate {
 
-    /// Helper macro converting a "vector" into "pointer, length"
-    #define USE(series) series.data(), series.size()
-
     /// Type alias for a tuple representing (lines, nblines, cols, nbcosl)
     template<typename FloatType=double>
     using lico_t = std::tuple<const FloatType*, size_t, const FloatType*, size_t>;

@@ -119,7 +119,7 @@ namespace tempo {
     // --- Should not happen
     // --- --- --- --- --- ---
 
-    /// Throw an exception "should not happen". Used as default case in switchs.
+    /// Throw an exception "should not happen". Used as default case in switches.
     [[noreturn]] void inline should_not_happen(){ throw std::logic_error("Should not happen"); }
 
     // --- --- --- --- --- ---

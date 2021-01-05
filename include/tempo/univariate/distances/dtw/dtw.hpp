@@ -201,7 +201,7 @@ namespace tempo::univariate {
     /// Helper for the above, using vectors
     template<typename FloatType=double, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType dtw(const std::vector<FloatType>& series1, const std::vector<FloatType>& series2){
-        return dtw<FloatType, dist>(USE(series1), USE(series2));
+        return dtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
     // --- --- --- --- ---
@@ -245,7 +245,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
             FloatType cutoff){
-        return dtw<FloatType, dist>(USE(series1), USE(series2), cutoff);
+        return dtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
     }
 
 } // End of namespace tempo::univariate

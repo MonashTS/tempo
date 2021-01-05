@@ -13,14 +13,14 @@ namespace pytempo::univariate {
 
     inline nparray_t derivative(nparray series1) {
         auto result = nparray_t(series1.size());
-        cpp::derivative(USE(series1), result.mutable_data());
+        cpp::derivative(series1.data(), series1.size(), result.mutable_data());
         return result;
     }
 
     inline void derivative_out(nparray series1, nparray_mut out) {
         std::vector<ssize_t> shape (series1.shape(), series1.shape()+series1.ndim());
         out.resize(shape, false);
-        cpp::derivative(USE(series1), out.mutable_data());
+        cpp::derivative(series1.data(), series1.size(), out.mutable_data());
     }
 
     // --- --- --- --- --- ---

@@ -14,12 +14,12 @@ namespace pytempo::univariate {
 
     inline double msm(nparray series1, nparray series2, double cost) {
         check(series1, series2);
-        return cpp::msm(USE(series1), USE(series2), cost);
+        return cpp::msm(series1.data(), series1.size(), series2.data(), series2.size(), cost);
     }
 
     inline double msm_ea(nparray series1, nparray series2, double cost, double cutoff) {
         check(series1, series2);
-        return cpp::msm(USE(series1), USE(series2), cost, cutoff);
+        return cpp::msm(series1.data(), series1.size(), series2.data(), series2.size(), cost, cutoff);
     }
 
 

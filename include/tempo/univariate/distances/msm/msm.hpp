@@ -252,7 +252,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series1,
             const std::vector<FloatType>& series2,
             const FloatType co){
-        return msm<FloatType>(USE(series1), USE(series2), co);
+        return msm<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), co);
     }
 
     // --- --- --- --- ---
@@ -298,7 +298,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& series2,
             const FloatType co,
             FloatType cutoff){
-        return msm<FloatType>(USE(series1), USE(series2), co, cutoff);
+        return msm<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), co, cutoff);
     }
 
 } // End of namespace tempo::univariate

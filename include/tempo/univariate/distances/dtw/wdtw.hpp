@@ -242,7 +242,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& weights
             ){
         assert(weights.size() >= std::max(series1.size(), series2.size()));
-        return wdtw<FloatType, dist>(USE(series1), USE(series2), weights.data());
+        return wdtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights.data());
     }
 
     // --- --- --- --- ---
@@ -290,7 +290,7 @@ namespace tempo::univariate {
             const std::vector<FloatType>& weights,
             FloatType cutoff){
         assert(weights.size() >= std::max(series1.size(), series2.size()));
-        return wdtw<FloatType, dist>(USE(series1), USE(series2), weights.data(), cutoff);
+        return wdtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights.data(), cutoff);
     }
 
 

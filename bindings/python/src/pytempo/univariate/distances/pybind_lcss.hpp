@@ -14,12 +14,12 @@ namespace pytempo::univariate {
 
     inline double lcss(nparray series1, nparray series2, double epsilon, size_t w) {
         check(series1, series2);
-        return cpp::lcss(USE(series1), USE(series2), epsilon, w);
+        return cpp::lcss(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w);
     }
 
     inline double lcss_ea(nparray series1, nparray series2, double epsilon, size_t w, double cutoff) {
         check(series1, series2);
-        return cpp::lcss(USE(series1), USE(series2), epsilon, w, cutoff);
+        return cpp::lcss(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w, cutoff);
     }
 
     // --- --- --- --- --- ---

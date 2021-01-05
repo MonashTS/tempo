@@ -102,7 +102,7 @@ namespace tempo::univariate {
             const std::vector<FloatType> &series2,
             FloatType cutoff
     ) {
-        return elementwise<FloatType, dist>(USE(series1), USE(series2), cutoff);
+        return elementwise<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
     }
 
 } // End of namespace tempo::univariate

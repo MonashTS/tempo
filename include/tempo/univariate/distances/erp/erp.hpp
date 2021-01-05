@@ -289,7 +289,7 @@ namespace tempo::univariate {
             FloatType gValue,
             size_t w
     ) {
-        return erp<FloatType, dist>(USE(series1), USE(series2), gValue, w);
+        return erp<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), gValue, w);
     }
 
 
@@ -345,7 +345,7 @@ namespace tempo::univariate {
             FloatType gValue,
             const size_t w,
             FloatType cutoff){
-        return erp<FloatType, dist>(USE(series1), USE(series2), gValue, w, cutoff);
+        return erp<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), gValue, w, cutoff);
     }
 
 } // End of namespace tempo::univariate

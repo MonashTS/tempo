@@ -13,12 +13,12 @@ namespace pytempo::univariate {
 
     inline double squaredED(nparray series1, nparray series2) {
         check(series1, series2);
-        return cpp::elementwise(USE(series1), USE(series2));
+        return cpp::elementwise(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
     inline double squaredED_ea(nparray series1, nparray series2, double cutoff) {
         check(series1, series2);
-        return cpp::elementwise(USE(series1), USE(series2), cutoff);
+        return cpp::elementwise(series1.data(), series1.size(), series2.data(), series2.size(), cutoff);
     }
 
     // --- --- --- --- --- ---

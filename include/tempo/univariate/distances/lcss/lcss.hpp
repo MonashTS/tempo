@@ -92,7 +92,7 @@ namespace tempo::univariate {
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
             FloatType epsilon, size_t w) {
-        return lcss<FloatType>(USE(series1), USE(series2), epsilon, w);
+        return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w);
     }
 
 
@@ -189,7 +189,7 @@ namespace tempo::univariate {
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
             FloatType epsilon, size_t w, FloatType cutoff) {
-        return lcss<FloatType>(USE(series1), USE(series2), epsilon, w, cutoff);
+        return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w, cutoff);
     }
 
 
