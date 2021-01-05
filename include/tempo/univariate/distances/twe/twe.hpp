@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../tseries/tseries.hpp"
 #include "../../../utils/utils.hpp"
 #include "../distances.hpp"
 
@@ -271,6 +272,17 @@ namespace tempo::univariate {
         return twe<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda);
     }
 
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline FloatType twe(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const FloatType nu, const FloatType lambda
+    ){
+        return twe<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), nu, lambda);
+    }
+
     // --- --- --- --- ---
     // --- TWE with cutoff
     // --- --- --- --- ---
@@ -318,6 +330,17 @@ namespace tempo::univariate {
             const FloatType nu, const FloatType lambda,
             const FloatType cutoff){
         return twe<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), nu, lambda, cutoff);
+    }
+
+
+    /// Helper for the above, using TSeries
+    template<typename FloatType = double, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline FloatType twe(
+            const TSeries<FloatType>& series1,
+            const TSeries<FloatType>& series2,
+            const FloatType nu, const FloatType lambda,
+            const FloatType cutoff){
+        return twe<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), nu, lambda, cutoff);
     }
 
 } // End of namespace tempo::univariate
