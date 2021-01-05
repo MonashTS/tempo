@@ -11,7 +11,8 @@ add_executable(tests
         # --- --- --- Univariate
         # --- Tools
         univariate/tests_tools.cpp univariate/tests_tools.hpp
-
+        # --- Classifiers
+        univariate/classifiers/nn1.cpp
         # --- Distances
         univariate/distances/dtw.cpp univariate/distances/references/dtw/dtw.cpp
         univariate/distances/cdtw.cpp univariate/distances/references/dtw/cdtw.cpp

@@ -32,6 +32,8 @@ set(TEMPO_SRC
         # --- --- --- TSeries
         include/tempo/tseries/tseries.hpp
         # --- --- --- Univariate
+        # --- Classifiers
+        include/tempo/univariate/classifiers/nn1/nn1.hpp
         # --- Distances
         include/tempo/univariate/distances/distances.hpp
         include/tempo/univariate/distances/dtw/dtw.hpp
