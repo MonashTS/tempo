@@ -294,10 +294,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, auto dist = square_dist < FloatType>>
+    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist < FloatType>>
     [[nodiscard]] inline FloatType erp(
-            const TSeries<FloatType> &series1,
-            const TSeries<FloatType> &series2,
+            const TSeries<FloatType, LabelType> &series1,
+            const TSeries<FloatType, LabelType> &series2,
             FloatType gValue,
             size_t w
     ) {
@@ -362,10 +362,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double, auto dist = square_dist<FloatType>>
+    template<typename FloatType=double, typename LabelType=std::string, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType erp(
-            const TSeries<FloatType>& series1,
-            const TSeries<FloatType>& series2,
+            const TSeries<FloatType, LabelType>& series1,
+            const TSeries<FloatType, LabelType>& series2,
             FloatType gValue,
             const size_t w,
             FloatType cutoff){
