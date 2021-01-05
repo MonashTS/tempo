@@ -1,7 +1,10 @@
 #pragma once
 
-#include <variant>
+#include <functional>
 #include <tuple>
+#include <variant>
+
+#include "../../tseries/tseries.hpp"
 
 namespace tempo::univariate {
 
@@ -34,5 +37,9 @@ namespace tempo::univariate {
         const auto d = a-b;
         return d*d;
     }
+
+    /// Type of an elastic distance between two TSeries
+    template<typename FloatType>
+    using distfun_t = std::function<FloatType(const TSeries<FloatType>&, const TSeries<FloatType>&)>;
 
 }
