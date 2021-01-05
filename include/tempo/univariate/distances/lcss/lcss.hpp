@@ -98,10 +98,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double>
+    template<typename FloatType=double, typename LabelType=std::string>
     [[nodiscard]] inline FloatType lcss(
-            const TSeries<FloatType> &series1,
-            const TSeries<FloatType> &series2,
+            const TSeries<FloatType, LabelType> &series1,
+            const TSeries<FloatType, LabelType> &series2,
             FloatType epsilon, size_t w) {
         return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w);
     }
@@ -205,10 +205,10 @@ namespace tempo::univariate {
 
 
     /// Helper for the above, using TSeries
-    template<typename FloatType=double>
+    template<typename FloatType=double, typename LabelType=std::string>
     [[nodiscard]] inline FloatType lcss(
-            const TSeries<FloatType> &series1,
-            const TSeries<FloatType> &series2,
+            const TSeries<FloatType, LabelType> &series1,
+            const TSeries<FloatType, LabelType> &series2,
             FloatType epsilon, size_t w, FloatType cutoff) {
         return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w, cutoff);
     }
