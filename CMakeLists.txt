@@ -29,6 +29,8 @@ project(tempo VERSION ${VERSION})
 # Creating the library
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(TEMPO_SRC
+        # --- --- --- tseries
+        include/tempo/tseries/tseries.hpp
         # --- --- --- Univariate
         # --- Distances
         include/tempo/univariate/distances/distances.hpp
@@ -43,6 +45,7 @@ set(TEMPO_SRC
         include/tempo/univariate/transforms/derivative.hpp
         # --- --- --- Utils
         include/tempo/utils/utils.hpp
+        include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
         )
 add_library(tempo INTERFACE)
