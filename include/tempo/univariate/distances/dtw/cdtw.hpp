@@ -215,6 +215,21 @@ namespace tempo::univariate {
         return cdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), w);
     }
 
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_cdtw(size_t w){
+
+        return distfun_t<FloatType, LabelType> {
+            [w](
+                    const TSeries<FloatType, LabelType>& series1,
+                    const TSeries<FloatType, LabelType>& series2
+                    ){
+                return cdtw<FloatType, LabelType, dist>(series1, series2, w);
+            }
+        };
+
+    }
+
     // --- --- --- --- ---
     // --- DTW with cutoff
     // --- --- --- --- ---
@@ -275,5 +290,23 @@ namespace tempo::univariate {
             FloatType cutoff){
         return cdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), w, cutoff);
     }
+
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_cdtw(size_t w){
+
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [w](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType co
+                ){
+                    return cdtw<FloatType, LabelType, dist>(series1, series2, w, co);
+                }
+        };
+
+    }
+
 
 } // End of namespace tempo::univariate

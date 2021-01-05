@@ -39,7 +39,11 @@ namespace tempo::univariate {
     }
 
     /// Type of an elastic distance between two TSeries
-    template<typename FloatType>
-    using distfun_t = std::function<FloatType(const TSeries<FloatType>&, const TSeries<FloatType>&)>;
+    template<typename FloatType, typename LabelType>
+    using distfun_t = std::function<FloatType(const TSeries<FloatType, LabelType>&, const TSeries<FloatType, LabelType>&)>;
+
+    /// Type of an elastic distance between two TSeries, with cut-off
+    template<typename FloatType, typename LabelType>
+    using distfun_cutoff_t = std::function<FloatType(const TSeries<FloatType, LabelType>&, const TSeries<FloatType, LabelType>&, FloatType cutoff)>;
 
 }
