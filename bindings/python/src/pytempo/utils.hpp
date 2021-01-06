@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
 #define USE(series) series.data(), series.size()

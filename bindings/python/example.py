@@ -11,6 +11,35 @@ def dir_mod(mod):
 dir_mod(pytempo)
 
 # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+# --- --- --- TSeries
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+print("Create an empty series, convert to numpy array...")
+ts0 = pytempo.TSeries()
+array0 = np.array(ts0, copy=False)
+print(array0)
+print()
+
+print("1D: Create a series based on a numpy array, and convert back")
+array1D = np.array([1, 2, 3], dtype=float)
+print(array1D)
+ts1 = pytempo.TSeries(array1D, False, None)
+print("Length = ", ts1.length())
+array1D_bis = np.array(ts1, copy=False)
+print(array1D_bis)
+assert((array1D == array1D_bis).all())
+print()
+
+print("2D: Create a series based on a numpy array, and convert back")
+array2D = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
+print(array2D)
+ts2 = pytempo.TSeries(array2D, False, None)
+print("Length = ", ts2.length())
+array2D_bis = np.array(ts2, copy=False)
+print(array2D_bis)
+assert((array2D == array2D_bis).all())
+print()
+
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 # --- --- --- Univariate
 # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 univariate = pytempo.univariate

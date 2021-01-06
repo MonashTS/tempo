@@ -49,7 +49,7 @@ namespace tempo {
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
         /// Default constructor: create an empty univariate series
-        TSeries():data_(data_v_->data()){}
+        TSeries() = default;
 
         /** Constructor taking ownership of a vector<FloatType>.
          * The length is computed based on the vector's length and the number of dimensions.
@@ -99,7 +99,13 @@ namespace tempo {
                 TSeries(std::move(data), info_source.nbdim_, info_source.has_missing_, info_source.label_){ }
 
         /** Constructor with a raw pointer.
-         *  The new instance does not own the data and will not free the memory when destroyed. */
+         *  The new instance does not own the data and will not free the memory when destroyed.
+         * @param data_ptr         Pointer to the data
+         * @param length           Length of the dimension (not the total size of the buffer!)
+         * @param nb_dimensions    Number of dimension. The size of the buffer should be nb_dimensions * length.
+         * @param has_missing      Is there any missing data?
+         * @param label            The label, optional.
+         */
         TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
                 : data_(data_ptr),
                   length_(length),
@@ -107,16 +113,12 @@ namespace tempo {
                   has_missing_(has_missing),
                   label_(std::move(label)) {
 
-            if(length == 0 ^ data_ptr != nullptr) {
+            if((length == 0) ^ (data_ptr == nullptr)) {
                 throw std::domain_error("A length of 0 requires a null pointer, and vice versa");
             }
 
             if(nb_dimensions<1){
                 throw std::domain_error("nb_dimensions must be >= 1");
-            }
-
-            if(data_v_->size()%nb_dimensions != 0){
-                throw std::domain_error("Vector size is not a multiple of nb_dimensions");
             }
         }
 
@@ -139,6 +141,8 @@ namespace tempo {
         [[nodiscard]] inline size_t length() const { return length_; }
 
         [[nodiscard]] inline size_t nb_dimensions() const { return nbdim_; }
+
+        [[nodiscard]] inline size_t size() const { return length_ * nbdim_; }
 
         [[nodiscard]] inline bool has_missing() const { return has_missing_; }
 
