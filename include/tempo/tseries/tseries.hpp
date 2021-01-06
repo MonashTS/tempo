@@ -5,24 +5,24 @@
 #include <vector>
 
 #include "../utils/utils.hpp"
-#include "../utils/uncopyable.hpp"
 
 namespace tempo {
 
-    /** Helper for times series data. Prevent us from implicitly copying the series.
+    /** Helper for times series data.
      *  Can own or not the underlying data.
+     *  When owning, data are behind a shared pointer, allowing for cheap copies.
      *  Once created, a series cannot be modified.
       * @tparam FloatType   Type of the values of the series. Must be a floating point type with NAN support.
       * @tparam LabelType   Type of the label. Must be copy-constructible.
      */
     template<typename FloatType, typename LabelType>
-    class TSeries: private Uncopyable {
+    class TSeries{
         static_assert(std::is_floating_point_v<FloatType>);
         static_assert(std::is_copy_constructible_v<LabelType>);
     protected:
 
         /// When owning: backend storage
-        std::vector<FloatType> data_v_{};
+        std::shared_ptr<const std::vector<FloatType>> data_v_{};
 
         /// Pointer on the backend
         const FloatType* data_{nullptr};
@@ -41,12 +41,15 @@ namespace tempo {
 
     public:
 
+        using FloatType_t= FloatType;
+        using LabelType_t= LabelType;
+
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Constructors & factories & destructor
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
         /// Default constructor: create an empty univariate series
-        TSeries():data_(data_v_.data()){}
+        TSeries():data_(data_v_->data()){}
 
         /** Constructor taking ownership of a vector<FloatType>.
          * The length is computed based on the vector's length and the number of dimensions.
@@ -57,20 +60,21 @@ namespace tempo {
          * @param label             Optional class label
          */
         TSeries(std::vector<FloatType> &&data, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
-                : data_v_(std::move(data)), nbdim_(nb_dimensions), has_missing_(has_missing),
+                : data_v_(std::make_shared<std::vector<FloatType>>(std::move(data))),
+                  nbdim_(nb_dimensions),
+                  has_missing_(has_missing),
                   label_(std::move(label)) {
 
             if(nb_dimensions<1){
                 throw std::domain_error("nb_dimensions must be >= 1");
             }
 
-            if(data_v_.size()%nb_dimensions != 0){
+            if(data_v_->size()%nb_dimensions != 0){
                 throw std::domain_error("Vector size is not a multiple of nb_dimensions");
             }
 
-            length_ = data_v_.size() / nbdim_;
-            data_v_.shrink_to_fit();
-            data_ = data_v_.data();
+            length_ = data_v_->size() / nbdim_;
+            data_ = data_v_->data();
         }
 
         /** Constructor taking ownership of a vector<FloatType>.
@@ -97,7 +101,10 @@ namespace tempo {
         /** Constructor with a raw pointer.
          *  The new instance does not own the data and will not free the memory when destroyed. */
         TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
-                : data_(data_ptr), length_(length), nbdim_(nb_dimensions), has_missing_(has_missing),
+                : data_(data_ptr),
+                  length_(length),
+                  nbdim_(nb_dimensions),
+                  has_missing_(has_missing),
                   label_(std::move(label)) {
 
             if(length == 0 ^ data_ptr != nullptr) {
@@ -108,7 +115,7 @@ namespace tempo {
                 throw std::domain_error("nb_dimensions must be >= 1");
             }
 
-            if(data_v_.size()%nb_dimensions != 0){
+            if(data_v_->size()%nb_dimensions != 0){
                 throw std::domain_error("Vector size is not a multiple of nb_dimensions");
             }
         }
@@ -124,33 +131,6 @@ namespace tempo {
 
         /** Default destructor, automatically free the backend when owning. */
         ~TSeries() = default;
-
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-        // Movement
-        // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-
-        /// Move-constructor
-        TSeries(TSeries &&other) noexcept {
-            // Use the move-assignment operator
-            *this = std::move(other);
-        }
-
-        /// Move-assignment
-        TSeries &operator=(TSeries &&other) noexcept {
-            if (this != &other) {
-                if (other.is_owning()) {
-                    data_v_ = std::move(other.data_v_);
-                    data_ = data_v_.data();
-                } else {
-                    data_ = other.data_;
-                }
-                nbdim_ = other.nbdim_;
-                length_ = other.length_;
-                has_missing_ = other.has_missing_;
-                label_ = std::move(other.label_);
-            }
-            return *this;
-        }
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Methods
@@ -175,7 +155,7 @@ namespace tempo {
         }
 
         /// return true if the series is owning its data
-        [[nodiscard]] inline bool is_owning() const { return data_v_.data() == data_; }
+        [[nodiscard]] inline bool is_owning() const { return data_v_->data() == data_; }
 
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -206,9 +186,7 @@ namespace tempo {
             }
         }
 
-
         [[nodiscard]] friend inline bool operator!=(const TSeries &lhs, const TSeries &rhs) { return !operator==(lhs, rhs); }
     };
-
 
 } // End of namespace tempo
