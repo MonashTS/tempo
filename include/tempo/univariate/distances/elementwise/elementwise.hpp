@@ -46,6 +46,28 @@ namespace tempo::univariate {
         return elementwise<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size());
     }
 
+    /// Helper for the above, using TSeries
+    template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] inline FloatType elementwise(
+            const TSeries<FloatType, LabelType> &series1,
+            const TSeries<FloatType, LabelType> &series2
+    ) {
+        return elementwise<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length());
+    }
+
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_elementwise(){
+        return distfun_t<FloatType, LabelType> {
+                [](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2
+                ){
+                    return elementwise<FloatType, LabelType, dist>(series1, series2);
+                }
+        };
+    }
+
 
     // --- --- --- --- --- ---
     // Element Wise with cut-off
@@ -114,6 +136,20 @@ namespace tempo::univariate {
             FloatType cutoff
     ) {
         return elementwise<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), cutoff);
+    }
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_elementwise(){
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType co
+                ){
+                    return elementwise<FloatType, LabelType, dist>(series1, series2, co);
+                }
+        };
     }
 
 } // End of namespace tempo::univariate

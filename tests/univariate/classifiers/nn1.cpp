@@ -6,6 +6,7 @@
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/dtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
+#include <tempo/univariate/distances/elementwise/elementwise.hpp>
 
 #include "../tests_tools.hpp"
 
@@ -65,5 +66,17 @@ TEST_CASE("NN1 CDTW Fixed length") {
             auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
+    }
+
+    // --- --- --- EWISE
+    {
+        auto f = tempo::univariate::distfun_elementwise<double, int>();
+        auto fco = tempo::univariate::distfun_cutoff_elementwise<double, int>();
+
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
+
     }
 }
