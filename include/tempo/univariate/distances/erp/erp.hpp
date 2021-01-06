@@ -305,6 +305,20 @@ namespace tempo::univariate {
     }
 
 
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_erp(FloatType gValue, size_t w){
+        return distfun_t<FloatType, LabelType> {
+                [gValue, w](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2
+                ){
+                    return erp<FloatType, LabelType, dist>(series1, series2, gValue, w);
+                }
+        };
+    }
+
+
 
     // --- --- --- --- ---
     // --- ERP with cutoff
@@ -370,6 +384,21 @@ namespace tempo::univariate {
             const size_t w,
             FloatType cutoff){
         return erp<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), gValue, w, cutoff);
+    }
+
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_erp(FloatType gValue, size_t w){
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [gValue, w](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType co
+                ){
+                    return erp<FloatType, LabelType, dist>(series1, series2, gValue, w, co);
+                }
+        };
     }
 
 } // End of namespace tempo::univariate
