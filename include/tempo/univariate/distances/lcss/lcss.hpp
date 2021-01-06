@@ -92,7 +92,8 @@ namespace tempo::univariate {
     [[nodiscard]] inline FloatType lcss(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
-            FloatType epsilon, size_t w) {
+            FloatType epsilon,
+            size_t w) {
         return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w);
     }
 
@@ -102,8 +103,22 @@ namespace tempo::univariate {
     [[nodiscard]] inline FloatType lcss(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,
-            FloatType epsilon, size_t w) {
+            FloatType epsilon,
+            size_t w) {
         return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w);
+    }
+
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_lcss(FloatType epsilon, size_t w){
+        return distfun_t<FloatType, LabelType> {
+                [epsilon, w](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2
+                ){
+                    return lcss<FloatType, LabelType>(series1, series2, epsilon, w);
+                }
+        };
     }
 
 
@@ -199,7 +214,9 @@ namespace tempo::univariate {
     [[nodiscard]] inline FloatType lcss(
             const std::vector<FloatType> &series1,
             const std::vector<FloatType> &series2,
-            FloatType epsilon, size_t w, FloatType cutoff) {
+            FloatType epsilon,
+            size_t w,
+            FloatType cutoff) {
         return lcss<FloatType>(series1.data(), series1.size(), series2.data(), series2.size(), epsilon, w, cutoff);
     }
 
@@ -209,9 +226,24 @@ namespace tempo::univariate {
     [[nodiscard]] inline FloatType lcss(
             const TSeries<FloatType, LabelType> &series1,
             const TSeries<FloatType, LabelType> &series2,
-            FloatType epsilon, size_t w, FloatType cutoff) {
+            FloatType epsilon,
+            size_t w,
+            FloatType cutoff) {
         return lcss<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), epsilon, w, cutoff);
     }
 
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_lcss(FloatType epsilon, size_t w) {
+        return distfun_cutoff_t<FloatType, LabelType>{
+                [epsilon, w](
+                        const TSeries<FloatType, LabelType> &series1,
+                        const TSeries<FloatType, LabelType> &series2,
+                        FloatType co
+                ) {
+                    return lcss<FloatType, LabelType>(series1, series2, epsilon, w, co);
+                }
+        };
+    }
 
 } // End of namespace tempo::univariate

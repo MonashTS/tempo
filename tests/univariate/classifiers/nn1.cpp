@@ -8,6 +8,7 @@
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
 #include <tempo/univariate/distances/elementwise/elementwise.hpp>
 #include <tempo/univariate/distances/erp/erp.hpp>
+#include <tempo/univariate/distances/lcss/lcss.hpp>
 
 #include "../tests_tools.hpp"
 
@@ -89,6 +90,16 @@ TEST_CASE("NN1 CDTW Fixed length") {
             auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
+    }
 
+    // --- --- ---  LCSS
+    {
+        auto f = tempo::univariate::distfun_lcss<double, int>(0.5, 2);
+        auto fco = tempo::univariate::distfun_cutoff_lcss<double, int>(0.5, 2);
+
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
     }
 }
