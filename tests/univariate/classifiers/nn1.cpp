@@ -5,6 +5,7 @@
 #include <tempo/univariate/classifiers/nn1/nn1.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/dtw.hpp>
+#include <tempo/univariate/distances/dtw/wdtw.hpp>
 
 #include "../tests_tools.hpp"
 
@@ -54,4 +55,15 @@ TEST_CASE("NN1 CDTW Fixed length") {
         }
     }
 
+    // --- --- --- WDTW
+    {
+        auto weights = std::make_shared<std::vector<double>>(generate_weights(0.1, fixed));
+        auto f = tempo::univariate::distfun_wdtw<double, int>(weights);
+        auto fco = tempo::univariate::distfun_cutoff_wdtw<double, int>(weights);
+
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
+    }
 }

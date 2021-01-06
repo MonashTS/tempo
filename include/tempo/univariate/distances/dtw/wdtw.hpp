@@ -257,6 +257,19 @@ namespace tempo::univariate {
         return wdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights.data());
     }
 
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_wdtw(std::shared_ptr<std::vector<FloatType>> weights) {
+        return distfun_t<FloatType, LabelType>{
+                [weights](
+                        const TSeries<FloatType, LabelType> &series1,
+                        const TSeries<FloatType, LabelType> &series2
+                ) {
+                    return wdtw<FloatType, LabelType, dist>(series1, series2, *weights);
+                }
+        };
+    }
+
     // --- --- --- --- ---
     // --- WDTW with cutoff
     // --- --- --- --- ---
@@ -316,5 +329,19 @@ namespace tempo::univariate {
         return wdtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights.data(), cutoff);
     }
 
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_wdtw(std::shared_ptr<std::vector<FloatType>> weights){
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [weights](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType co
+                ){
+                    return wdtw<FloatType, LabelType, dist>(series1, series2, *weights, co);
+                }
+        };
+    }
 
 } // End of namespace tempo::univariate
