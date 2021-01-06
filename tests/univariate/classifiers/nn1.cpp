@@ -10,6 +10,7 @@
 #include <tempo/univariate/distances/erp/erp.hpp>
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
+#include <tempo/univariate/distances/twe/twe.hpp>
 
 #include "../tests_tools.hpp"
 
@@ -108,6 +109,17 @@ TEST_CASE("NN1 CDTW Fixed length") {
     {
         auto f = tempo::univariate::distfun_msm<double, int>(0.5);
         auto fco = tempo::univariate::distfun_cutoff_msm<double, int>(0.5);
+
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
+    }
+
+    // --- --- --- TWE
+    {
+        auto f = tempo::univariate::distfun_twe<double, int>(0.5, 1);
+        auto fco = tempo::univariate::distfun_cutoff_twe<double, int>(0.5, 1);
 
         for (const auto &q: test) {
             auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);

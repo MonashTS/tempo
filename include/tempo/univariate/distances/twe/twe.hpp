@@ -283,6 +283,20 @@ namespace tempo::univariate {
         return twe<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), nu, lambda);
     }
 
+
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_twe(FloatType nu, FloatType lambda){
+        return distfun_t<FloatType, LabelType> {
+                [nu, lambda](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2
+                ){
+                    return twe<FloatType, LabelType, dist>(series1, series2, nu, lambda);
+                }
+        };
+    }
+
     // --- --- --- --- ---
     // --- TWE with cutoff
     // --- --- --- --- ---
@@ -341,6 +355,20 @@ namespace tempo::univariate {
             const FloatType nu, const FloatType lambda,
             const FloatType cutoff){
         return twe<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), nu, lambda, cutoff);
+    }
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType, auto dist = square_dist < FloatType>>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_twe(FloatType nu, FloatType lambda){
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [nu, lambda](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType co
+                ){
+                    return twe<FloatType, LabelType, dist>(series1, series2, nu, lambda, co);
+                }
+        };
     }
 
 } // End of namespace tempo::univariate
