@@ -29,7 +29,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ cpp EXCLUDE_FROM_ALL)
 set(PYTHON_BINDINGS
         src/pytempo/utils.hpp
         src/pytempo/bindings.cpp
-
+        # --- --- --- TSeries
+        src/pytempo/tseries/bindings.hpp
         # --- --- --- Univariate
         # --- Distances
         src/pytempo/univariate/distances/pybind_dtw.hpp
