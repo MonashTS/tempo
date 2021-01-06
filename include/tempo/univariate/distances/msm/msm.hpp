@@ -266,6 +266,19 @@ namespace tempo::univariate {
         return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co);
     }
 
+    /// Build a distfun_t for the above
+    template<typename FloatType, typename LabelType>
+    [[nodiscard]] inline distfun_t<FloatType, LabelType> distfun_msm(FloatType co){
+        return distfun_t<FloatType, LabelType> {
+                [co](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2
+                ){
+                    return msm<FloatType, LabelType>(series1, series2, co);
+                }
+        };
+    }
+
     // --- --- --- --- ---
     // --- MSM with cutoff
     // --- --- --- --- ---
@@ -321,6 +334,20 @@ namespace tempo::univariate {
             const FloatType co,
             FloatType cutoff){
         return msm<FloatType>(series1.data(), series1.length(), series2.data(), series2.length(), co, cutoff);
+    }
+
+    /// Build a distfun_cutoff_t for the above
+    template<typename FloatType, typename LabelType>
+    [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_msm(FloatType co){
+        return distfun_cutoff_t<FloatType, LabelType> {
+                [co](
+                        const TSeries<FloatType, LabelType>& series1,
+                        const TSeries<FloatType, LabelType>& series2,
+                        FloatType cutoff
+                ){
+                    return msm<FloatType, LabelType>(series1, series2, co, cutoff);
+                }
+        };
     }
 
 } // End of namespace tempo::univariate
