@@ -4,6 +4,7 @@
 #include <tempo/tseries/tseries.hpp>
 #include <tempo/univariate/classifiers/nn1/nn1.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
+#include <tempo/univariate/distances/dtw/dtw.hpp>
 
 #include "../tests_tools.hpp"
 
@@ -31,12 +32,26 @@ TEST_CASE("NN1 CDTW Fixed length") {
         test.emplace_back(std::move(s), 1, false, std::optional<int>());
     }
 
-    distfun_t<double, int> f = tempo::univariate::distfun_cdtw<double, int>(2);
-    distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_cdtw<double, int>(2);
+    // --- --- --- DTW
+    {
+        distfun_t<double, int> f = tempo::univariate::distfun_dtw<double, int>();
+        distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_dtw<double, int>();
 
-    for(const auto& q: test){
-        auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
-        REQUIRE(res.size() == 1);
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
+    }
+
+    // --- --- --- CDTW
+    {
+        distfun_t<double, int> f = tempo::univariate::distfun_cdtw<double, int>(2);
+        distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_cdtw<double, int>(2);
+
+        for (const auto &q: test) {
+            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            REQUIRE(res.size() == 1);
+        }
     }
 
 }
