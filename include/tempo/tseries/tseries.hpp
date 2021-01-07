@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
+#include <any>
 
 #include "../utils/utils.hpp"
 
@@ -23,6 +24,7 @@ namespace tempo {
 
         /// When owning: backend storage
         std::shared_ptr<const std::vector<FloatType>> data_v_{};
+        std::shared_ptr<const std::any> capsule_{};
 
         /// Pointer on the backend
         const FloatType* data_{nullptr};
@@ -106,12 +108,15 @@ namespace tempo {
          * @param has_missing      Is there any missing data?
          * @param label            The label, optional.
          */
-        TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label)
-                : data_(data_ptr),
-                  length_(length),
-                  nbdim_(nb_dimensions),
-                  has_missing_(has_missing),
-                  label_(std::move(label)) {
+        TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing, std::optional<LabelType> label, std::shared_ptr<std::any> capsule)
+                :
+                capsule_(std::move(capsule)),
+                data_(data_ptr),
+                length_(length),
+                nbdim_(nb_dimensions),
+                has_missing_(has_missing),
+                label_(std::move(label))
+        {
 
             if((length == 0) ^ (data_ptr == nullptr)) {
                 throw std::domain_error("A length of 0 requires a null pointer, and vice versa");
@@ -150,12 +155,14 @@ namespace tempo {
 
         [[nodiscard]] inline const double *data() const { return data_; }
 
+        /*
         /// Access to the start of a dimension (first dimension is 0)
-        [[nodiscard]] inline const double *operator[](size_t dim) const { return data_ + (nbdim_ * dim); }
+        //[[nodiscard]] inline const double *operator[](size_t dim) const { return data_ + (nbdim_ * dim); }
+         */
 
         /// Access a value using a pair of coordinate (Dimension,index)
         [[nodiscard]] inline double operator()(size_t dim, size_t idx) const {
-            return *(data_ + (nbdim_ * dim + idx));
+            return *(data_ + (length_ * dim + idx));
         }
 
         /// return true if the series is owning its data
