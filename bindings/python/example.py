@@ -4,18 +4,28 @@ import pytempo
 import numpy as np
 from math import nan
 
+# Flags to (de)activate section of the example
+doPrintMod = False
+doTSeries = False
+doUniDist = True
+doUniTransform = True
 
+
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+# Print module
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 def dir_mod(mod):
     print(f"dir({mod.__name__}) = {dir(mod)}")
 
+def funPrintMod():
+    dir_mod(pytempo)
+    dir_mod(pytempo.univariate)
+    dir_mod(pytempo.univariate.distances)
+    dir_mod(pytempo.univariate.transforms)
 
-dir_mod(pytempo)
+if doPrintMod:
+    funPrintMod()
 
-# Flags to (de)activate section of the example
-
-doTSeries = True
-doUniDist = True
-doUniTransform = True
 
 
 # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -128,48 +138,77 @@ def funTSeries():
     print()
     # --- End of funTSeries()
 
-
 if doTSeries:
     funTSeries()
-
-exit(0)
 
 # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 # --- --- --- Univariate
 # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-univariate = pytempo.univariate
-dir_mod(univariate)
+def funUniDist():
+    print()
 
-# --- --- --- Distance
-ud = univariate.distances
-dir_mod(ud)
+    # --- --- --- Distance
+    ud = pytempo.univariate.distances
 
-s1 = np.array([2, 3, 4], dtype=float)
-s2 = np.array([0, 0, 0, 0], dtype=float)
+    s1 = np.array([2, 3, 4], dtype=float)
+    s2 = np.array([0, 0, 0, 0], dtype=float)
 
-print(f"s1 of length {len(s1)} = {s1}\ns2 of length {len(s2)} = {s2}")
+    print(f"s1 of length {len(s1)} = {s1}")
+    print(f"s2 of length {len(s2)} = {s2}")
 
-v = ud.dtw(s1, s2)
-print(f"dtw(s1, s2) = {v}")
+    print()
+    print("Demonstrating cut-off with DTW:")
+    v = ud.dtw(s1, s2)
+    print(f"  DTW(s1, s2) = {v}")
 
-co1 = v + 1
-ea1 = ud.dtw(s1, s2, co1)
-print(f"If cut-off > {v}, no early abandoning: dtw(s1, s2, {co1}) = {ea1}")
+    co1 = v + 1
+    ea1 = ud.dtw(s1, s2, co1)
+    print(f"    If cut-off > {v}, no early abandoning: DTW(s1, s2, {co1}) = {ea1}")
 
-co2 = v
-ea2 = ud.dtw(s1, s2, co2)
-print(f"If cut-off = {v}, no early abandoning: dtw(s1, s2, {co2}) = {ea2}")
+    co2 = v
+    ea2 = ud.dtw(s1, s2, co2)
+    print(f"    If cut-off = {v}, no early abandoning: DTW(s1, s2, {co2}) = {ea2}")
 
-co3 = v - 1
-ea3 = ud.dtw(s1, s2, co3)
-print(f"If cut-off < {v}, early abandoning: dtw(s1, s2, {co3}) = {ea3}")
+    co3 = v - 1
+    ea3 = ud.dtw(s1, s2, co3)
+    print(f"    If cut-off < {v},    early abandoning: DTW(s1, s2, {co3}) = {ea3}")
+
+    print()
+    print("Other distances:")
+    print("  CDTW w=3: ", ud.cdtw(s1, s2, 3))
+    print("  ERP gValue = 0.1, w = 3: ", ud.erp(s1, s2, 0.1, 3))
+    print("  LCSS epsilon = 0.01, w = 3: ", ud.lcss(s1, s2, 0.01, 1))
+    print("  MSM cost = 0.5: ", ud.msm(s1, s2, 0.5))
+    print("  SQED: ", ud.squaredED(s1, s2))
+    print("  TWE nu = 0.1, lambda = 0.2 : ", ud.twe(s1, s2, 0.1, 0.2))
+
+    # WDTW needs the weights
+    weights = ud.wdtw_weights(max(len(s1), len(s2)), 0.5)
+    print("  WDTW: generating weights with g=0.5: ", weights)
+    print("  WDTW with generated weights: ", ud.wdtw(s1, s2, weights))
+    # --- end of funUniDist()
+
+if doUniDist:
+    funUniDist()
 
 # --- --- --- Transforms
-ut = univariate.transforms
-dir_mod(ut)
+def funUniTransform():
+    print()
 
-deriv_s1 = ut.derivative(s1)
-deriv_s2 = np.empty(0)
-ut.derivative(s2, deriv_s2)
-print(f"Derivative of s1 = {deriv_s1}")
-print(f"Derivative of s2 = {deriv_s2}")
+    ut = pytempo.univariate.transforms
+
+    s1 = np.array([2, 3, 4], dtype=float)
+    s2 = np.array([0, 0, 0, 0], dtype=float)
+
+    print(f"s1 of length {len(s1)} = {s1}")
+    print(f"s2 of length {len(s2)} = {s2}")
+
+    deriv_s1 = ut.derivative(s1)
+    deriv_s2 = np.empty(0)
+    ut.derivative(s2, deriv_s2)
+    print(f"Derivative of s1 = {deriv_s1}")
+    print(f"Derivative of s2 = {deriv_s2}")
+    # --- end of funUniTransform()
+
+if doUniTransform:
+    funUniTransform()
