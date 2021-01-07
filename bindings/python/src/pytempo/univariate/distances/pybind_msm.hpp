@@ -32,7 +32,7 @@ namespace pytempo::univariate {
               "MSM between two series.",
               "serie1"_a, "serie2"_a, "cost"_a);
 
-        m.def("msm_ea", &msm_ea,
+        m.def("msm", &msm_ea,
               "MSM between two series. With pruning & early abandoning cut-off.",
               "serie1"_a, "serie2"_a, "cost"_a, "cutoff"_a
         );
