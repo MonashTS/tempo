@@ -21,7 +21,7 @@ namespace tempo::univariate {
      * @param begin             Forward Iterator pointing on the start of the database
      * @param end               Forward Iterator pointing on the end of the database
      * @param query             Query whose label is to be determined
-     * @return                  Vector of labels, containing more than 1 if ties occur, and 0 if the databse is empty.
+     * @return                  Vector of labels, containing more than 1 if ties occur, and 0 if the database is empty.
      */
     template<typename FloatType, typename LabelType, typename ForwardIterator>
     [[nodiscard]] std::vector<LabelType> nn1(
