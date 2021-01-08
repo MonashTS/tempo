@@ -8,6 +8,8 @@ target_include_directories(Catch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_executable(tests
         # --- --- --- Entry point
         tests.cpp
+        # --- --- --- TSeries & dataset
+        tseries/dataset.cpp
         # --- --- --- Univariate
         # --- Tools
         univariate/tests_tools.cpp univariate/tests_tools.hpp

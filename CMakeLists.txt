@@ -31,6 +31,7 @@ project(tempo VERSION ${VERSION})
 set(TEMPO_SRC
         # --- --- --- TSeries
         include/tempo/tseries/tseries.hpp
+        include/tempo/tseries/dataset.hpp
         # --- --- --- Univariate
         # --- Classifiers
         include/tempo/univariate/classifiers/nn1/nn1.hpp
