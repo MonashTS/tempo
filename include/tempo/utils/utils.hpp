@@ -5,13 +5,14 @@
 #include <any>
 #include <cassert>
 #include <cstddef>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <random>
+#include <set>
 #include <stdexcept>
-#include <vector>
-#include <iterator>
 #include <type_traits>
+#include <vector>
 
 namespace tempo {
 
