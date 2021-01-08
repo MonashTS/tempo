@@ -181,13 +181,7 @@ namespace tempo {
                 if (ld == rd) {
                     return true; // Same pointer, so all good
                 } else { // Else, compare item one by one
-                    bool same = true;
-                    size_t index = 0;
-                    while (same && index < lhs.length()) {
-                        same = ld[index] == rd[index];
-                        ++index;
-                    }
-                    return same;
+                    return std::equal(ld, ld+lhs.length(), rd);
                 }
             } else {
                 return false;
