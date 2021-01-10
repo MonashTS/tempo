@@ -47,6 +47,9 @@ set(TEMPO_SRC
         # --- Transforms
         include/tempo/univariate/transforms/derivative.hpp
         # --- --- --- Utils
+        include/tempo/utils/utils/rand.hpp
+        include/tempo/utils/utils/stats.hpp
+        include/tempo/utils/utils/unsignedutils.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
