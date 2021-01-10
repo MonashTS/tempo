@@ -128,9 +128,9 @@ namespace tempo {
          *  Be sure thath the backing instance lives longer than the new one!
          */
         static TSeries<FloatType, LabelType> from(const TSeries<FloatType, LabelType> &backing) {
-            return std::move(TSeries<FloatType, LabelType>(
+            return TSeries<FloatType, LabelType>(
                     backing.data_, backing.length_, backing.nbdim_, backing.has_missing_, backing.label_
-            ));
+            );
         }
 
         /** Default destructor, automatically free the backend when owning. */
