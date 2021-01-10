@@ -31,12 +31,12 @@ namespace ttools {
 
     /** Fixed length, random vector of double, with values in [minv, maxv[ */
     inline vector<double> get_series_data_fixed_length(PRNG& prng, size_t fixed_size = def_fixed_size){
-        return generate_random_real_vector(prng, fixed_size, minv, maxv);
+        return tempo::rand::generate_random_real_vector(prng, fixed_size, minv, maxv);
     }
 
     /** Variable length [min_size, max_size], with values in [minv, maxv[ */
     inline vector<double> get_series_data_variable_length(PRNG &prng, size_t min_size = def_min_size, size_t max_size = def_max_size){
-        return generate_random_real_vector(prng, get_size(prng, min_size, max_size), minv, maxv);
+        return tempo::rand::generate_random_real_vector(prng, get_size(prng, min_size, max_size), minv, maxv);
     }
 
     /** Generate a dataset of fixed length series with nbitems, with values in [minv, maxv[ */

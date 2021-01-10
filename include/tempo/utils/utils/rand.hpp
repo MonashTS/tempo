@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-namespace tempo {
+namespace tempo::rand {
 
     /** Pick a random item from a vector.
      * Note: optional references did not make it in C++17, so just throw if the vector v is empty*/
