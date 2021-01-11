@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <sstream>
 #include <variant>
 #include "../utils/utils.hpp"
@@ -385,6 +386,40 @@ namespace tempo {
             return It(it_index, this);
         }
     };
+
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Function over datasets
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+    /** Type of mappings Class -> indexes in a dataset */
+    template<typename LabelType>
+    using ByClassMap = std::map<LabelType, std::vector<size_t>>;
+
+    /** Create a mapping Class -> indexes for a dataset */
+    template<typename FloatType, typename LabelType>
+    [[nodiscard]] ByClassMap<LabelType> getByClassMap(const Dataset<FloatType, LabelType>& dataset){
+        ByClassMap<LabelType> result;
+        for(size_t idx=0; idx<dataset.size(); ++idx){
+            const auto& s = dataset[idx];
+            if(s.label()) {
+                auto l = s.label().value();
+                result[l].push_back(idx); // Default construction of the vector in the map on first access.
+            }
+        }
+        return result;
+    }
+
+    /** Giving a ByClassMap, compute the gini impurity */
+    template<typename LabelType>
+    [[nodiscard]] double gini_impurity(const ByClassMap<LabelType>& bcm){
+        std::vector<size_t> cardinalities;
+        std::transform(bcm.cbegin(), bcm.cend(), std::back_inserter(cardinalities), [](const auto& kv){return kv.second.size();} );
+        return tempo::stats::gini_impurity(cardinalities.begin(), cardinalities.end());
+    }
+
+
+
 
 
 } // End of namespace tempo

@@ -68,7 +68,7 @@ TEST_CASE("Univariate Dataset") {
         }
     }
 
-
-    // Combination of subsets
+    // Quick gini test
+    REQUIRE(0 == gini_impurity(getByClassMap(dataset)));
 
 }
