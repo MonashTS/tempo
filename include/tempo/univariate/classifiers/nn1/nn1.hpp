@@ -48,7 +48,7 @@ namespace tempo::univariate {
                     labels.clear();
                     labels.emplace_back(candidate.label().value());
                     bsf=result;
-                } else if (bsf == result){
+                } else if (bsf == result){ // Manage ties
                     const auto& l = candidate.label().value();
                     if( std::none_of(labels.begin(), labels.end(), [l](const auto& v){return v==l;}) ){
                         labels.emplace_back(l);

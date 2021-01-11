@@ -29,6 +29,10 @@ project(tempo VERSION ${VERSION})
 # Creating the library
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(TEMPO_SRC
+        # --- --- --- Readers
+        src/tempo/reader/readingtools.hpp
+        include/tempo/reader/ts/ts.hpp
+        src/tempo/reader/ts/ts.cpp
         # --- --- --- TSeries
         include/tempo/tseries/tseries.hpp
         include/tempo/tseries/dataset.hpp
@@ -54,9 +58,14 @@ set(TEMPO_SRC
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
         )
-add_library(tempo INTERFACE)
-target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_sources(tempo INTERFACE ${TEMPO_SRC})
+
+add_library(tempo SHARED ${TEMPO_SRC})
+set_target_properties(tempo PROPERTIES VERSION ${VERSION})
+target_include_directories(tempo PUBLIC "include")
+target_include_directories(tempo PRIVATE "src")
+
+#target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+#target_sources(tempo INTERFACE ${TEMPO_SRC})
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Adding the tests
