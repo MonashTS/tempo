@@ -64,9 +64,6 @@ set_target_properties(tempo PROPERTIES VERSION ${VERSION})
 target_include_directories(tempo PUBLIC "include")
 target_include_directories(tempo PRIVATE "src")
 
-#target_include_directories(tempo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-#target_sources(tempo INTERFACE ${TEMPO_SRC})
-
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Adding the tests
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
