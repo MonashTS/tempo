@@ -169,7 +169,7 @@ namespace tempo::univariate {
                 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                 // Score to reach to equal ub, to beat to do better
                 if (cutoff > 1) { cutoff = 1; }
-                const size_t to_reach = std::floor((1 - cutoff) * nbcols);
+                const size_t to_reach = std::ceil((1 - cutoff) * nbcols);
                 size_t current_max = 0;
 
                 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -179,7 +179,7 @@ namespace tempo::univariate {
                 // Main loop
                 for (size_t i{0}; i < nblines; ++i) {
                     // --- --- --- Stop if not enough remaining lines to reach the target (by taking the diagonal)
-                    const size_t lines_left = nblines - i;
+                    const size_t lines_left = nblines-i;
                     if (current_max + lines_left < to_reach) { return POSITIVE_INFINITY; }
                     // --- --- --- Swap and variables init
                     std::swap(c, p);
