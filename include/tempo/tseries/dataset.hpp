@@ -102,7 +102,7 @@ namespace tempo {
         std::shared_ptr<const DI> store_info_;
 
         /// Info about this dataset
-        std::optional<const DI> my_info_ {};
+        std::optional<DI> my_info_ {};
 
         /** Subset of the store: either by range or by subset
          *  Note: Always used: no subset == range [0, store_->size()[*/
@@ -114,11 +114,34 @@ namespace tempo {
         Dataset() = default;
 
         /** New dataset based on a vector of TSeries. Take ownership of the vector.
+         * Requires information about the store
+         */
+        Dataset(std::vector<TS>&& series, DatasetInfo<LabelType> info):
+                store_(std::make_shared<std::vector<TS>>(std::move(series))),
+                store_info_(std::make_shared<const DI>(info)),
+                my_info_({*store_info_}),
+                subset(Range{0, store_->size()})
+        { }
+
+        /** New dataset based on a vector of TSeries. Take ownership of the vector.
          * Compute the DatasetInfo related to the series
          */
         explicit Dataset(std::vector<TS>&& series):
                 store_(std::make_shared<std::vector<TS>>(std::move(series))),
-                store_info_(std::make_shared<const DI>(DI::template make_from<FloatType>(store_->cbegin(), store_->cend()))),
+                subset(Range{0, store_->size()})
+        {
+            auto di = DI::template make_from<FloatType>(store_->cbegin(), store_->cend());
+            store_info_ = std::make_shared<const DI>(di);
+            my_info_ = {*store_info_};
+        }
+
+
+        /** New dataset based on a vector of TSeries with shared ownership.
+         * Requires information about the store
+         */
+        Dataset(std::shared_ptr<std::vector<TS>> series, DatasetInfo<LabelType> info):
+                store_(std::move(series)),
+                store_info_(std::make_shared<const DI>(info)),
                 my_info_({*store_info_}),
                 subset(Range{0, store_->size()})
         { }
@@ -128,10 +151,13 @@ namespace tempo {
          */
         explicit Dataset(std::shared_ptr<std::vector<TS>> series):
                 store_(std::move(series)),
-                store_info_(std::make_shared<const DI>(DI::template make_from<FloatType>(store_->cbegin(), store_->cend()))),
-                my_info_({*store_info_}),
                 subset(Range{0, store_->size()})
-        { }
+        {
+            auto di = DI::template make_from<FloatType>(store_->cbegin(), store_->cend());
+            store_info_ = std::make_shared<const DI>(di);
+            my_info_ = {*store_info_};
+        }
+
 
 
         /** New dataset made out of a subrange [0<=start <= end<=other.size()[ of another one
