@@ -47,7 +47,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_dtw<double, int>();
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -58,7 +58,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_cdtw<double, int>(2);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -70,7 +70,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_wdtw<double, int>(weights);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -81,7 +81,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_elementwise<double, int>();
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -92,7 +92,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_erp<double, int>(0.5, 2);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -103,7 +103,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_lcss<double, int>(0.5, 2);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -114,7 +114,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_msm<double, int>(0.5);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -125,7 +125,7 @@ TEST_CASE("NN1 CDTW Fixed length") {
         auto fco = tempo::univariate::distfun_cutoff_twe<double, int>(0.5, 1);
 
         for (const auto &q: test) {
-            auto res = nn1<double, int>(f, fco, train.begin(), train.end(), q);
+            auto res = nn1<double, int>(fco, train.begin(), train.end(), q);
             REQUIRE(res.size() == 1);
         }
     }
@@ -188,7 +188,7 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
 
         for (size_t iq=0; iq<store_test.size(); ++iq) {
             const auto& q = store_test[iq];
-            auto res = nn1<double, int>(f, fco, store_train.storage().begin(), store_train.storage().end(), q);
+            auto res = nn1<double, int>(fco, store_train.storage().begin(), store_train.storage().end(), q);
             REQUIRE(res.size() == 1);
         }
     }

@@ -25,7 +25,6 @@ namespace tempo::univariate {
      */
     template<typename FloatType, typename LabelType, typename InputIterator>
     [[nodiscard]] std::vector<LabelType> nn1(
-            const distfun_t<FloatType, LabelType>& distance,
             const distfun_cutoff_t<FloatType, LabelType>& distance_co,
             InputIterator begin, InputIterator end,
             const TSeries<FloatType, LabelType>& query){
@@ -36,9 +35,8 @@ namespace tempo::univariate {
         // Check if the database isn't empty, else immediately return an empty vector
         if(begin!=end){
             // Use the distance without cut-off to compute the first pair.
-            auto bsf = distance(*begin, query);
-            std::vector<LabelType> labels{begin->label().value()};
-            ++begin;
+            auto bsf = POSITIVE_INFINITY<FloatType>;
+            std::vector<LabelType> labels{};
             // Keep going, exhaust the database
             while(begin!=end){
                 // We can now use the distance with a cutoff
@@ -54,7 +52,6 @@ namespace tempo::univariate {
                         labels.emplace_back(l);
                     }
                 }
-
                 ++begin;
             }
             return labels;
