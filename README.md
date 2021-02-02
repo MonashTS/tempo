@@ -43,3 +43,7 @@ To remove the package:
 ```bash
 pip uninstall pytempo.distances
 ```
+
+## Benckmarks
+The algorithm is submitted in a paper under review.
+The paper contains benchmarks that can be found here https://github.com/HerrmannM/paper-2021-EAPElasticDist.
