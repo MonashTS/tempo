@@ -41,6 +41,7 @@ set(TEMPO_SRC
         include/tempo/univariate/classifiers/nn1/nn1.hpp
         # --- Distances
         include/tempo/univariate/distances/distances.hpp
+        include/tempo/univariate/distances/dtw/lowerbound/envelopes.hpp
         include/tempo/univariate/distances/dtw/dtw.hpp
         include/tempo/univariate/distances/dtw/cdtw.hpp
         include/tempo/univariate/distances/dtw/wdtw.hpp
@@ -53,6 +54,7 @@ set(TEMPO_SRC
         # --- --- --- Utils
         include/tempo/utils/utils/rand.hpp
         include/tempo/utils/utils/stats.hpp
+        include/tempo/utils/utils/timing.hpp
         include/tempo/utils/utils/unsignedutils.hpp
         include/tempo/utils/utils.hpp
         include/tempo/utils/uncopyable.hpp
