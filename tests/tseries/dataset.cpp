@@ -15,16 +15,17 @@
 TEST_CASE("Univariate Dataset") {
 
     using namespace tempo;
+    using TS = TSeries<double, int>;
+    using TSP = TSPack<double, int>;
 
     // Create a random datasets of TSeries
     constexpr int nbitems = ttools::def_nbitems;
     constexpr int fixed = ttools::def_fixed_size;
-    std::vector<TSeries<double, int>> dataset_v_;
-    dataset_v_.reserve(nbitems);
+    auto dataset_shd = std::make_shared<std::vector<TSP>>();
+    (*dataset_shd).reserve(nbitems);
     for(auto&& s: ttools::get_set_fixed_length(ttools::prng, nbitems, fixed)){
-        dataset_v_.emplace_back(std::move(s), 1, false, std::optional<int>(0));
+        dataset_shd->emplace_back(std::make_shared<TS>(std::move(s), 1, false, std::optional<int>(0)));
     }
-    auto dataset_shd = std::make_shared<std::vector<TSeries<double, int>>>(std::move(dataset_v_));
 
     Dataset<double, int> dataset(dataset_shd);
 
@@ -39,7 +40,7 @@ TEST_CASE("Univariate Dataset") {
     {
         size_t idx = 0;
         for (const auto &ts: dataset) {
-            REQUIRE(ts == dataset_shd->at(idx));
+            REQUIRE(ts.raw == dataset_shd->at(idx).raw);
             ++idx;
         }
     }
@@ -50,7 +51,7 @@ TEST_CASE("Univariate Dataset") {
     {
         size_t idx = 0;
         for (const auto &ts:range0) {
-            REQUIRE(ts == dataset_shd->at(idx));
+            REQUIRE(ts.raw == dataset_shd->at(idx).raw);
             ++idx;
         }
     }
@@ -63,12 +64,11 @@ TEST_CASE("Univariate Dataset") {
     {
         size_t idx = 0;
         for (const auto &ts:set0) {
-            REQUIRE(ts == dataset_shd->at(idx));
+            REQUIRE(ts.raw == dataset_shd->at(idx).raw);
             ++idx;
         }
     }
 
     // Quick gini test
     REQUIRE(0 == gini_impurity(getByClassMap(dataset)));
-
 }

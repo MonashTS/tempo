@@ -1,10 +1,12 @@
 #pragma once
 
+#include "../../tseries/tseries.hpp"
+#include "../../tseries/tspack.hpp"
+
 #include <functional>
 #include <tuple>
 #include <variant>
 
-#include "../../tseries/tseries.hpp"
 
 namespace tempo::univariate {
 
@@ -46,4 +48,25 @@ namespace tempo::univariate {
     template<typename FloatType, typename LabelType>
     using distfun_cutoff_t = std::function<FloatType(const TSeries<FloatType, LabelType>&, const TSeries<FloatType, LabelType>&, FloatType cutoff)>;
 
+    /// Type of a distance between two TSPacks
+    template<typename FloatType, typename LabelType>
+    using distpackfun_t = std::function<FloatType(const TSPack<FloatType, LabelType>&, const TSPack<FloatType, LabelType>&)>;
+
+    /// Type of a distance between two TSPacks, with cut-off
+    template<typename FloatType, typename LabelType>
+    using distpackfun_cutoff_t = std::function<FloatType(const TSPack<FloatType, LabelType>&, const TSPack<FloatType, LabelType>&, FloatType cutoff)>;
+
+    /// Wrapper distfun_t to distpackfun_t
+    template<typename FloatType, typename LabelType>
+    constexpr distpackfun_t<FloatType, LabelType> wrap(distfun_t<FloatType, LabelType> fun){
+        using TSP = TSPack<FloatType, LabelType>;
+        return [fun](const TSP& s1, const TSP& s2){return fun(s1.raw, s2.raw);};
+    }
+
+    /// Wrapper distfun_cutoff_t to distpackfun_cutoff_t
+    template<typename FloatType, typename LabelType>
+    constexpr distpackfun_cutoff_t<FloatType, LabelType> wrap(distfun_cutoff_t<FloatType, LabelType> fun){
+        using TSP = TSPack<FloatType, LabelType>;
+        return [fun](const TSP& s1, const TSP& s2, FloatType c){return fun(s1.raw, s2.raw, c);};
+    }
 }

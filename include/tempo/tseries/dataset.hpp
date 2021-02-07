@@ -1,11 +1,15 @@
 #pragma once
 
-#include <map>
+#include "../utils/utils.hpp"
+#include "tspack.hpp"
+
+#include <memory>
 #include <sstream>
 #include <variant>
-#include "../utils/utils.hpp"
+#include <vector>
 
 namespace tempo {
+
 
     template<typename LabelType>
     struct DatasetInfo {
@@ -25,31 +29,32 @@ namespace tempo {
          */
         template<typename FloatType, typename ForwardIterator>
         static DatasetInfo<LabelType> make_from(ForwardIterator begin, ForwardIterator end){
+            using TSP = TSPack<FloatType, LabelType>;
             DatasetInfo<LabelType> result;
             if(begin!=end){
                 // Init with the first series
                 {
-                    const TSeries<FloatType, LabelType> &s = *begin;
-                    result.nb_dimensions = s.nb_dimensions();
-                    result.min_length = s.length();
-                    result.max_length = s.length();
-                    result.has_missing = s.has_missing();
+                    const TSP& s = *begin;
+                    result.nb_dimensions = s.raw.nb_dimensions();
+                    result.min_length = s.raw.length();
+                    result.max_length = s.raw.length();
+                    result.has_missing = s.raw.has_missing();
                     result.size++;
-                    if (s.label()) { result.labels.insert(s.label().value()); }
+                    if (s.raw.label()) { result.labels.insert(s.raw.label().value()); }
                     ++begin;
                 }
                 // Main loop
                 for (auto it = begin; it != end; ++it) {
-                    const TSeries<FloatType, LabelType>& s = *it;
-                    if(result.nb_dimensions != s.nb_dimensions()){
+                    const TSP& s = *it;
+                    if(result.nb_dimensions != s.raw.nb_dimensions()){
                         throw std::logic_error("Cannot mix series with different number of dimensions");
                     }
-                    const auto l = s.length();
+                    const auto l = s.raw.length();
                     result.min_length = std::min(result.min_length, l);
                     result.max_length = std::max(result.max_length, l);
-                    result.has_missing = result.has_missing || s.has_missing();
+                    result.has_missing = result.has_missing || s.raw.has_missing();
                     result.size++;
-                    if(s.label()) { result.labels.insert(s.label().value()); }
+                    if(s.raw.label()) { result.labels.insert(s.raw.label().value()); }
                 }
             }
             return result;
@@ -78,31 +83,45 @@ namespace tempo {
     };
 
 
-    /** A dataset of time series
-     * @tparam FloatType    Type of time series values
-     * @tparam LabelType    Type of labels
+    /** Store: backend of a dataset and sub-dataset.
+     *  The store is made of a vector of TSPack i.e a series and its transforms.
+     *  @tparam FloatType    Type of time series values
+     *  @tparam LabelType    Type of labels
      */
     template<typename FloatType, typename LabelType>
-    class Dataset {
-        using TS = TSeries<FloatType, LabelType>;
+    using DSStore = std::vector<TSPack<FloatType, LabelType>>;
+
+
+    /** A dataset of time series
+     *  @tparam FloatType    Type of time series values
+     *  @tparam LabelType    Type of labels
+     */
+    template<typename FloatType, typename LabelType>
+    struct Dataset {
         using DI = DatasetInfo<LabelType>;
+        using TSP = TSPack<FloatType, LabelType>;
+        using Store = DSStore<FloatType, LabelType>;
         using Self = Dataset<FloatType, LabelType>;
-    private:
+
         /// Subset by range
         struct  Range{size_t start; size_t end; };
+
         /// Subset by selection of indexes (indexing into store_)
         using   Subset = std::shared_ptr<std::vector<size_t>>;
+
         /// Disjoint union: range xor indexing
         using   SubKind = std::variant<Range, Subset>;
 
-        /// Backend storage, shared between all datasets derived from the same original one.
-        std::shared_ptr<const std::vector<TS>> store_;
+    private:
+
+        /// Backend store, made of series packs.
+        std::shared_ptr<Store> store;
 
         /// Info about the backed storage
         std::shared_ptr<const DI> store_info_;
 
-        /// Info about this dataset
-        std::optional<DI> my_info_ {};
+        /// Info about this particular subset
+        std::optional<DI> my_info {};
 
         /** Subset of the store: either by range or by subset
          *  Note: Always used: no subset == range [0, store_->size()[*/
@@ -113,51 +132,50 @@ namespace tempo {
         /// New empty dataset, with an empty store
         Dataset() = default;
 
-        /** New dataset based on a vector of TSeries. Take ownership of the vector.
+        /** New dataset based on a vector of TSPacks. Take ownership of the vector.
          * Requires information about the store
          */
-        Dataset(std::vector<TS>&& series, DatasetInfo<LabelType> info):
-                store_(std::make_shared<std::vector<TS>>(std::move(series))),
+        Dataset(std::vector<TSP>&& series, DatasetInfo<LabelType> info):
+                store(std::make_shared<std::vector<TSP>>(std::move(series))),
                 store_info_(std::make_shared<const DI>(info)),
-                my_info_({*store_info_}),
-                subset(Range{0, store_->size()})
+                my_info({*store_info_}),
+                subset(Range{0, store->size()})
         { }
 
-        /** New dataset based on a vector of TSeries. Take ownership of the vector.
+        /** New dataset based on a vector of TSPacks. Take ownership of the vector.
          * Compute the DatasetInfo related to the series
          */
-        explicit Dataset(std::vector<TS>&& series):
-                store_(std::make_shared<std::vector<TS>>(std::move(series))),
-                subset(Range{0, store_->size()})
+        explicit Dataset(std::vector<TSP>&& series):
+                store(std::make_shared<std::vector<TSP>>(std::move(series))),
+                subset(Range{0, store->size()})
         {
-            auto di = DI::template make_from<FloatType>(store_->cbegin(), store_->cend());
+            auto di = DI::template make_from<FloatType>(store->cbegin(), store->cend());
             store_info_ = std::make_shared<const DI>(di);
-            my_info_ = {*store_info_};
+            my_info = {*store_info_};
         }
 
 
-        /** New dataset based on a vector of TSeries with shared ownership.
+        /** New dataset based on a vector of TSPacks with shared ownership.
          * Requires information about the store
          */
-        Dataset(std::shared_ptr<std::vector<TS>> series, DatasetInfo<LabelType> info):
-                store_(std::move(series)),
+        Dataset(std::shared_ptr<std::vector<TSP>> series, DatasetInfo<LabelType> info):
+                store(std::move(series)),
                 store_info_(std::make_shared<const DI>(info)),
-                my_info_({*store_info_}),
-                subset(Range{0, store_->size()})
+                my_info({*store_info_}),
+                subset(Range{0, store->size()})
         { }
 
-        /** New dataset based on a vector of TSeries with shared ownership.
+        /** New dataset based on a vector of TSPacks with shared ownership.
          *  Compute the DatasetInfo related to the series
          */
-        explicit Dataset(std::shared_ptr<std::vector<TS>> series):
-                store_(std::move(series)),
-                subset(Range{0, store_->size()})
+        explicit Dataset(std::shared_ptr<std::vector<TSP>> series):
+                store(std::move(series)),
+                subset(Range{0, store->size()})
         {
-            auto di = DI::template make_from<FloatType>(store_->cbegin(), store_->cend());
+            auto di = DI::template make_from<FloatType>(store->cbegin(), store->cend());
             store_info_ = std::make_shared<const DI>(di);
-            my_info_ = {*store_info_};
+            my_info = {*store_info_};
         }
-
 
 
         /** New dataset made out of a subrange [0<=start <= end<=other.size()[ of another one
@@ -166,7 +184,7 @@ namespace tempo {
          * @param end       End of range
          */
         Dataset(const Self& other, size_t start, size_t end):
-                store_(other.store_), store_info_(other.store_info_) {
+                store(other.store), store_info_(other.store_info_) {
             const auto os = other.size();
             // Test requested range
             if (start > end) {
@@ -201,7 +219,7 @@ namespace tempo {
          * @param indexes_in_other  Vector of indexes i, indexing in other 0 <= i < other.size()
          */
         Dataset(const Self& other, const std::vector<size_t>& indexes_in_other):
-                store_(other.store_), store_info_(other.store_info_) {
+                store(other.store), store_info_(other.store_info_) {
             // Test requested subset
             if (indexes_in_other.size()> other.size()){
                 throw std::out_of_range("Requested subset contains more elements than 'other'");
@@ -249,6 +267,34 @@ namespace tempo {
         // Methods
         // --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- ---
 
+        /** Apply a transformation to the dataset. Always apply to the full store. */
+        inline std::variant<std::string, size_t> apply(const TSPackTransformer<FloatType, LabelType>& tr){
+            auto& s = *store;
+            if(!s.empty()) {
+                size_t idx = s.front().transforms.size();
+                for(auto& p:s){
+                    auto res = p.apply(tr);
+                    switch(res.index()){
+                        case 0: { return res; } // Transmit error
+                        case 1: { if(idx != std::get<1>(res)){ return {"Store is out of sync"}; } }
+                    }
+                } // End of application loop
+                return {idx};
+            } else {
+                return {"Store is empty"};
+            }
+        }
+
+        /** All TSPack in a dataset are supposed to be "in sync".
+         *  Linearly lookup an index using the first TSPack from the store.
+         */
+         inline std::optional<size_t> lookup(const std::string& name){
+             if(store->size()!=0){
+                 return store->at(0).lookup(name);
+             }
+             return {};
+         }
+
 
         /** Get the index of the item in the underlying store, index
          * @param index  [0, size[
@@ -270,16 +316,27 @@ namespace tempo {
             }
         }
 
-        /** Access an item by its index in the dataset
+        /** Mutable access an item by its index in the dataset
          * @param index  [0, size [
-         * @return The time series at 'index' in this dataset (not in the store)
+         * @return The time series pack at 'index' in this dataset (not in the store)
          */
-        [[nodiscard]] inline const TS& get(size_t index) const {
-            return (*store_)[get_store_index(index)];
+        [[nodiscard]] inline TSP& get(size_t index) {
+            return (*store)[get_store_index(index)];
         }
 
-        /// Bracket operator aliasing 'get'
-        [[nodiscard]] inline const TS& operator[](size_t index) const { return get(index); }
+        /// Mutable bracket operator aliasing 'get'
+        [[nodiscard]] inline TSP& operator[](size_t index) { return get(index); }
+
+        /** Const access an item by its index in the dataset
+         * @param index  [0, size [
+         * @return The time series pack at 'index' in this dataset (not in the store)
+         */
+        [[nodiscard]] inline const TSP& get(size_t index) const {
+            return (*store)[get_store_index(index)];
+        }
+
+        /// Const Bracket operator aliasing 'get'
+        [[nodiscard]] inline const TSP& operator[](size_t index) const { return get(index); }
 
         /// Size of the dataset
         [[nodiscard]] size_t size() const {
@@ -298,14 +355,14 @@ namespace tempo {
         }
 
         /// Access information of the underlying store (about all the series, not only the one in this dataset)
-        [[nodiscard]] const DI& store_info() const { return *store_info_; }
+        [[nodiscard]] inline const DI& store_info() const { return *store_info_; }
 
         /// Compute information about the series in this dataset. O(n). Results are cached.
-        [[nodiscard]] const DI& info() const {
-            if(!my_info_){
-                my_info_ = DI::template make_from<FloatType>(begin(), end());
+        [[nodiscard]] inline const DI& info() const {
+            if(!my_info){
+                my_info = DI::template make_from<FloatType>(begin(), end());
             }
-            return my_info_;
+            return my_info;
         }
 
         // --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- ---
@@ -318,9 +375,9 @@ namespace tempo {
             // --- --- --- Types
             using iterator_category = std::random_access_iterator_tag;
             using difference_type = ssize_t;
-            using value_type = TS;
-            using pointer = const TS*;
-            using reference = const TS&;
+            using value_type = TSP;
+            using pointer = const TSP*;
+            using reference = const TSP&;
 
         private:
             // --- --- --- Fields
@@ -413,7 +470,6 @@ namespace tempo {
         }
     };
 
-
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Function over datasets
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -427,7 +483,7 @@ namespace tempo {
     [[nodiscard]] ByClassMap<LabelType> getByClassMap(const Dataset<FloatType, LabelType>& dataset){
         ByClassMap<LabelType> result;
         for(size_t idx=0; idx<dataset.size(); ++idx){
-            const auto& s = dataset[idx];
+            const auto& s = dataset[idx].raw;
             if(s.label()) {
                 auto l = s.label().value();
                 result[l].push_back(idx); // Default construction of the vector in the map on first access.
