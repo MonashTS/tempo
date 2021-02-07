@@ -12,6 +12,7 @@
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
+#include <tempo/univariate/transforms/derivative.hpp>
 
 #include "any.hpp"
 
@@ -56,7 +57,9 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
         case DTWLB::NONE: { return {df}; }
         case DTWLB::KEOGH: {
             // Pre computation of all the envelopes
-            auto env_transformer = KET::get(w, source_index); // Get the transformer
+            if(train.empty()){return {"Empty train dataset"}; }
+            const string& source_name = train[0].transform_infos[source_index].name;
+            auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
             auto start = tt::now();
             auto res = train.apply(env_transformer);          // Apply the transformation, may fail
             if(res.index()==0){return {std::get<0>(res)}; }   // Transmit error if it failed
@@ -76,7 +79,9 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             };
         }
         case DTWLB::KEOGH2: {
-            auto env_transformer = KET::get(w, source_index);
+            if(train.empty()){return {"Empty train dataset"}; }
+            const string& source_name = train[0].transform_infos[source_index].name;
+            auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
             // --- --- --- Envelopes TRAIN
             auto start = tt::now();
             auto res = train.apply(env_transformer);
@@ -164,15 +169,50 @@ MBFun mk_distfun(const CMDArgs& conf, DS & train, DS& test, size_t source_index)
     return {"Should not happen"};
 }
 
+/** Manage the transforms.
+ *  Can precompute info (like the derivative), directly updtaing the datasets */
+MBFun mk_transform(const CMDArgs& conf, DS& train, DS& test){
+    switch(conf.transforms){
+        case TRANSFORM::NONE: { return mk_distfun(conf, train, test, 0); }
+        case TRANSFORM::DERIVATIVE: {
+            // Get the transformer
+            using DTR = tu::DerivativeTransformer<FloatType, LabelType>;
+            int dnumber  = conf.transargs.derivative.rank;
+            std::string dname = "d"+std::to_string(dnumber);
+            auto transformer = DTR::get_nth(0, dname, dnumber);
+
+            auto start = tt::now();
+            auto res = train.apply(transformer);
+            if(res.index()==0){return {std::get<0>(res)}; }
+            auto duration = tt::now() - start;
+            std::cout << "derivative: pre-computation of TRAIN " << dname << " in ";
+            tt::printDuration(std::cout, duration);
+            std::cout << std::endl;
+
+            start = tt::now();
+            res = test.apply(transformer);
+            if(res.index()==0){return {std::get<0>(res)}; }
+            duration = tt::now() - start;
+            std::cout << "derivative: pre-computation of TEST " << dname << " in ";
+            tt::printDuration(std::cout, duration);
+            std::cout << std::endl;
+
+            return mk_distfun(conf, train, test, std::get<1>(res));
+        }
+        default: tempo::should_not_happen();
+    }
+}
 
 /** NN1, in case of ties, first found win
  * Return a tuple (nb correct, accuracy, duration)
  * where accuracy = nb correct/test size*/
 variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& conf, DS& train, DS& test){
-    // --- --- --- Get the distance function
-    MBFun mbfun = mk_distfun(conf, train, test, 0);
+    // --- --- --- Get the transform/distance function/lower bound
+    MBFun mbfun = mk_transform(conf, train, test);
     if(mbfun.index() == 0){ return {get<0>(mbfun)}; }
     distfun dfun = get<1>(mbfun);
+
+    size_t nb_ea{0};
 
     // --- --- --- NN1 loop
     double nb_correct{0};
@@ -183,8 +223,9 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
         const TSP* bcandidates = nullptr;
         for(auto & candidate : train){
             double res = dfun(query, candidate, bsf);
-            // update BSF
-            if(res<bsf){
+            if(res == tempo::POSITIVE_INFINITY<double>){
+                nb_ea++;
+            } else if(res<bsf){ // update BSF
                 bsf = res;
                 bcandidates = &candidate;
             }
@@ -195,6 +236,8 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
     }
     auto stop = tt::now();
     duration += (stop-start);
+    size_t total =test.size() * train.size();
+    std::cout << "nn1: number of early abandon: " << nb_ea << "/" << total << " (" << (100*nb_ea)/(double)total << "%)"<< std::endl;
 
     return {tuple<size_t, double, tt::duration_t>{nb_correct, nb_correct/(test.size()), duration}};
 }

@@ -29,6 +29,7 @@ enum struct DISTANCE {
 };
 
 enum struct TRANSFORM {
+    NONE,
     DERIVATIVE
 };
 
@@ -41,8 +42,15 @@ enum struct DTWLB {
 
 struct CMDArgs {
     std::variant<std::tuple<fs::path, std::string>, std::tuple<fs::path, fs::path>> ucr_traintest_path {};
-    std::list<TRANSFORM> transforms {};
     std::optional<fs::path> outpath{};
+
+    TRANSFORM transforms {TRANSFORM::NONE};
+    // Per transform argument
+    union {
+        struct {} none;
+        struct {int rank;} derivative;
+    } transargs ;
+
     DISTANCE distance {};
     // Per distance argument
     union {

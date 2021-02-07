@@ -30,6 +30,8 @@ string to_string(DISTANCE dist) {
 
 string to_string(TRANSFORM tr) {
     switch (tr) {
+        case TRANSFORM::NONE:
+            return "none";
         case TRANSFORM::DERIVATIVE:
             return "derivative";
         default:
@@ -111,36 +113,38 @@ string dist_to_JSON(const CMDArgs &args) {
 
 void print_usage(const string &execname, ostream &out) {
     out << "Elastic Distance NN1 classification - Monash University, Melbourne, Australia, 2021" << endl;
-    out << "Command:" << endl;
-    out << "  " << execname << "< -ucr path name | -tt trainpath testpath> <distance> [-out outfile]" << endl;
-    out << "Dataset:" << endl;
-    out << "  -ucr <path to dir> <name>" << endl;
-    out << "                        Path to a directory containing datasets in ts format." << endl;
-    out << "                        A dataset is itself a directory containing a _TRAIN.ts and a _TEST.ts files."
-        << endl;
-    out << "                        The name is the name of the datasets is also the name of its directory." << endl;
-    out << "  -tt <train> <test>" << endl;
-    out << "                        Specify train and test (in the ts format) " << endl;
-    out << "Distance: -dist <distance name and args>:" << endl;
-    out << "  dtw [LB]              DTW distance, optional lower bound" << endl;
-    out << "  cdtw <wr> [LB]        CDTW distance with a window ratio 0<=wr<=1, optional lower bound" << endl;
-    out << "    LB:" << endl;
-    out << "      lb-none           Do not use any lower bound (default)" << endl;
-    out << "      lb-keogh          LB-Keogh between the query and the envelopes of the candidate" << endl;
-    out << "      lb-keogh2         LB-Keogh both way" << endl;
-    out << "      lb-webb           LB-WEBB" << endl;
-    out << "  wdtw <g>              WDTW distance with a weight factor 0<=g" << endl;
-    out << "  sqed                  Squared Euclidean distance" << endl;
-    out << "  erp <gv> <wr>         ERP distance with a gap value 0<=gv and window ratio 0<=wr<=1" << endl;
-    out << "  lcss <e> <wr>         LCSS distance with an epsilon 0<=e and window ratio 0<=wr<=1" << endl;
-    out << "  msm <cost>            MSM distance with a Split and Merge cost 0<=cost" << endl;
-    out << "  twe <nu> <lambda>     TWE distance with a stiffness 0<=nu and a constant delete penalty 0<=lambda"
-        << endl;
-    out << "Notes:" << endl;
-    out << "  Windows are computed using the window ratio and the longest series in the dataset." << endl;
-    out << "  CDTW, ERP and LCSS window can also be given with an absolute value using ``int n'' where n>0 for <wr>"
-        << endl;
-    out << "Create an output file: '-out <outfile>'" << endl;
+    out << "    Command:" << endl;
+    out << "        " << execname << "< -ucr path name | -tt trainpath testpath> <distance> [-tr transform] [-out outfile]";
+    out << R"(
+    Dataset:
+        -ucr <path to dir> <name>   Path to a directory containing datasets in ts format.
+                                    A dataset is a directory named 'name' containing the 'name_TRAIN.ts' and 'name_TEST.ts' files.
+        -tt <train> <test>          Specify train and test files (in the ts format).
+
+    Distance: -dist <distance name and args>:
+      dtw [LB]              DTW distance, optional lower bound
+      cdtw <wr> [LB]        CDTW distance with a window ratio 0<=wr<=1, optional lower bound
+        LB:
+          lb-none           Do not use any lower bound (default)
+          lb-keogh          LB-Keogh between the query and the envelopes of the candidate
+          lb-keogh2         LB-Keogh both way
+          lb-webb           LB-WEBB
+      wdtw <g>              WDTW distance with a weight factor 0<=g
+      sqed                  Squared Euclidean distance
+      erp <gv> <wr>         ERP distance with a gap value 0<=gv and window ratio 0<=wr<=1
+      lcss <e> <wr>         LCSS distance with an epsilon 0<=e and window ratio 0<=wr<=1
+      msm <cost>            MSM distance with a Split and Merge cost 0<=cost
+      twe <nu> <lambda>     TWE distance with a stiffness 0<=nu and a constant delete penalty 0<=lambda
+    Notes:
+      Windows are computed using the window ratio and the longest series in the dataset.
+      CDTW, ERP and LCSS window can also be given with an absolute value using ``int n'' where n>0 for <wr>
+
+    Apply a transform: -tr <transform>:
+        none                No transform (default)
+        derivative <n>       Nth derivative, n must be an integer n>=1
+
+    Create an output file: '-out <outfile>'
+    )";
     out << "Examples:" << endl;
     out << "  " << execname << " -dist cdtw 0.2 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
     out << "  " << execname << " -dist erp 0.4 int 5 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
@@ -336,13 +340,30 @@ CMDArgs read_args(int argc, char **argv) {
                         if (nu && 0 <= nu.value() && lambda && 0 <= lambda.value()) {
                             config.distargs.twe.nu = nu.value();
                             config.distargs.twe.lambda = lambda.value();
-                        }
+                        } else { error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"}; }
                     } else {
                         error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"};
                     }
-                } else { error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"}; }
+                } else { error = {"Unrecognized distance " + distname}; }
             } else { error = {"Distance name expected after '-dist'"}; }
         } // end of -dist
+        else if (arg == "-tr"){     // Specify the transform to run
+            if(i<argc){
+                auto trname = next_arg();
+                std::transform(trname.begin(), trname.end(), trname.begin(), [](unsigned char c) { return std::tolower(c); });
+                if(trname == "none"){ config.transforms = TRANSFORM::NONE; }
+                else if (trname == "derivative"){
+                    if(i < argc){
+                        arg = next_arg();
+                        auto rank = as_int(arg);
+                        if(rank && rank.value()>=1){
+                            config.transforms = TRANSFORM::DERIVATIVE;
+                            config.transargs.derivative.rank = rank.value();
+                        } else {error = {"Derivative rank must be an integer >=1"}; }
+                    } else { error = {"Derivative rank expected"}; }
+                } else {error={"Unrecognized transform " + trname};}
+            } else {error = {"Transform expected after '-tr'"}; }
+        } // end of -tr
         // --- --- --- Unkwnon args
         else { error = {"Unkwnon arg: " + arg}; }
 

@@ -339,7 +339,7 @@ namespace tempo {
         [[nodiscard]] inline const TSP& operator[](size_t index) const { return get(index); }
 
         /// Size of the dataset
-        [[nodiscard]] size_t size() const {
+        [[nodiscard]] inline size_t size() const {
             switch (subset.index()) {
                 case 0: { // Subset is a range
                     auto [start, end] = std::get<0>(subset);
@@ -353,6 +353,9 @@ namespace tempo {
                     should_not_happen();
             }
         }
+
+        /// IS the dataset empty?
+        [[nodiscard]] inline bool empty() const {return store->empty();}
 
         /// Access information of the underlying store (about all the series, not only the one in this dataset)
         [[nodiscard]] inline const DI& store_info() const { return *store_info_; }
