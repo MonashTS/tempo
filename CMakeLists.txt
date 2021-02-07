@@ -35,6 +35,7 @@ set(TEMPO_SRC
         src/tempo/reader/ts/ts.cpp
         # --- --- --- TSeries
         include/tempo/tseries/tseries.hpp
+        include/tempo/tseries/tspack.hpp
         include/tempo/tseries/dataset.hpp
         # --- --- --- Univariate
         # --- Classifiers
