@@ -1,4 +1,4 @@
-# tempo
+# Tempo
 Monash Time Series Classification Library
 
 For now, this library only contains univariate C++ implementation of most common elastic distances
@@ -7,11 +7,10 @@ We also provide Python3 bindings.
 
 ## Elastic Distances
 
-Our implementations have a O(n) space complexity and use pruning and early abandoning,
-providing high performance and scalability.
+Our implementations have a O(n) space complexity and tightly integrate pruning with early abandoning, providing high performance and scalability.
 They should provide a significant speed up in most of scenarios, even though there worst time complexity remain O(n²).
 Note that they will not always be the fastest as early abandoning and pruning require some bookkeeping.
-This bookkeeping must be compensated for, and this is not always possible (e.g. when the series are too short).
+This bookkeeping must be compensated for, and this is not always possible (e.g. when the series are too short, with windows too small).
 
 We have two versions of each distances: one with a cut-off point and one without.
 The cut-off point is an upper bound above which pruning starts.
@@ -44,3 +43,7 @@ To remove the package:
 ```bash
 pip uninstall pytempo.distances
 ```
+
+## Benckmarks
+The algorithm is submitted in a paper under review.
+The paper contains benchmarks that can be found here https://github.com/HerrmannM/paper-2021-EAPElasticDist.
