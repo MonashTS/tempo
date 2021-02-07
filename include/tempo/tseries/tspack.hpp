@@ -122,6 +122,9 @@ namespace tempo {
             return storedata;
         }
 
+        /// Label of the underlying series
+        [[nodiscard]] inline const std::optional<LabelType> &label() const { return raw.label_; }
+
 
     };
 

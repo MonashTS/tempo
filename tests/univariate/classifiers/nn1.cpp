@@ -45,7 +45,6 @@ TEST_CASE("NN1 CDTW Fixed length") {
 
     // --- --- --- DTW
     {
-        distfun_t<double, int> f = tempo::univariate::distfun_dtw<double, int>();
         distfun_cutoff_t<double, int> fco = tempo::univariate::distfun_cutoff_dtw<double, int>();
 
         for (const auto &q: test) {
@@ -168,9 +167,6 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
 
     tempo::Dataset<double, int> train_set_1{train_ds, {1,2,3}};
     REQUIRE(train_set_1.size() == 3);
-
-
-
 
 
     tempo::Dataset<double, int> test_ds{tempo::TSPack<double, int>::wrap(std::move(test))};

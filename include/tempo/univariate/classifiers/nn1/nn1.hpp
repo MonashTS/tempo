@@ -1,11 +1,10 @@
 #pragma once
 
+#include "../../distances/distances.hpp"
+
 #include <vector>
 #include <string>
 #include <algorithm>
-
-
-#include "../../distances/distances.hpp"
 
 
 namespace tempo::univariate {
@@ -23,15 +22,17 @@ namespace tempo::univariate {
      * @param query             Query whose label is to be determined
      * @return                  Vector of labels, containing more than 1 if ties occur, and 0 if the database is empty.
      */
-    template<typename FloatType, typename LabelType, typename InputIterator>
+    template<typename FloatType, typename LabelType, typename Funtype, typename InputIterator>
     [[nodiscard]] std::vector<LabelType> nn1(
-            const distfun_cutoff_t<FloatType, LabelType>& distance_co,
+            const Funtype& distance_co,
             InputIterator begin, InputIterator end,
-            const TSeries<FloatType, LabelType>& query){
+            const typename InputIterator::value_type& query){
+        /*
         // Static check the value type parameter of the iterator type
         static_assert(
-                stassert::is_iterator_value_type<TSeries<FloatType, LabelType>, InputIterator>,
-                "Iterator must contain TSeries<FloatType, LabelType>");
+                stassert::is_iterator_value_type<TSPack<FloatType, LabelType>, InputIterator>,
+                "Iterator does not contain TSPack<FloatType, LabelType>");
+                */
         // Check if the database isn't empty, else immediately return an empty vector
         if(begin!=end){
             // Use the distance without cut-off to compute the first pair.
@@ -40,7 +41,7 @@ namespace tempo::univariate {
             // Keep going, exhaust the database
             while(begin!=end){
                 // We can now use the distance with a cutoff
-                const TSeries<FloatType, LabelType>& candidate = *begin;
+                const auto& candidate = *begin;
                 auto result = distance_co(candidate, query, bsf);
                 if(result<bsf){
                     labels.clear();
