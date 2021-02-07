@@ -1,9 +1,12 @@
 #define CATCH_CONFIG_FAST_COMPILE
 
+#include "../tests_tools.hpp"
+
 #include <iostream>
 
 #include <catch.hpp>
 #include <tempo/tseries/tseries.hpp>
+#include <tempo/tseries/tspack.hpp>
 #include <tempo/tseries/dataset.hpp>
 #include <tempo/univariate/classifiers/nn1/nn1.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
@@ -15,7 +18,6 @@
 #include <tempo/univariate/distances/msm/msm.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 
-#include "../tests_tools.hpp"
 
 using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
@@ -151,7 +153,7 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
         test.emplace_back(std::move(s), 1, false, std::optional<int>());
     }
 
-    tempo::Dataset<double, int> train_ds{std::move(train)};
+    tempo::Dataset<double, int> train_ds{tempo::TSPack<double, int>::wrap(std::move(train))};
     REQUIRE(train_ds.size() == nbitems);
 
 
@@ -171,7 +173,7 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
 
 
 
-    tempo::Dataset<double, int> test_ds{std::move(test)};
+    tempo::Dataset<double, int> test_ds{tempo::TSPack<double, int>::wrap(std::move(test))};
 
     //std::cout << train_ds.size() << std::endl;
     //std::cout << train_range.size() << std::endl;
