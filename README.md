@@ -2,8 +2,27 @@
 Monash Time Series Classification Library
 
 For now, this library only contains univariate C++ implementation of most common elastic distances
-(the one used in Elastic Ensemble, Hive Cote, Proximity Forest and TSChief).
-We also provide Python3 bindings.
+used in Elastic Ensemble, Hive Cote, Proximity Forest and TSChief.
+ * DTW, CDTW and WDTW
+ * ERP
+ * LCSS
+ * MSM
+ * Squared Euclidean Distance
+ * TWE
+ 
+The derivative version of DTW, CDTW and WDTW are not directly implemented.
+We rather use the concept of "transforms", which amount to a pre-processing step.
+Currently available transforms are:
+  * Upper and lower envelope computation (to use with DTW and CDTW lower bounds)
+  * Derivative
+  
+Hence, you can easily setup a derivative version of any distance.
+See "[Demo application](#demo-application)" below.
+ 
+We also provide [Python3 bindings](#python3-bindings).
+
+## Note
+Tempo is young and in active development. Do not hesitate to repport issues!
 
 ## Elastic Distances
 
@@ -19,6 +38,33 @@ When no cut-off point is provided, we compute one ourself (based one the diagona
 before calling the version with cut-off.
 This allows to prune computation even when no cut-off point is provided
 (note that no early abandoning can occur under these conditions).
+
+## Demo application
+
+The folder [app/nn1dist](app/nn1dist) contains a demo application for nn1 classification.
+To build it under linux, do
+
+```bash
+mkdir cmake-build-release
+cd cmake-build-release
+cmake .. -DCMAKE_BUILD_TYPE=RELEASE
+make
+./nn1dist
+```
+
+The last line will print a help message.
+
+This application is designed to work with the TS format from [timeseriesclassification.com](http://timeseriesclassification.com/dataset.php).
+You can either give the path to a UCR Archive folder and dataset name (flag `-ucr`), or directly the train and test files (flag `-tt`).
+The distance to use is specified with the ``-dist`` flag, followed by the distance arguments (see the help message).
+
+A nth derivative can be specified with the ``-tr derivative n`` flag.
+So
+```bash
+./nn1dist -dist msm 0.05 -ucr ~/Univariate_ts/ Crop -tr derivative 1
+```
+will compute a "Derivative MSM".
+
 
 ## Usage with CMake and C++
 Download the sources and link to Tempo adding in your CMakeLists.txt:
@@ -44,6 +90,12 @@ To remove the package:
 pip uninstall pytempo.distances
 ```
 
+Python bindings are done thanks to [pybind11](https://github.com/pybind/pybind11)
+
 ## Benckmarks
 The algorithm is submitted in a paper under review.
 The paper contains benchmarks that can be found here https://github.com/HerrmannM/paper-2021-EAPElasticDist.
+
+## References
+See [REFERENCE.md](REFERENCE.md)
+
