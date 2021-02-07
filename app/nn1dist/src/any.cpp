@@ -142,8 +142,8 @@ void print_usage(const string &execname, ostream &out) {
         << endl;
     out << "Create an output file: '-out <outfile>'" << endl;
     out << "Examples:" << endl;
-    out << "  " << execname << " -dist cdtw 0.2 lb-keogh2 -ucr /path/to/Univariate_ts -dataset Crop" << endl;
-    out << "  " << execname << " -dist erp 0.4 int 5 lb-keogh2 -ucr /path/to/Univariate_ts -dataset Crop" << endl;
+    out << "  " << execname << " -dist cdtw 0.2 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
+    out << "  " << execname << " -dist erp 0.4 int 5 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
     out << endl;
 }
 
@@ -215,10 +215,11 @@ CMDArgs read_args(int argc, char **argv) {
                 // --- --- ---
                 if (distname == "dtw") {
                     config.distance = DISTANCE::DTW;
+                    config.distargs.dtw.lb = DTWLB::NONE;
                     /* Maybe a lower bound */
                     if (i < argc) {
                         arg = next_arg();
-                        if (arg == "lb-none") { config.distargs.dtw.lb = DTWLB::NONE; }
+                        if (arg == "lb-none") { }
                         else if (arg == "lb-keogh") { config.distargs.dtw.lb = DTWLB::KEOGH; }
                         else if (arg == "lb-keogh2") { config.distargs.dtw.lb = DTWLB::KEOGH2; }
                         else if (arg == "lb-webb") { config.distargs.dtw.lb = DTWLB::WEBB; }
@@ -227,6 +228,7 @@ CMDArgs read_args(int argc, char **argv) {
                 } // --- --- ---
                 else if (distname == "cdtw") {
                     config.distance = DISTANCE::CDTW;
+                    config.distargs.cdtw.lb = DTWLB::NONE;
                     if (i < argc) {
                         arg = next_arg();
                         if (arg == "int") {
@@ -247,7 +249,7 @@ CMDArgs read_args(int argc, char **argv) {
                     /* Maybe a lower bound */
                     if (i < argc) {
                         arg = next_arg();
-                        if (arg == "lb-none") { config.distargs.cdtw.lb = DTWLB::NONE; }
+                        if (arg == "lb-none") { }
                         else if (arg == "lb-keogh") { config.distargs.cdtw.lb = DTWLB::KEOGH; }
                         else if (arg == "lb-keogh2") { config.distargs.cdtw.lb = DTWLB::KEOGH2; }
                         else if (arg == "lb-webb") { config.distargs.cdtw.lb = DTWLB::WEBB; }
@@ -350,4 +352,18 @@ CMDArgs read_args(int argc, char **argv) {
     } // end of while loop over args
 
     return config;
+}
+
+
+
+variant<string, tempo::Dataset<double, string>> read_data(ostream &log, fs::path& dataset_path){
+    log << "Loading " << dataset_path << "... ";
+    ifstream istream(dataset_path);
+    auto start = tempo::timing::now();
+    auto res = tempo::reader::TSReader::read(istream);
+    auto stop = tempo::timing::now();
+    if(res.index()==0){return {get<0>(res)}; }
+    auto tsdata = std::move(get<1>(res));
+    cout << "Done in "; tempo::timing::printDuration(cout, stop-start); cout << endl;
+    return {tempo::reader::make_dataset(std::move(tsdata))};
 }

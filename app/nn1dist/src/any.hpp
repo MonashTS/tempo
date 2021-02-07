@@ -11,6 +11,10 @@
 
 #include "../src/tempo/reader/readingtools.hpp"
 
+#include <tempo/reader/ts/ts.hpp>
+#include <tempo/tseries/dataset.hpp>
+#include <tempo/utils/utils/timing.hpp>
+
 namespace fs = std::filesystem;
 
 enum struct DISTANCE {
@@ -67,4 +71,7 @@ void print_usage(const std::string &execname, std::ostream &out);
     exit(exit_code);
 }
 
-CMDArgs read_args(int argc, char*argv);
+CMDArgs read_args(int argc, char** argv);
+
+
+std::variant<std::string, tempo::Dataset<double, std::string>> read_data(std::ostream &log, fs::path& dataset_path);
