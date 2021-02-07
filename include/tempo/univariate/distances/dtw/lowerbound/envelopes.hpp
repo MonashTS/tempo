@@ -1,8 +1,10 @@
 #pragma once
 
-#include <deque>
+#include "../../../../tseries/tseries.hpp"
+#include "../../../../tseries/tspack.hpp"
+#include "../../../../utils/utils.hpp"
 
-#include "../../../utils.hpp"
+#include <deque>
 
 namespace tempo::univariate {
 
@@ -16,10 +18,11 @@ namespace tempo::univariate {
     * @param lower Output array for the lower envelope - Must be able to store 'length' element
     * @param w The window for which the envelope is computed.
     */
-    static void get_keogh_envelopes(
-            const double *series, size_t length,
-            double *upper,
-            double *lower,
+    template<typename FloatType>
+    void get_keogh_envelopes(
+            const FloatType *series, size_t length,
+            FloatType *upper,
+            FloatType *lower,
             size_t w) {
 
         // --- Window size adjustment and early exit
@@ -34,8 +37,8 @@ namespace tempo::univariate {
         std::deque<size_t> up{0};   // Contains indexes of decreasing values series[idx] (done with (1)). front is max
         std::deque<size_t> lo{0};   // Contains indexes of increasing values series[idx] (done with (2)). front is min
         for (size_t i{1}; i < w; ++i) {
-            const double prev{series[i - 1]};
-            const double si{series[i]};
+            const FloatType prev{series[i - 1]};
+            const FloatType si{series[i]};
             // remark comparison or strict comparison does not matters, hence the else allow to avoid an extra if
             if (prev <= si) {
                 do { up.pop_back(); }
@@ -52,14 +55,14 @@ namespace tempo::univariate {
         // --- Go over the series up to length-(w+1)
         // update queue[i+w+1], then update envelopes[i] with front of the queue
         size_t up_front_idx{up.front()};
-        double up_front_val{series[up_front_idx]};
+        FloatType up_front_val{series[up_front_idx]};
         size_t lo_front_idx{lo.front()};
-        double lo_front_val{series[lo_front_idx]};
+        FloatType lo_front_val{series[lo_front_idx]};
         for (size_t i{0}; i < length - w; ++i) {
             // Update the queues:
             const size_t idx{i + w};
-            const double prev{series[idx - 1]}; // Ok as w > 0
-            const double si{series[idx]};
+            const FloatType prev{series[idx - 1]}; // Ok as w > 0
+            const FloatType si{series[idx]};
             // 1) Evict item preventing monotonicity.
             // If a queue is empty, the item to add is also the new front
             if (prev <= si) {
@@ -119,8 +122,9 @@ namespace tempo::univariate {
      * @param lower Output series - reallocation may occur!
      * @param w The window for which the envelope is computed.
      */
-    inline void get_keogh_envelopes(const std::vector<double> &series,
-                              std::vector<double> &upper, std::vector<double> &lower,
+    template<typename FloatType>
+    inline void get_keogh_envelopes(const std::vector<FloatType> &series,
+                              std::vector<FloatType> &upper, std::vector<FloatType> &lower,
                               size_t w) {
         // Ensure the output vectors are large enough
         upper.resize(series.size());
@@ -139,9 +143,10 @@ namespace tempo::univariate {
      * @param upper Output array for the upper envelope - Must be able to store 'length' element
      * @param w The window for which the envelope is computed.
      */
-    static void get_keogh_up_envelope(
-            const double *series, size_t length,
-            double *upper,
+    template<typename FloatType>
+    void get_keogh_up_envelope(
+            const FloatType *series, size_t length,
+            FloatType *upper,
             size_t w) {
 
         // --- Window size adjustment and early exit
@@ -155,8 +160,8 @@ namespace tempo::univariate {
         // --- Initialize the queues with the first w points
         std::deque<size_t> up{0};
         for (size_t i{1}; i < w; ++i) {
-            const double prev{series[i - 1]};
-            const double si{series[i]};
+            const FloatType prev{series[i - 1]};
+            const FloatType si{series[i]};
             if (prev <= si) { do { up.pop_back(); } while (!up.empty() && series[up.back()] <= si); }
             up.push_back(i);
         }
@@ -164,12 +169,12 @@ namespace tempo::univariate {
         // --- Go over the series up to length-(w+1)
         // update queue[i+w+1], then update envelopes[i] with front of the queue
         size_t up_front_idx{up.front()};
-        double up_front_val{series[up_front_idx]};
+        FloatType up_front_val{series[up_front_idx]};
         for (size_t i{0}; i < length - w; ++i) {
             // Update the queues:
             const size_t idx{i + w};
-            const double prev{series[idx - 1]}; // Ok as w > 0
-            const double si{series[idx]};
+            const FloatType prev{series[idx - 1]}; // Ok as w > 0
+            const FloatType si{series[idx]};
             // 1) Evict item preventing monotonicity.
             // If a queue is empty, the item to add is also the new front
             if (prev <= si) {
@@ -209,8 +214,9 @@ namespace tempo::univariate {
      * @param upper Output series - reallocation may occur!
      * @param w The window for which the envelope is computed.
      */
-    inline void get_keogh_up_envelope(const std::vector<double> &series,
-                                std::vector<double> &upper,
+    template<typename FloatType>
+    inline void get_keogh_up_envelope(const std::vector<FloatType> &series,
+                                std::vector<FloatType> &upper,
                                 size_t w) {
         // Ensure the output vector is large enough
         upper.resize(series.size());
@@ -228,9 +234,10 @@ namespace tempo::univariate {
      * @param lower Output array for the lower envelope - Must be able to store 'length' element
      * @param w The window for which the envelope is computed.
      */
-    static void get_keogh_lo_envelope(
-            const double *series, size_t length,
-            double *lower,
+    template<typename FloatType>
+    void get_keogh_lo_envelope(
+            const FloatType *series, size_t length,
+            FloatType *lower,
             size_t w) {
 
         // --- Window size adjustment and early exit
@@ -244,8 +251,8 @@ namespace tempo::univariate {
         // --- Initialize the queues with the first w points
         std::deque<size_t> lo{0};   // Contains indexes of increasing values series[idx] (done with (2)). front is min
         for (size_t i{1}; i < w; ++i) {
-            const double prev{series[i - 1]};
-            const double si{series[i]};
+            const FloatType prev{series[i - 1]};
+            const FloatType si{series[i]};
             // remark comparison or strict comparison does not matters, hence the else allow to avoid an extra if
             if (prev >= si) { do { lo.pop_back(); } while (!lo.empty() && series[lo.back()] >= si); }
             lo.push_back(i);
@@ -254,12 +261,12 @@ namespace tempo::univariate {
         // --- Go over the series up to length-(w+1)
         // update queue[i+w+1], then update envelopes[i] with front of the queue
         size_t lo_front_idx{lo.front()};
-        double lo_front_val{series[lo_front_idx]};
+        FloatType lo_front_val{series[lo_front_idx]};
         for (size_t i{0}; i < length - w; ++i) {
             // Update the queues:
             const size_t idx{i + w};
-            const double prev{series[idx - 1]}; // Ok as w > 0
-            const double si{series[idx]};
+            const FloatType prev{series[idx - 1]}; // Ok as w > 0
+            const FloatType si{series[idx]};
             // 1) Evict item preventing monotonicity.
             // If a queue is empty, the item to add is also the new front
             if (prev >= si) {
@@ -299,8 +306,9 @@ namespace tempo::univariate {
      * @param lower Output series - reallocation may occur!
      * @param w The window for which the envelope is computed.
      */
-    inline void get_keogh_lo_envelope(const std::vector<double> &series,
-                                std::vector<double> &lower,
+    template<typename FloatType>
+    inline void get_keogh_lo_envelope(const std::vector<FloatType> &series,
+                                std::vector<FloatType> &lower,
                                 size_t w) {
         // Ensure the output vector is large enough
         lower.resize(series.size());
@@ -308,4 +316,54 @@ namespace tempo::univariate {
         get_lo_envelope(series.data(), series.size(), lower.data(), w);
     }
 
-}
+
+    template<typename FloatType, typename LabelType>
+    struct KeoghEnvelopesTransformer {
+        static constexpr auto name = "keogh_envelopes";
+        using Vec = std::vector<FloatType>;
+        using ElemType = std::tuple<Vec,Vec>;
+        using AnyType = std::shared_ptr<ElemType>;
+        using TSP = TSPack<FloatType, LabelType>;
+        using TSPTr = TSPackTransformer<FloatType, LabelType>;
+
+        [[nodiscard]] static TSPTr get(size_t w){
+            auto n = std::string(name);
+            return TSPTr {
+                .name = n,
+                .extra_json = "{\"window\":" + std::to_string(w) + "}",
+                .transfun = [n, w](const TSPack<FloatType, LabelType>& tsp){
+                    const auto& s = tsp.raw;
+                    std::vector<FloatType> upper;
+                    std::vector<FloatType> lower;
+                    upper.resize(s.size());
+                    lower.resize(s.size());
+                    get_keogh_envelopes(s.data(), s.size(), upper.data(), lower.data(), w);
+                    AnyType ant = std::make_shared<std::tuple<Vec, Vec>>(std::move(upper), std::move(lower));
+                    ElemType* ptr = ant.get();
+                    std::any any = std::any(ant);
+                    return TSPackResult{
+                            TSPackTR {
+                                .name = n,
+                                .capsule = any,
+                                .transform = ptr
+                            }
+                    };
+                }
+            };
+        }
+
+        [[nodiscard]] inline static const ElemType& cast(void* ptr){
+            return *(reinterpret_cast<ElemType*>(ptr));
+        }
+
+        [[nodiscard]] inline static const Vec& up(void* ptr){
+            return std::get<0>(cast(ptr));
+        }
+
+        [[nodiscard]] inline static const Vec& lo(void* ptr){
+            return std::get<1>(cast(ptr));
+        }
+
+    };
+
+} // End of namespace tempo::univariate
