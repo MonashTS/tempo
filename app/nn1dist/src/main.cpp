@@ -68,13 +68,15 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             auto duration = stop - start;
             std::cout << "lb-keogh: pre-computation of TRAIN envelopes in ";
             tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
             return { // Remember: returns a variant, hence the { } for construction
-                    [env_idx, d=std::move(df)](const TSP& q, const TSP& train_pack, FloatType cutoff) {
+                    [source_index, env_idx, d=std::move(df)](const TSP& q, const TSP& train_pack, FloatType cutoff) {
                         const auto& [u,l] = KET::cast(train_pack.transforms[env_idx]);
-                        double v = tu::lb_Keogh(q.raw.data(), q.raw.size(), u.data(), l.data(), cutoff);
-                        if(v<cutoff){ v = d(q, train_pack, cutoff); }
-                        return v;
+                        const auto& qs = q.at(source_index);
+                        double v = tu::lb_Keogh(qs.data(), qs.size(), u.data(), l.data(), cutoff);
+                        if(v<cutoff){ return d(q, train_pack, cutoff); }
+                        else {return tempo::POSITIVE_INFINITY<double>;}
                     }
             };
         }
@@ -90,6 +92,7 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             auto duration = tt::now()-start;
             std::cout << "lb-keogh2: pre-computation of TRAIN envelopes in ";
             tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
             // --- --- --- Envelopes TEST
             start = tt::now();
@@ -99,18 +102,22 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             duration = tt::now()-start;
             std::cout << "lb-keogh2: pre-computation of TEST envelopes in ";
             tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
             // --- --- --- Embed distance behind 2 rounds of lb keogh
             return {
-                    [env_idx_train, env_idx_test, d=std::move(df)](const TSP& q, const TSP& s, FloatType cutoff) {
+                    [source_index, env_idx_train, env_idx_test, d=std::move(df)](const TSP& q, const TSP& s, FloatType cutoff) {
                         const auto& [utrain, ltrain] = KET::cast(s.transforms[env_idx_train]);
-                        double v = tu::lb_Keogh(q.raw.data(), q.raw.size(), utrain.data(), ltrain.data(), cutoff);
+                        const auto& qs = q.at(source_index);
+                        double v = tu::lb_Keogh(qs.data(), qs.size(), utrain.data(), ltrain.data(), cutoff);
                         if(v<cutoff){
+                            const auto& ss = s.at(source_index);
                             const auto& [utest, ltest] = KET::cast(q.transforms[env_idx_train]);
-                            v = tu::lb_Keogh(s.raw.data(), s.raw.size(), utest.data(), ltest.data(), cutoff);
-                            if(v<cutoff) { v = d(q, s, cutoff); }
+                            v = tu::lb_Keogh(ss.data(), ss.size(), utest.data(), ltest.data(), cutoff);
+                            if(v<cutoff) { return d(q, s, cutoff); }
+                            else {return tempo::POSITIVE_INFINITY<double>; }
                         }
-                        return v;
+                        else {return tempo::POSITIVE_INFINITY<double>; }
                     }
             };
         }
@@ -130,13 +137,13 @@ MBFun mk_distfun(const CMDArgs& conf, DS & train, DS& test, size_t source_index)
         case DISTANCE::DTW: {
             auto param = conf.distargs.dtw;
             distfun df = tu::wrap(tu::distfun_cutoff_dtw<FloatType,LabelType>(), source_index);
-            return lbDTW(std::move(df), param.lb, train, test, maxl, 0);
+            return lbDTW(std::move(df), param.lb, train, test, maxl, source_index);
         }
         case DISTANCE::CDTW:{
             auto param = conf.distargs.cdtw;
             size_t w = get_w(param, maxl);
             distfun df = tu::wrap(tu::distfun_cutoff_cdtw<FloatType,LabelType>(w), source_index);
-            return lbDTW(std::move(df), param.lb, train, test, w, 0);
+            return lbDTW(std::move(df), param.lb, train, test, w, source_index);
         }
         case DISTANCE::WDTW:{
             auto param = conf.distargs.wdtw;
@@ -187,6 +194,7 @@ MBFun mk_transform(const CMDArgs& conf, DS& train, DS& test){
             auto duration = tt::now() - start;
             std::cout << "derivative: pre-computation of TRAIN " << dname << " in ";
             tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
 
             start = tt::now();
@@ -195,6 +203,7 @@ MBFun mk_transform(const CMDArgs& conf, DS& train, DS& test){
             duration = tt::now() - start;
             std::cout << "derivative: pre-computation of TEST " << dname << " in ";
             tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
 
             return mk_distfun(conf, train, test, std::get<1>(res));
