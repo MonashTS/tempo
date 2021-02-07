@@ -58,15 +58,24 @@ namespace tempo::univariate {
 
     /// Wrapper distfun_t to distpackfun_t
     template<typename FloatType, typename LabelType>
-    constexpr distpackfun_t<FloatType, LabelType> wrap(distfun_t<FloatType, LabelType> fun){
+    constexpr distpackfun_t<FloatType, LabelType> wrap(distfun_t<FloatType, LabelType> fun, size_t idx){
         using TSP = TSPack<FloatType, LabelType>;
-        return [fun](const TSP& s1, const TSP& s2){return fun(s1.raw, s2.raw);};
+        if(idx==0) {
+            return [fun](const TSP &s1, const TSP &s2) { return fun(s1.raw, s2.raw); };
+        } else {
+            return [idx, fun](const TSP &s1, const TSP &s2) { return fun(s1.at(idx), s2.at(idx)); };
+        }
     }
 
     /// Wrapper distfun_cutoff_t to distpackfun_cutoff_t
     template<typename FloatType, typename LabelType>
-    constexpr distpackfun_cutoff_t<FloatType, LabelType> wrap(distfun_cutoff_t<FloatType, LabelType> fun){
+    constexpr distpackfun_cutoff_t<FloatType, LabelType> wrap(distfun_cutoff_t<FloatType, LabelType> fun, size_t idx){
         using TSP = TSPack<FloatType, LabelType>;
-        return [fun](const TSP& s1, const TSP& s2, FloatType c){return fun(s1.raw, s2.raw, c);};
+        if(idx==0) {
+            return [fun](const TSP &s1, const TSP &s2, FloatType c) { return fun(s1.raw, s2.raw, c); };
+        } else {
+            return [idx, fun](const TSP &s1, const TSP &s2, FloatType c) { return fun(s1.at(idx), s2.at(idx), c); };
+        }
     }
+
 }

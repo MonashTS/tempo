@@ -125,6 +125,11 @@ namespace tempo {
         /// Label of the underlying series
         [[nodiscard]] inline const std::optional<LabelType> &label() const { return raw.label_; }
 
+        /// Shorthand for transforms that are supposed to be TSeries
+        [[nodiscard]] inline const TS& at(size_t idx) const {
+            return *(static_cast<TS*>(transforms[idx]));
+        }
+
 
     };
 

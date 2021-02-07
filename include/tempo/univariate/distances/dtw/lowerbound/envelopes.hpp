@@ -323,16 +323,17 @@ namespace tempo::univariate {
         using Vec = std::vector<FloatType>;
         using ElemType = std::tuple<Vec,Vec>;
         using AnyType = std::shared_ptr<ElemType>;
+        using TS = TSeries<FloatType, LabelType>;
         using TSP = TSPack<FloatType, LabelType>;
         using TSPTr = TSPackTransformer<FloatType, LabelType>;
 
-        [[nodiscard]] static TSPTr get(size_t w){
+        [[nodiscard]] static TSPTr get(size_t w, size_t source_index){
             auto n = std::string(name);
             return TSPTr {
                 .name = n,
                 .extra_json = "{\"window\":" + std::to_string(w) + "}",
-                .transfun = [n, w](const TSPack<FloatType, LabelType>& tsp){
-                    const auto& s = tsp.raw;
+                .transfun = [source_index, n, w](const TSPack<FloatType, LabelType>& tsp){
+                    const auto& s = *(reinterpret_cast<TS*>(tsp.transforms[source_index]));
                     std::vector<FloatType> upper;
                     std::vector<FloatType> lower;
                     upper.resize(s.size());

@@ -45,7 +45,7 @@ tuple<vector<FloatType>, vector<FloatType>>compute_envelopes(const TS& series, s
 }
 
 
-MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w){
+MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t source_index){
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
     auto minl = min(train.store_info().min_length, test.store_info().min_length);
@@ -56,11 +56,11 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w){
         case DTWLB::NONE: { return {df}; }
         case DTWLB::KEOGH: {
             // Pre computation of all the envelopes
-            auto env_transformer = KET::get(w);             // Get the transformer
+            auto env_transformer = KET::get(w, source_index); // Get the transformer
             auto start = tt::now();
-            auto res = train.apply(env_transformer);        // Apply the transformation, may fail
-            if(res.index()==0){return {std::get<0>(res)}; } // Transmit error if it failed
-            size_t env_idx = std::get<1>(res);              // Get the transformation index ("envelopes index")
+            auto res = train.apply(env_transformer);          // Apply the transformation, may fail
+            if(res.index()==0){return {std::get<0>(res)}; }   // Transmit error if it failed
+            size_t env_idx = std::get<1>(res);                // Get the transformation index ("envelopes index")
             auto stop = tt::now();
             auto duration = stop - start;
             std::cout << "lb-keogh: pre-computation of TRAIN envelopes in ";
@@ -76,7 +76,7 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w){
             };
         }
         case DTWLB::KEOGH2: {
-            auto env_transformer = KET::get(w);
+            auto env_transformer = KET::get(w, source_index);
             // --- --- --- Envelopes TRAIN
             auto start = tt::now();
             auto res = train.apply(env_transformer);
@@ -117,47 +117,47 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w){
 
 /** Create a distance function given the command line argument and the min/max size of the dataset.
  *  Can precompute info (like the envelope), directly updating the datasets */
-MBFun mk_distfun(const CMDArgs& conf, DS & train, DS& test){
+MBFun mk_distfun(const CMDArgs& conf, DS & train, DS& test, size_t source_index){
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
     auto minl = min(train.store_info().min_length, test.store_info().min_length);
 
     switch(conf.distance){
         case DISTANCE::DTW: {
             auto param = conf.distargs.dtw;
-            distfun df = tu::wrap(tu::distfun_cutoff_dtw<FloatType,LabelType>());
-            return lbDTW(std::move(df), param.lb, train, test, maxl);
+            distfun df = tu::wrap(tu::distfun_cutoff_dtw<FloatType,LabelType>(), source_index);
+            return lbDTW(std::move(df), param.lb, train, test, maxl, 0);
         }
         case DISTANCE::CDTW:{
             auto param = conf.distargs.cdtw;
             size_t w = get_w(param, maxl);
-            distfun df = tu::wrap(tu::distfun_cutoff_cdtw<FloatType,LabelType>(w));
-            return lbDTW(std::move(df), param.lb, train, test, w);
+            distfun df = tu::wrap(tu::distfun_cutoff_cdtw<FloatType,LabelType>(w), source_index);
+            return lbDTW(std::move(df), param.lb, train, test, w, 0);
         }
         case DISTANCE::WDTW:{
             auto param = conf.distargs.wdtw;
             auto weights = std::make_shared<vector<FloatType>>(tu::generate_weights(param.weight_factor, maxl));
-            return tu::wrap(tu::distfun_cutoff_wdtw<FloatType,LabelType>(weights));
+            return tu::wrap(tu::distfun_cutoff_wdtw<FloatType,LabelType>(weights), source_index);
         }
         case DISTANCE::ERP:{
             auto param = conf.distargs.erp;
             size_t w = get_w(param, maxl);
-            return tu::wrap(tu::distfun_cutoff_erp<FloatType,LabelType>(param.gv, w));
+            return tu::wrap(tu::distfun_cutoff_erp<FloatType,LabelType>(param.gv, w), source_index);
         }
         case DISTANCE::LCSS:{
             auto param = conf.distargs.lcss;
             size_t w = get_w(param, maxl);
-            return tu::wrap(tu::distfun_cutoff_lcss<FloatType,LabelType>(param.epsilon, w));
+            return tu::wrap(tu::distfun_cutoff_lcss<FloatType,LabelType>(param.epsilon, w), source_index);
         }
         case DISTANCE::MSM:{
             auto param = conf.distargs.msm;
-            return tu::wrap(tu::distfun_cutoff_msm<FloatType,LabelType>(param.cost));
+            return tu::wrap(tu::distfun_cutoff_msm<FloatType,LabelType>(param.cost), source_index);
         }
         case DISTANCE::SQED:{
-            return tu::wrap(tu::distfun_cutoff_elementwise<FloatType,LabelType>());
+            return tu::wrap(tu::distfun_cutoff_elementwise<FloatType,LabelType>(), source_index);
         }
         case DISTANCE::TWE:{
             auto param = conf.distargs.twe;
-            return tu::wrap(tu::distfun_cutoff_twe<FloatType,LabelType>(param.nu, param.lambda));
+            return tu::wrap(tu::distfun_cutoff_twe<FloatType,LabelType>(param.nu, param.lambda), source_index);
         }
         default: tempo::should_not_happen();
     }
@@ -170,7 +170,7 @@ MBFun mk_distfun(const CMDArgs& conf, DS & train, DS& test){
  * where accuracy = nb correct/test size*/
 variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& conf, DS& train, DS& test){
     // --- --- --- Get the distance function
-    MBFun mbfun = mk_distfun(conf, train, test);
+    MBFun mbfun = mk_distfun(conf, train, test, 0);
     if(mbfun.index() == 0){ return {get<0>(mbfun)}; }
     distfun dfun = get<1>(mbfun);
 
