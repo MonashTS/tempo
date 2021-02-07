@@ -4,6 +4,7 @@
 #include <tempo/utils/uncopyable.hpp>
 #include <tempo/tseries/tseries.hpp>
 #include <tempo/tseries/dataset.hpp>
+#include <tempo/tseries/tspack.hpp>
 
 namespace tempo::reader {
 
@@ -81,8 +82,9 @@ namespace tempo::reader {
     /** Build a Dataset<std::string, double> from a TSData.
      *  Take ownership of the TSData content*/
     [[nodiscard]] static inline Dataset<TSData::FloatType, TSData::LabelType>make_dataset(TSData&& tsdata){
+        using TSP = TSPack<TSData::FloatType , TSData::LabelType>;
         auto info = make_info(tsdata);
-        return tempo::Dataset(std::move(tsdata.series), info);
+        return tempo::Dataset(TSP::wrap(std::move(tsdata.series)), info);
     }
 
 
