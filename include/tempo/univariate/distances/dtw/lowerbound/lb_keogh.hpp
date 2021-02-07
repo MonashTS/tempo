@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../../utils.hpp"
+#include "../../../../utils/utils.hpp"
+#include "../../distances.hpp"
 
 namespace tempo::univariate {
 
@@ -12,19 +13,20 @@ namespace tempo::univariate {
      * @param ub Current upper bound (best so far)
      * @return A lower bound on the DTW alignment
      */
-    [[nodiscard]] double lb_Keogh(
-            const double *query, size_t length_query,
-            const double *upper, const double *lower,
-            double ub
+    template<typename FloatType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] FloatType lb_Keogh(
+            const FloatType *query, size_t length_query,
+            const FloatType *upper, const FloatType *lower,
+            FloatType ub
     ) {
-        double lb{0};
+        FloatType lb{0};
 
         for (size_t i = 0; i < length_query && lb < ub; i++) {
-            double qi{query[i]};
+            FloatType qi{query[i]};
             if (const auto ui{upper[i]}; qi > ui) {
-                lb += square_dist(qi, ui);
+                lb += dist(qi, ui);
             } else if (const auto li{lower[i]}; qi < li) {
-                lb += square_dist(qi, li);
+                lb += dist(qi, li);
             }
         }
 
@@ -32,16 +34,17 @@ namespace tempo::univariate {
     }
 
 
-    [[nodiscard]] inline double lb_Keogh(
-            const std::vector<double> &query,
-            const std::vector<double> &upper,
-            const std::vector<double> &lower,
-            double ub
+    template<typename FloatType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] inline FloatType lb_Keogh(
+            const std::vector<FloatType> &query,
+            const std::vector<FloatType> &upper,
+            const std::vector<FloatType> &lower,
+            FloatType ub
     ) {
         // lb_Keogh requires same size series
         assert(query.size() == upper.size());
         assert(query.size() == lower.size());
-        return lb_Keogh(query.data(), query.size(), upper.data(), lower.data(), ub);
+        return lb_Keogh<FloatType, dist>(query.data(), query.size(), upper.data(), lower.data(), ub);
     }
 
-}
+} // End of namespace tempo::univariate
