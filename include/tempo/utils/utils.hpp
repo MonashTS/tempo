@@ -8,6 +8,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <unordered_map>
 
 #include "utils/rand.hpp"
 #include "utils/stats.hpp"
@@ -87,6 +88,12 @@ namespace tempo {
     /// std::map "contains" function
     template<typename Key, typename T, typename Compare = std::less<Key>, typename Allocator = std::allocator<std::pair<const Key, T> > >
     [[nodiscard]] inline bool contains(const std::map<Key, T, Compare, Allocator> &m, const Key &key) {
+        return m.find(key) != m.end();
+    }
+
+    /// std::map "contains" function
+    template<class Key, class T, class Hash=std::hash<Key>, class KeyEqual = std::equal_to<Key>, class Allocator = std::allocator<std::pair<const Key,T> > >
+    [[nodiscard]] inline bool contains(const std::unordered_map<Key, T, Hash, KeyEqual, Allocator>& m, const Key &key) {
         return m.find(key) != m.end();
     }
 
