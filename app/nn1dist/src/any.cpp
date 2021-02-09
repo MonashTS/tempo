@@ -148,6 +148,7 @@ void print_usage(const string &execname, ostream &out) {
     out << "Examples:" << endl;
     out << "  " << execname << " -dist cdtw 0.2 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
     out << "  " << execname << " -dist erp 0.4 int 5 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
+    out << "  " << execname << " -dist dtw lb-keogh2 -ucr ~/Univariate_ts/ Crop -tr derivative 1" << endl;
     out << endl;
 }
 
