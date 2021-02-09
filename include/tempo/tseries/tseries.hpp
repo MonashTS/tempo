@@ -38,9 +38,6 @@ namespace tempo {
 
     public:
 
-        using FloatType_t = FloatType;
-        using LabelType_t = LabelType;
-
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Constructors & factories & destructor
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -151,15 +148,10 @@ namespace tempo {
 
         [[nodiscard]] inline const std::optional<LabelType> &label() const { return label_; }
 
-        [[nodiscard]] inline const double *data() const { return data_; }
-
-        /*
-        /// Access to the start of a dimension (first dimension is 0)
-        //[[nodiscard]] inline const double *operator[](size_t dim) const { return data_ + (nbdim_ * dim); }
-         */
+        [[nodiscard]] inline const FloatType *data() const { return data_; }
 
         /// Access a value using a pair of coordinate (Dimension,index)
-        [[nodiscard]] inline double operator()(size_t dim, size_t idx) const {
+        [[nodiscard]] inline FloatType operator()(size_t dim, size_t idx) const {
             return *(data_ + (length_ * dim + idx));
         }
 
