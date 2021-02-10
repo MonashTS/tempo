@@ -322,7 +322,6 @@ namespace tempo::univariate {
         static constexpr auto name = "keogh_envelopes";
         using Vec = std::vector<FloatType>;
         using ElemType = std::tuple<Vec,Vec>;
-        using AnyType = std::shared_ptr<ElemType>;
         using TS = TSeries<FloatType, LabelType>;
         using TSP = TSPack<FloatType, LabelType>;
         using TSPTr = TSPackTransformer<FloatType, LabelType>;
@@ -339,13 +338,12 @@ namespace tempo::univariate {
                     upper.resize(s.size());
                     lower.resize(s.size());
                     get_keogh_envelopes(s.data(), s.size(), upper.data(), lower.data(), w);
-                    AnyType ant = std::make_shared<std::tuple<Vec, Vec>>(std::move(upper), std::move(lower));
-                    ElemType* ptr = ant.get();
-                    std::any any = std::any(ant);
-                    return TSPackResult{
+                    auto capsule = make_capsule<ElemType>(std::move(upper), std::move(lower));
+                    auto* ptr = capsule_ptr<ElemType>(capsule);
+                    return TSPackResult {
                             TSPackTR {
                                 .name = n,
-                                .capsule = any,
+                                .capsule = capsule,
                                 .transform = ptr
                             }
                     };

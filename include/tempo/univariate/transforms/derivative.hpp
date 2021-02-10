@@ -33,7 +33,6 @@ namespace tempo::univariate {
         using TSP = TSPack<FloatType, LabelType>;
         using TSPTr = TSPackTransformer<FloatType, LabelType>;
         using ElemType = TS;
-        using AnyType = std::shared_ptr<ElemType>;
 
         [[nodiscard]] static TSPTr get(size_t source_index, const std::string& name){
             return TSPTr {
@@ -43,13 +42,12 @@ namespace tempo::univariate {
                         const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
                         std::vector<FloatType> d(s.size());
                         derivative(s.data(), s.size(), d.data());
-                        AnyType ant = std::make_shared<ElemType>(std::move(d));
-                        ElemType* ptr = ant.get();
-                        std::any any = std::any(ant);
+                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.at(source_index)));
+                        ElemType* ptr = std::any_cast<ElemType>(capsule.get());
                         return TSPackResult{
                                 TSPackTR {
                                         .name = name,
-                                        .capsule = any,
+                                        .capsule = capsule,
                                         .transform = ptr
                                 }
                         };
@@ -77,13 +75,12 @@ namespace tempo::univariate {
                                 swap(input, d);
                             }
                         }
-                        AnyType ant = std::make_shared<ElemType>(std::move(d), tsp.at(source_index));
-                        ElemType *ptr = ant.get();
-                        std::any any = std::any(ant);
+                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.at(source_index)));
+                        ElemType* ptr = std::any_cast<ElemType>(capsule.get());
                         return TSPackResult{
                                 TSPackTR{
                                         .name = name,
-                                        .capsule = any,
+                                        .capsule = capsule,
                                         .transform = ptr
                                 }
                         };
