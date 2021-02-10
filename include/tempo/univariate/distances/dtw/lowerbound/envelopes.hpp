@@ -333,10 +333,8 @@ namespace tempo::univariate {
                 .extra_json = "{\"window\":" + std::to_string(w) + "}",
                 .transfun = [source_index, n, w](const TSPack<FloatType, LabelType>& tsp){
                     const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
-                    std::vector<FloatType> upper;
-                    std::vector<FloatType> lower;
-                    upper.resize(s.size());
-                    lower.resize(s.size());
+                    std::vector<FloatType> upper(s.size());
+                    std::vector<FloatType> lower(s.size());
                     get_keogh_envelopes(s.data(), s.size(), upper.data(), lower.data(), w);
                     auto capsule = make_capsule<ElemType>(std::move(upper), std::move(lower));
                     auto* ptr = capsule_ptr<ElemType>(capsule);
@@ -362,7 +360,6 @@ namespace tempo::univariate {
         [[nodiscard]] inline static const Vec& lo(void* ptr){
             return std::get<1>(cast(ptr));
         }
-
     };
 
 } // End of namespace tempo::univariate
