@@ -1,7 +1,8 @@
 #pragma once
 
-#include <any>
 #include "../utils/utils.hpp"
+
+#include <any>
 
 namespace tempo {
 
@@ -155,8 +156,33 @@ namespace tempo {
             return *(data_ + (length_ * dim + idx));
         }
 
-        /// return true if the series is owning its data
-        // [[nodiscard]] inline bool is_owning() const { return data_v_->data() == data_; }
+        /// Return true if the series is owning its data
+        [[nodiscard]] inline bool is_owning() const { return capsule_->has_value(); }
+
+        /** Attempt to extends the series with a new dimension (always added as the last one).
+         *  - Take ownership of the vector
+         *  - The series must own its data
+         *  - The added dimension must be of the same length as the series
+         *  Throw a std::logic_error if the condition are not met.
+         *  Note: previous reference do data() must be considered invalid
+         */
+         void push_dimension(std::vector<FloatType>&& new_dim, bool has_missing) {
+             if(new_dim.size() != length_){
+                 throw std::logic_error("Pushing new dimension with length " + new_dim.size() + " != " + length_);
+             }
+             if(capsule_->has_value()){
+                 std::vector<FloatType>& v{};
+                 try {
+                        v = std::any_cast<std::vector<FloatType>>(*capsule_);
+                 } catch (...) { throw std::logic_error("The series does not own its data"); }
+                 v.insert(v.end(), std::make_move_iterator(new_dim.begin()), std::make_move_iterator(new_dim.end()));
+                 data_ = v.data(); // Get the pointer, as we may have reallocated
+                 nbdim_++;
+                 has_missing_ = has_missing_ || has_missing;
+             } else {
+                 throw std::logic_error("The series does not own its data");
+             }
+         }
 
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
