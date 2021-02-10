@@ -12,6 +12,7 @@ namespace tempo::univariate {
      * @param series        Pointer to the series's data
      * @param length        Length of the series
      * @param out           Pointer where to write the derivative. Must be able to store 'length' values.
+     * Warning: series and out should not overlap (i.e. not in place derivation)
      */
     template<typename FloatType>
     void derivative(const FloatType *series, size_t length, FloatType *out) {
@@ -70,10 +71,14 @@ namespace tempo::univariate {
                         } else {
                             // Repeated application: require an extra buffer to hold previous transform.
                             std::vector<FloatType> input(s.data(), s.data()+s.size());
-                            for (int i = 0; i<nth; ++i) {
+                            // Do until the penultimate, swapping roles of input and d
+                            for (int i = 0; i<nth-1; ++i) {
                                 derivative(input.data(), input.size(), d.data());
                                 swap(input, d);
                             }
+                            // At the end of the for loop, the last computed derivative is in 'input'.
+                            // Do the last round derivative, with the result ending up in d
+                            derivative(input.data(), input.size(), d.data());
                         }
                         auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.at(source_index)));
                         ElemType* ptr = std::any_cast<ElemType>(capsule.get());
