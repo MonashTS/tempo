@@ -92,8 +92,11 @@ namespace tempo {
         }
 
         /// Extend the pack with a new transformation. Can fail.
-        /// Overwrite if the name is already defined
+        /// Redefining a name is not allowed, i.e. will fail.
         std::variant<std::string, size_t> apply(const Transformer& transformer){
+            if(lookup(transformer.name)){
+                return {"Transform '" + transformer.name + "' already defined"};
+            }
             TSPackResult result = transformer.transfun(*this);
             switch(result.index()){
                 case 0: { // Error case
