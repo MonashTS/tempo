@@ -222,6 +222,11 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
     distfun dfun = get<1>(mbfun);
 
     size_t nb_ea{0};
+    size_t nb_done{0};
+    size_t total =test.size() * train.size();
+    size_t tenth = total/10;
+    size_t centh = total/100;
+    size_t nbtenth = 0;
 
     // --- --- --- NN1 loop
     double nb_correct{0};
@@ -238,14 +243,25 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
                 bsf = res;
                 bcandidates = &candidate;
             }
-        }
+            nb_done++;
+            if(nb_done%centh == 0){
+                    if(nb_done%tenth == 0){
+                        nbtenth++;
+                        std::cout << nbtenth*10 << "% ";
+                        std::flush(std::cout);
+                    } else {
+                        std::cout << ".";
+                        std::flush(std::cout);
+                    }
+                }
+            }
         if(bcandidates!= nullptr && bcandidates->raw.label().value() == query.raw.label().value()){
             nb_correct++;
         }
     }
+    std::cout << endl;
     auto stop = tt::now();
     duration += (stop-start);
-    size_t total =test.size() * train.size();
     std::cout << "nn1: number of early abandon: " << nb_ea << "/" << total << " (" << (100*nb_ea)/(double)total << "%)"<< std::endl;
 
     return {tuple<size_t, double, tt::duration_t>{nb_correct, nb_correct/(test.size()), duration}};
