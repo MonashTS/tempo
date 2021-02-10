@@ -40,10 +40,10 @@ namespace tempo::univariate {
                     .name = name,
                     .extra_json = R"({"derivative name": ")"+name+"\"}",
                     .transfun = [source_index, name](const TSPack<FloatType, LabelType>& tsp){
-                        const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
+                        const auto& s = tsp.tseries_at(source_index);
                         std::vector<FloatType> d(s.size());
                         derivative(s.data(), s.size(), d.data());
-                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.at(source_index)));
+                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.tseries_at(source_index)));
                         ElemType* ptr = std::any_cast<ElemType>(capsule.get());
                         return TSPackResult{
                                 TSPackTR {
@@ -64,7 +64,7 @@ namespace tempo::univariate {
                     .name = name,
                     .extra_json = R"({"derivative name": ")"+name+"\"}",
                     .transfun = [nth, source_index, name](const TSPack<FloatType, LabelType> &tsp) {
-                        const auto &s = *(static_cast<TS *>(tsp.transforms[source_index]));
+                        const auto& s = tsp.tseries_at(source_index);
                         std::vector<FloatType> d(s.size());
                         if(nth==1){
                             derivative(s.data(), s.size(), d.data());
@@ -80,7 +80,7 @@ namespace tempo::univariate {
                             // Do the last round derivative, with the result ending up in d
                             derivative(input.data(), input.size(), d.data());
                         }
-                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.at(source_index)));
+                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.tseries_at(source_index)));
                         ElemType* ptr = std::any_cast<ElemType>(capsule.get());
                         return TSPackResult{
                                 TSPackTR{

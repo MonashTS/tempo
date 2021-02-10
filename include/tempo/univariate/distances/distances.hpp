@@ -63,7 +63,7 @@ namespace tempo::univariate {
         if(idx==0) {
             return [fun](const TSP &s1, const TSP &s2) { return fun(s1.raw, s2.raw); };
         } else {
-            return [idx, fun](const TSP &s1, const TSP &s2) { return fun(s1.at(idx), s2.at(idx)); };
+            return [idx, fun](const TSP &s1, const TSP &s2) { return fun(s1.tseries_at(idx), s2.tseries_at(idx)); };
         }
     }
 
@@ -74,7 +74,7 @@ namespace tempo::univariate {
         if(idx==0) {
             return [fun](const TSP &s1, const TSP &s2, FloatType c) { return fun(s1.raw, s2.raw, c); };
         } else {
-            return [idx, fun](const TSP &s1, const TSP &s2, FloatType c) { return fun(s1.at(idx), s2.at(idx), c); };
+            return [idx, fun](const TSP &s1, const TSP &s2, FloatType c) { return fun(s1.tseries_at(idx), s2.tseries_at(idx), c); };
         }
     }
 
