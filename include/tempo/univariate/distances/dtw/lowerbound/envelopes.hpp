@@ -362,4 +362,39 @@ namespace tempo::univariate {
         }
     };
 
+    template<typename FloatType, typename LabelType>
+    struct KeoghEnvUPTransformer {
+        static constexpr auto name = "keogh_env_up";
+        using ElemType = std::vector<FloatType>;
+        using TS = TSeries<FloatType, LabelType>;
+        using TSP = TSPack<FloatType, LabelType>;
+        using TSPTr = TSPackTransformer<FloatType, LabelType>;
+
+        [[nodiscard]] static TSPTr get(size_t w, size_t source_index, const std::string& pfx){
+            auto n = pfx + "_" + name;
+            return TSPTr {
+                    .name = n,
+                    .extra_json = "{\"window\":" + std::to_string(w) + "}",
+                    .transfun = [source_index, n, w](const TSPack<FloatType, LabelType>& tsp){
+                        const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
+                        std::vector<FloatType> upper(s.size());
+                        get_keogh_up_envelope(s.data(), s.size(), upper.data(), w);
+                        auto capsule = make_capsule<ElemType>(std::move(upper));
+                        auto* ptr = capsule_ptr<ElemType>(capsule);
+                        return TSPackResult {
+                                TSPackTR {
+                                        .name = n,
+                                        .capsule = capsule,
+                                        .transform = ptr
+                                }
+                        };
+                    }
+            };
+        }
+
+        [[nodiscard]] inline static const ElemType& cast(void* ptr){
+            return *(static_cast<ElemType*>(ptr));
+        }
+    };
+
 } // End of namespace tempo::univariate
