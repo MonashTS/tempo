@@ -52,8 +52,6 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
     auto minl = min(train.store_info().min_length, test.store_info().min_length);
-    // Pre-check
-    if(lb != DTWLB::NONE && minl != maxl){ return {"Lower bound require same-length series"}; }
     // Do bound by bound
     switch(lb){
         case DTWLB::NONE: { return {df}; }
@@ -73,10 +71,10 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             std::cout << " (transform index " << std::get<1>(res) << ")";
             std::cout << std::endl;
             return { // Remember: returns a variant, hence the { } for construction
-                    [source_index, env_idx, d=std::move(df)](const TSP& q, const TSP& train_pack, FloatType cutoff) {
+                    [w, source_index, env_idx, d=std::move(df)](const TSP& q, const TSP& train_pack, FloatType cutoff) {
                         const auto& [u,l] = KET::cast(train_pack.transforms[env_idx]);
                         const auto& qs = q.tseries_at(source_index);
-                        double v = tu::lb_Keogh(qs.data(), qs.size(), u.data(), l.data(), cutoff);
+                        double v = tu::lb_Keogh(qs.data(), qs.size(), u.data(), l.data(), u.size(), w, cutoff);
                         if(v<cutoff){ return d(q, train_pack, cutoff); }
                         else {
                             GLB_KEOGH1++;
@@ -111,14 +109,14 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             std::cout << std::endl;
             // --- --- --- Embed distance behind 2 rounds of lb keogh
             return {
-                    [source_index, env_idx_train, env_idx_test, d=std::move(df)](const TSP& q, const TSP& s, FloatType cutoff) {
+                    [w, source_index, env_idx_train, env_idx_test, d=std::move(df)](const TSP& q, const TSP& s, FloatType cutoff) {
                         const auto& [utrain, ltrain] = KET::cast(s.transforms[env_idx_train]);
                         const auto& qs = q.tseries_at(source_index);
-                        double v = tu::lb_Keogh(qs.data(), qs.size(), utrain.data(), ltrain.data(), cutoff);
+                        double v = tu::lb_Keogh(qs.data(), qs.size(), utrain.data(), ltrain.data(), utrain.size(), w, cutoff);
                         if(v<cutoff){
                             const auto& ss = s.tseries_at(source_index);
                             const auto& [utest, ltest] = KET::cast(q.transforms[env_idx_train]);
-                            v = tu::lb_Keogh(ss.data(), ss.size(), utest.data(), ltest.data(), cutoff);
+                            v = tu::lb_Keogh(ss.data(), ss.size(), utest.data(), ltest.data(), ltest.size(), w, cutoff);
                             if(v<cutoff) { return d(q, s, cutoff); }
                             else {
                                 GLB_KEOGH2++;
@@ -133,6 +131,8 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             };
         }
         case DTWLB::WEBB: {
+            // Pre-check
+            if(lb != DTWLB::NONE && minl != maxl){ return {"Lower bound WEBB require same-length series"}; }
             if(train.empty()){return {"Empty train dataset"}; }
             const string& source_name = train[0].transform_infos[source_index].name;
             auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer

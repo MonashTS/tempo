@@ -219,7 +219,7 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh: must be a lower bound
                     const auto& query = fset[j];
-                    double vk = lb_Keogh_var(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
+                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
                     if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
                     if(vk<=bsf_lbk){
                         double v_lbk = cdtw(candidate, query, w, bsf_lbk);
