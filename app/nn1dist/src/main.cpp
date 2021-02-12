@@ -45,6 +45,8 @@ tuple<vector<FloatType>, vector<FloatType>>compute_envelopes(const TS& series, s
     return {up, lo};
 }
 
+size_t GLB_KEOGH1{0};
+size_t GLB_KEOGH2{0};
 
 MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t source_index){
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
@@ -73,10 +75,13 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             return { // Remember: returns a variant, hence the { } for construction
                     [source_index, env_idx, d=std::move(df)](const TSP& q, const TSP& train_pack, FloatType cutoff) {
                         const auto& [u,l] = KET::cast(train_pack.transforms[env_idx]);
-                        const auto& qs = q.at(source_index);
+                        const auto& qs = q.tseries_at(source_index);
                         double v = tu::lb_Keogh(qs.data(), qs.size(), u.data(), l.data(), cutoff);
                         if(v<cutoff){ return d(q, train_pack, cutoff); }
-                        else {return tempo::POSITIVE_INFINITY<double>;}
+                        else {
+                            GLB_KEOGH1++;
+                            return tempo::POSITIVE_INFINITY<double>;
+                        }
                     }
             };
         }
@@ -108,20 +113,32 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
             return {
                     [source_index, env_idx_train, env_idx_test, d=std::move(df)](const TSP& q, const TSP& s, FloatType cutoff) {
                         const auto& [utrain, ltrain] = KET::cast(s.transforms[env_idx_train]);
-                        const auto& qs = q.at(source_index);
+                        const auto& qs = q.tseries_at(source_index);
                         double v = tu::lb_Keogh(qs.data(), qs.size(), utrain.data(), ltrain.data(), cutoff);
                         if(v<cutoff){
-                            const auto& ss = s.at(source_index);
+                            const auto& ss = s.tseries_at(source_index);
                             const auto& [utest, ltest] = KET::cast(q.transforms[env_idx_train]);
                             v = tu::lb_Keogh(ss.data(), ss.size(), utest.data(), ltest.data(), cutoff);
                             if(v<cutoff) { return d(q, s, cutoff); }
-                            else {return tempo::POSITIVE_INFINITY<double>; }
+                            else {
+                                GLB_KEOGH2++;
+                                return tempo::POSITIVE_INFINITY<double>;
+                            }
                         }
-                        else {return tempo::POSITIVE_INFINITY<double>; }
+                        else {
+                            GLB_KEOGH1++;
+                            return tempo::POSITIVE_INFINITY<double>;
+                        }
                     }
             };
         }
-        case DTWLB::WEBB: { return {"Sorry, lb-webb not implemented yet"}; }
+        case DTWLB::WEBB: {
+            if(train.empty()){return {"Empty train dataset"}; }
+            const string& source_name = train[0].transform_infos[source_index].name;
+            auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
+
+            return {"Sorry, lb-webb not implemented yet"};
+        }
         default: tempo::should_not_happen();
     }
     return {"Should not happen"};
@@ -212,6 +229,10 @@ MBFun mk_transform(const CMDArgs& conf, DS& train, DS& test){
     }
 }
 
+[[nodiscard]] inline std::string percent(double v, double total){
+    return to_string(100*v/total) + "%";
+}
+
 /** NN1, in case of ties, first found win
  * Return a tuple (nb correct, accuracy, duration)
  * where accuracy = nb correct/test size*/
@@ -262,7 +283,32 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
     std::cout << endl;
     auto stop = tt::now();
     duration += (stop-start);
-    std::cout << "nn1: number of early abandon: " << nb_ea << "/" << total << " (" << (100*nb_ea)/(double)total << "%)"<< std::endl;
+    DTWLB lb = DTWLB::NONE;
+    if(conf.distance == DISTANCE::CDTW) {lb=conf.distargs.cdtw.lb;}
+    else if(conf.distance == DISTANCE::DTW){lb=conf.distargs.dtw.lb;}
+    if(lb == DTWLB::NONE) {
+        std::cout   << "nn1: total number of early abandon: "
+                    << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
+    } else if (lb== DTWLB::KEOGH){
+        size_t nn1 = nb_ea - GLB_KEOGH1;
+        std::cout   << "lb-keogh: number of early abandon: "
+                    << GLB_KEOGH1 << "/" << total << " (" << percent(GLB_KEOGH1, total) << ")" << std::endl;
+        std::cout   << "nn1: number of early abandon: "
+                    << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
+        std::cout   << "nn1: total number of early abandon: "
+                    << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
+    } else if (lb== DTWLB::KEOGH2){
+
+        size_t nn1 = nb_ea - GLB_KEOGH1 - GLB_KEOGH2;
+        std::cout   << "lb-keogh2: number of early abandon keogh1: "
+                    << GLB_KEOGH1 << "/" << total << " (" << percent(GLB_KEOGH1, total) << ")" << std::endl;
+        std::cout   << "lb-keogh2: number of early abandon keogh2: "
+                    << GLB_KEOGH2 << "/" << total << " (" << percent(GLB_KEOGH2, total) << ")" << std::endl;
+        std::cout   << "nn1: number of early abandon: "
+                    << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
+        std::cout   << "nn1: total number of early abandon: "
+                    << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
+    }
 
     return {tuple<size_t, double, tt::duration_t>{nb_correct, nb_correct/(test.size()), duration}};
 }
