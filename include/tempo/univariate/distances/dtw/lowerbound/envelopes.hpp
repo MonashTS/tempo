@@ -130,7 +130,7 @@ namespace tempo::univariate {
         upper.resize(series.size());
         lower.resize(series.size());
         // Do the work
-        get_envelopes(series.data(), series.size(), upper.data(), lower.data(), w);
+        get_keogh_envelopes(series.data(), series.size(), upper.data(), lower.data(), w);
     }
 
 

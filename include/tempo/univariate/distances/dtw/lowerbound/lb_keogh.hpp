@@ -8,8 +8,8 @@ namespace tempo::univariate {
     /** Lb Keogh, early stopping if above ub
      * @param query The time series being queried
      * @param length_query It's length
-     * @param upper Upper envelope from the query from the database
-     * @param lower Lower envelope from the query from the database
+     * @param upper Upper envelope from the database
+     * @param lower Lower envelope from the database
      * @param ub Current upper bound (best so far)
      * @return A lower bound on the DTW alignment
      */
@@ -21,16 +21,63 @@ namespace tempo::univariate {
     ) {
         FloatType lb{0};
 
-        for (size_t i = 0; i < length_query && lb < ub; i++) {
+        for (size_t i = 0; i < length_query && lb <= ub; ++i) {
             FloatType qi{query[i]};
-            if (const auto ui{upper[i]}; qi > ui) {
-                lb += dist(qi, ui);
-            } else if (const auto li{lower[i]}; qi < li) {
-                lb += dist(qi, li);
-            }
+            if (const auto ui{upper[i]}; qi > ui) { lb += dist(qi, ui); }
+            else if (const auto li{lower[i]}; qi < li) { lb += dist(qi, li); }
         }
 
         return lb;
+    }
+
+    template<typename FloatType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] FloatType lb_Keogh_var(
+            const FloatType *query, size_t lq,
+            const FloatType *upper, const FloatType *lower, size_t lc,
+            size_t w,
+            FloatType ub
+    ) {
+        // Pre check - Empty series
+        if (lq == 0 && lc == 0) { return {FloatType(0.0)}; }
+        else if ((lq == 0) != (lc == 0)) { return POSITIVE_INFINITY<FloatType>; }
+
+        // Pre check - Diff length
+        if(lq==lc){
+            // Init
+            FloatType lb{0};
+            // Main loop, continue while we are <= ub
+            for (size_t i = 0; i < lq && lb <= ub; ++i) {
+                FloatType qi{query[i]};
+                if (const auto ui{upper[i]}; qi > ui) { lb += dist(qi, ui); }
+                else if (const auto li{lower[i]}; qi < li) { lb += dist(qi, li); }
+            }
+            return lb;
+        } else {
+            // Pre check - does the window allow an alignment
+            const auto lmax = std::max<size_t>(lq, lc);
+            const auto lmin = std::min<size_t>(lq, lc);
+            if (w > lmax) { w = lmax; }
+            if (lmax - lmin > w) { return POSITIVE_INFINITY<FloatType>; }
+            // Init
+            FloatType lb{0};
+            // Main loop, continue while we are <= ub
+            for (size_t i = 0; i < lmin && lb <= ub; ++i) {
+                FloatType qi{query[i]};
+                if (const auto ui{upper[i]}; qi > ui) { lb += dist(qi, ui); }
+                else if (const auto li{lower[i]}; qi < li) { lb += dist(qi, li); }
+            }
+            // Secondary loop, only if the smallest series is the candidate
+            if (lmin == lc) {
+                const auto ui = upper[lmin-1];
+                const auto li = lower[lmin-1];
+                for(size_t i=lmin; i<lmax && lb<=ub; ++i){
+                    FloatType qi{query[i]};
+                    if (qi > ui) { lb += dist(qi, ui); }
+                    else if (qi < li) { lb += dist(qi, li); }
+                }
+            }
+            return lb;
+        }
     }
 
 

@@ -2,6 +2,8 @@
 
 #include <catch.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
 
 #include "../tests_tools.hpp"
 #include "references/dtw/cdtw.hpp"
@@ -178,6 +180,13 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                 int idx_eap = 0;
                 double bsf_eap = POSITIVE_INFINITY;
 
+                // LB KEOGH
+                int idx_lbk = 0;
+                double bsf_lbk = POSITIVE_INFINITY;
+                const auto& candidate = fset[i];
+                std::vector<double> up, lo;
+                get_keogh_envelopes(candidate, up, lo, w);
+
                 // NN1 loop
                 for (int j = 0; j < nbitems; j+=5) {
                     // Skip self.
@@ -206,6 +215,21 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                     }
 
                     REQUIRE(idx_ref == idx_eap);
+
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb keogh: must be a lower bound
+                    const auto& query = fset[j];
+                    double vk = lb_Keogh_var(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
+                    if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
+                    if(vk<=bsf_lbk){
+                        double v_lbk = cdtw(candidate, query, w, bsf_lbk);
+                        if(v_lbk < bsf_lbk){
+                            idx_lbk = j;
+                            bsf_lbk = v_lbk;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbk);
                 }
             }// End window loop
         }// End query loop
