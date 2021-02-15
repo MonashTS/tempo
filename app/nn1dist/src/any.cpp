@@ -40,15 +40,17 @@ string to_string(TRANSFORM tr) {
 }
 
 string to_string(DTWLB lb) {
-    switch (lb) {
-        case DTWLB::NONE:
-            return "none";
-        case DTWLB::KEOGH:
-            return "keogh";
-        case DTWLB::KEOGH2:
-            return "keogh2";
-        case DTWLB::WEBB:
-            return "webb";
+    switch (lb.kind) {
+        case DTWLB_Kind::NONE:
+            return "\"none\"";
+        case DTWLB_Kind::KEOGH:
+            return "\"keogh\"";
+        case DTWLB_Kind::KEOGH2:
+            return "\"keogh2\"";
+        case DTWLB_Kind::ENHANCED:
+            return R"("enhanced", "v" : )" + to_string(lb.lb_param.enhanced.v);
+        case DTWLB_Kind::WEBB:
+            return "\"webb\"";
         default:
             tempo::should_not_happen();
     }
@@ -66,7 +68,7 @@ string to_string_JSON(bool wint, double wratio){
 
 string dist_to_JSON(const CMDArgs &args) {
     stringstream ss;
-    ss << "\"name: \"" << to_string(args.distance);
+    ss << "{\"name\": \"" << to_string(args.distance) << "\"";
     switch (args.distance) {
         case DISTANCE::DTW: {
             ss << ", \"lb\": " << to_string(args.distargs.dtw.lb);
@@ -106,6 +108,7 @@ string dist_to_JSON(const CMDArgs &args) {
         default:
             tempo::should_not_happen();
     }
+    ss << "}";
 
     return ss.str();
 }
@@ -220,20 +223,30 @@ CMDArgs read_args(int argc, char **argv) {
                 // --- --- ---
                 if (distname == "dtw") {
                     config.distance = DISTANCE::DTW;
-                    config.distargs.dtw.lb = DTWLB::NONE;
+                    config.distargs.dtw.lb.kind = DTWLB_Kind::NONE;
                     /* Maybe a lower bound */
                     if (i < argc) {
                         arg = next_arg();
                         if (arg == "lb-none") { }
-                        else if (arg == "lb-keogh") { config.distargs.dtw.lb = DTWLB::KEOGH; }
-                        else if (arg == "lb-keogh2") { config.distargs.dtw.lb = DTWLB::KEOGH2; }
-                        else if (arg == "lb-webb") { config.distargs.dtw.lb = DTWLB::WEBB; }
+                        else if (arg == "lb-keogh") { config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH; }
+                        else if (arg == "lb-keogh2") { config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH2; }
+                        else if (arg == "lb-webb") { config.distargs.dtw.lb.kind = DTWLB_Kind::WEBB; }
+                        else if (arg == "lb-enhanced") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::ENHANCED;
+                            if(i<argc){
+                                arg = next_arg();
+                                auto vopt = as_int(arg);
+                                if(vopt && vopt.value() > 0){
+                                   config.distargs.dtw.lb.lb_param.enhanced.v = vopt.value();
+                                } else { error = {"lb-enhanced expects an integer > 0, found"  + arg}; }
+                            } else {error = {"lb-enhanced expects a parameter"}; }
+                        }
                         else { --i; /* revert */}
                     }
                 } // --- --- ---
                 else if (distname == "cdtw") {
                     config.distance = DISTANCE::CDTW;
-                    config.distargs.cdtw.lb = DTWLB::NONE;
+                    config.distargs.cdtw.lb.kind = DTWLB_Kind::NONE;
                     if (i < argc) {
                         arg = next_arg();
                         if (arg == "int") {
@@ -255,9 +268,19 @@ CMDArgs read_args(int argc, char **argv) {
                     if (i < argc) {
                         arg = next_arg();
                         if (arg == "lb-none") { }
-                        else if (arg == "lb-keogh") { config.distargs.cdtw.lb = DTWLB::KEOGH; }
-                        else if (arg == "lb-keogh2") { config.distargs.cdtw.lb = DTWLB::KEOGH2; }
-                        else if (arg == "lb-webb") { config.distargs.cdtw.lb = DTWLB::WEBB; }
+                        else if (arg == "lb-keogh") { config.distargs.cdtw.lb.kind = DTWLB_Kind::KEOGH; }
+                        else if (arg == "lb-keogh2") { config.distargs.cdtw.lb.kind = DTWLB_Kind::KEOGH2; }
+                        else if (arg == "lb-webb") { config.distargs.cdtw.lb.kind = DTWLB_Kind::WEBB; }
+                        else if (arg == "lb-enhanced") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::ENHANCED;
+                            if(i<argc){
+                                arg = next_arg();
+                                auto vopt = as_int(arg);
+                                if(vopt && vopt.value() > 0){
+                                    config.distargs.dtw.lb.lb_param.enhanced.v = vopt.value();
+                                } else { error = {"lb-enhanced expects an integer > 0, found"  + arg}; }
+                            } else {error = {"lb-enhanced expects a parameter"}; }
+                        }
                         else { --i; /* revert */}
                     }
                 } // --- --- ---

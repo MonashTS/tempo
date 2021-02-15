@@ -33,12 +33,21 @@ enum struct TRANSFORM {
     DERIVATIVE
 };
 
-enum struct DTWLB {
+enum struct DTWLB_Kind {
     NONE,
     KEOGH,
     KEOGH2,
+    ENHANCED,
     WEBB
 };
+
+struct DTWLB {
+    DTWLB_Kind kind;
+    union{
+        struct{size_t v;} enhanced;
+    } lb_param;
+};
+
 
 struct CMDArgs {
     std::variant<std::tuple<fs::path, std::string>, std::tuple<fs::path, fs::path>> ucr_traintest_path {};
@@ -66,7 +75,7 @@ struct CMDArgs {
 
 std::string to_string(DISTANCE dist);
 std::string to_string(TRANSFORM tr);
-std::string to_string(DTWLB lb);
+std::string to_string(DTWLB_Kind lb);
 
 std::string dist_to_JSON(const CMDArgs& args);
 

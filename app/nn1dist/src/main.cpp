@@ -4,6 +4,7 @@
 #include <tempo/utils/utils.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
 #include <tempo/univariate/distances/dtw/dtw.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
@@ -47,15 +48,16 @@ tuple<vector<FloatType>, vector<FloatType>>compute_envelopes(const TS& series, s
 
 size_t GLB_KEOGH1{0};
 size_t GLB_KEOGH2{0};
+size_t GLB_ENHANCED{0};
 
 MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t source_index){
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
     auto minl = min(train.store_info().min_length, test.store_info().min_length);
     // Do bound by bound
-    switch(lb){
-        case DTWLB::NONE: { return {df}; }
-        case DTWLB::KEOGH: {
+    switch(lb.kind){
+        case DTWLB_Kind::NONE: { return {df}; }
+        case DTWLB_Kind::KEOGH: {
             // Pre computation of all the envelopes
             if(train.empty()){return {"Empty train dataset"}; }
             const string& source_name = train[0].transform_infos[source_index].name;
@@ -83,7 +85,7 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
                     }
             };
         }
-        case DTWLB::KEOGH2: {
+        case DTWLB_Kind::KEOGH2: {
             if(train.empty()){return {"Empty train dataset"}; }
             const string& source_name = train[0].transform_infos[source_index].name;
             auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
@@ -130,13 +132,44 @@ MBFun lbDTW(distfun&& df, DTWLB lb, DS & train, DS& test, size_t w, size_t sourc
                     }
             };
         }
-        case DTWLB::WEBB: {
+        case DTWLB_Kind::ENHANCED : {
             // Pre-check
-            if(lb != DTWLB::NONE && minl != maxl){ return {"Lower bound WEBB require same-length series"}; }
+            if(minl != maxl){ return {"Lower bound Enhanced requires same-length series"}; }
             if(train.empty()){return {"Empty train dataset"}; }
+            // Pre computation of all the envelopes
             const string& source_name = train[0].transform_infos[source_index].name;
             auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
-
+            auto start = tt::now();
+            auto res = train.apply(env_transformer);          // Apply the transformation, may fail
+            if(res.index()==0){return {std::get<0>(res)}; }   // Transmit error if it failed
+            size_t env_idx = std::get<1>(res);                // Get the transformation index ("envelopes index")
+            auto stop = tt::now();
+            auto duration = stop - start;
+            std::cout << "lb-enhanced: pre-computation of TRAIN envelopes in ";
+            tt::printDuration(std::cout, duration);
+            std::cout << " (transform index " << std::get<1>(res) << ")";
+            std::cout << std::endl;
+            size_t vt = lb.lb_param.enhanced.v;
+            return { // Remember: returns a variant, hence the { } for construction
+                    [vt, w, source_index, env_idx, d=std::move(df)](const TSP& q, const TSP& c, FloatType cutoff) {
+                        const auto& [u,l] = KET::cast(c.transforms[env_idx]);
+                        const auto& qs = q.tseries_at(source_index);
+                        const auto& cs = c.tseries_at(source_index);
+                        double v = tu::lb_Enhanced(qs.data(), qs.size(), cs.data(), cs.size(), u.data(), l.data(), vt, w, cutoff);
+                        if(v<cutoff){ return d(q, c, cutoff); }
+                        else {
+                            GLB_ENHANCED++;
+                            return tempo::POSITIVE_INFINITY<double>;
+                        }
+                    }
+            };
+        }
+        case DTWLB_Kind::WEBB: {
+            // Pre-check
+            if(minl != maxl){ return {"Lower bound WEBB requires same-length series"}; }
+            if(train.empty()){return {"Empty train dataset"}; }
+            // const string& source_name = train[0].transform_infos[source_index].name;
+            // auto env_transformer = KET::get(w, source_index, source_name); // Get the transformer
             return {"Sorry, lb-webb not implemented yet"};
         }
         default: tempo::should_not_happen();
@@ -283,13 +316,13 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
     std::cout << endl;
     auto stop = tt::now();
     duration += (stop-start);
-    DTWLB lb = DTWLB::NONE;
-    if(conf.distance == DISTANCE::CDTW) {lb=conf.distargs.cdtw.lb;}
-    else if(conf.distance == DISTANCE::DTW){lb=conf.distargs.dtw.lb;}
-    if(lb == DTWLB::NONE) {
+    DTWLB_Kind lb = DTWLB_Kind::NONE;
+    if(conf.distance == DISTANCE::CDTW) {lb=conf.distargs.cdtw.lb.kind;}
+    else if(conf.distance == DISTANCE::DTW){lb=conf.distargs.dtw.lb.kind;}
+    if(lb == DTWLB_Kind::NONE) {
         std::cout   << "nn1: total number of early abandon: "
                     << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
-    } else if (lb== DTWLB::KEOGH){
+    } else if (lb == DTWLB_Kind::KEOGH){
         size_t nn1 = nb_ea - GLB_KEOGH1;
         std::cout   << "lb-keogh: number of early abandon: "
                     << GLB_KEOGH1 << "/" << total << " (" << percent(GLB_KEOGH1, total) << ")" << std::endl;
@@ -297,13 +330,22 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs& con
                     << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
         std::cout   << "nn1: total number of early abandon: "
                     << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
-    } else if (lb== DTWLB::KEOGH2){
+    } else if (lb == DTWLB_Kind::KEOGH2){
 
         size_t nn1 = nb_ea - GLB_KEOGH1 - GLB_KEOGH2;
         std::cout   << "lb-keogh2: number of early abandon keogh1: "
                     << GLB_KEOGH1 << "/" << total << " (" << percent(GLB_KEOGH1, total) << ")" << std::endl;
         std::cout   << "lb-keogh2: number of early abandon keogh2: "
                     << GLB_KEOGH2 << "/" << total << " (" << percent(GLB_KEOGH2, total) << ")" << std::endl;
+        std::cout   << "nn1: number of early abandon: "
+                    << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
+        std::cout   << "nn1: total number of early abandon: "
+                    << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
+    }
+    else if (lb == DTWLB_Kind::ENHANCED){
+        size_t nn1 = nb_ea - GLB_ENHANCED;
+        std::cout   << "lb-enhanced: number of early abandon: "
+                    << GLB_ENHANCED << "/" << total << " (" << percent(GLB_ENHANCED, total) << ")" << std::endl;
         std::cout   << "nn1: number of early abandon: "
                     << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
         std::cout   << "nn1: total number of early abandon: "
@@ -379,8 +421,8 @@ int main(int argc, char** argv) {
             stringstream ss;
             ss << "{" << endl;
             ss << R"(  "type":"NN1",)" << endl;
-            ss << R"(  "nb_correct":")" << nbcorrect << "\"," << endl;
-            ss << R"(  "accuracy":")" << acc << "\"," << endl;
+            ss << R"(  "nb_correct":)" << nbcorrect << "," << endl;
+            ss << R"(  "accuracy":)" << acc << "," << endl;
             ss << R"(  "distance":)" << dist_to_JSON(config) << ',' << endl;
             ss << R"(  "timing_ns":)" << duration.count() << "," << endl;
             ss << R"(  "timing":")"; tt::printDuration(ss, duration); ss << "\"" << endl;
