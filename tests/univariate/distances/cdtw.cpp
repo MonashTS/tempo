@@ -3,7 +3,9 @@
 #include <catch.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
+#include <iostream>
 
 #include "../tests_tools.hpp"
 #include "references/dtw/cdtw.hpp"
@@ -11,10 +13,12 @@
 using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
 
+
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 // Testing
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 TEST_CASE("CDTW Fixed length", "[cdtw]") {
+    Catch::StringMaker<double>::precision = 18;
 
     // Create a random dataset
     constexpr int nbitems = ttools::def_nbitems;
@@ -80,10 +84,25 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                 int idx_eap = 0;
                 double bsf_eap = POSITIVE_INFINITY;
 
+                // LB KEOGH
+                int idx_lbk = 0;
+                double bsf_lbk = POSITIVE_INFINITY;
+                const auto& candidate = fset[i];
+                std::vector<double> up, lo;
+                get_keogh_envelopes(candidate, up, lo, w);
+
+                // LB Enhanced
+                int idx_lbe = 0;
+                double bsf_lbe = POSITIVE_INFINITY;
+                // Reuse lb keogh envelope
+                // std::vector<double> up, lo;
+                // get_keogh_envelopes(candidate, up, lo, w);
+
                 // NN1 loop
                 for (int j = 0; j < nbitems; j += 5) {
                     // Skip self.
                     if (i == j) { continue; }
+                    const auto& query = fset[j];
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     double v_ref = reference::cdtw_matrix(fset[i], fset[j], w);
@@ -109,6 +128,35 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                     }
 
                     REQUIRE(idx_ref == idx_eap);
+
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb keogh: must be a lower bound
+                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
+                    if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
+                    if(vk<=bsf_lbk){
+                        double v_lbk = cdtw(candidate, query, w, bsf_lbk);
+                        if(v_lbk < bsf_lbk){
+                            idx_lbk = j;
+                            bsf_lbk = v_lbk;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbk);
+
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb enhanced: must be a lower bound
+                    double ve = lb_Enhanced(query, candidate, up, lo, 3, w, bsf_lbe);
+                    INFO( query.size() << " " << candidate.size() << " cutoff = " << bsf_lbe << " w = " << w);
+                    if(ve!=POSITIVE_INFINITY){ REQUIRE(ve<=v_eap); }
+                    if(ve<=bsf_lbe){
+                        double v_lbe = cdtw(candidate, query, w, bsf_lbe);
+                        if(v_lbe < bsf_lbe){
+                            idx_lbe = j;
+                            bsf_lbe = v_lbe;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbe);
                 }
             } // End window loop
         }// End query loop
@@ -117,6 +165,7 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
 
 TEST_CASE("CDTW variable length", "[cdtw]") {
+    Catch::StringMaker<double>::precision = 18;
 
     // Create a random dataset
     constexpr int nbitems = ttools::def_nbitems;
@@ -161,7 +210,7 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
     }
 
     SECTION("NN1 CDTW"){
-        // Query loop
+        // Candidate loop
         for(int i=0; i<nbitems; i+=3) {
             // Windows loop
             for(const auto wr: ttools::wratios) {
@@ -191,6 +240,7 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                 for (int j = 0; j < nbitems; j+=5) {
                     // Skip self.
                     if(i==j){continue;}
+                    const auto& query = fset[j];
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     double v_ref = reference::cdtw_matrix(fset[i], fset[j], w);
@@ -218,7 +268,6 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh: must be a lower bound
-                    const auto& query = fset[j];
                     double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
                     if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
                     if(vk<=bsf_lbk){
@@ -232,6 +281,6 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                     REQUIRE(idx_ref == idx_lbk);
                 }
             }// End window loop
-        }// End query loop
+        }// End candidate loop
     }// End Section
 }

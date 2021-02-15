@@ -26,7 +26,7 @@ namespace tempo::univariate {
                 if (const auto ui{upper[i]}; qi > ui) { lb += dist(qi, ui); }
                 else if (const auto li{lower[i]}; qi < li) { lb += dist(qi, li); }
             }
-            return lb;
+            return (lb>ub)?POSITIVE_INFINITY<FloatType>:lb;
         } else {
             // Pre check - does the window allow an alignment
             const auto lmax = std::max<size_t>(lq, lc);
@@ -51,7 +51,7 @@ namespace tempo::univariate {
                     else if (qi < li) { lb += dist(qi, li); }
                 }
             }
-            return lb;
+            return (lb>ub)?POSITIVE_INFINITY<FloatType>:lb;
         }
     }
 

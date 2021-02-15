@@ -43,6 +43,7 @@ set(TEMPO_SRC
         # --- Distances
         include/tempo/univariate/distances/distances.hpp
         include/tempo/univariate/distances/dtw/lowerbound/envelopes.hpp
+        include/tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp
         include/tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp
         include/tempo/univariate/distances/dtw/dtw.hpp
         include/tempo/univariate/distances/dtw/cdtw.hpp
