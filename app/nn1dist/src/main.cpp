@@ -153,9 +153,9 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                                 const auto&[qup, qlo] = KET::cast(q.transforms[env_idx_test]);
                                 const auto &cs = c.tseries_at(source_index);
                                 const auto&[cup, clo] = KET::cast(c.transforms[env_idx_train]);
-                                double v = tu::lb_Keogh2(qs.data(), qs.size(), qup.data(), qlo.data(),
-                                                         cs.data(), cs.size(), cup.data(), clo.data(),
-                                                         cutoff);
+                                double v = tu::lb_Keogh2j(qs.data(), qs.size(), qup.data(), qlo.data(),
+                                                          cs.data(), cs.size(), cup.data(), clo.data(),
+                                                          cutoff);
                                 if (v < cutoff) { return d(q, c, cutoff); }
                                 else {
                                     GLB_KEOGH1++;
@@ -209,8 +209,8 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                                 const auto&[qu, ql] = KET::cast(q.transforms[env_idx_test]);
                                 const auto &cs = c.tseries_at(source_index);
                                 const auto&[cu, cl] = KET::cast(c.transforms[env_idx_train]);
-                                double v = tu::lb_Enhanced2(qs.data(), qs.size(), qu.data(), ql.data(), cs.data(),
-                                                            cs.size(), cu.data(), cl.data(), vt, w, cutoff);
+                                double v = tu::lb_Enhanced2j(qs.data(), qs.size(), qu.data(), ql.data(), cs.data(),
+                                                             cs.size(), cu.data(), cl.data(), vt, w, cutoff);
                                 if (v < cutoff) { return d(q, c, cutoff); }
                                 else {
                                     GLB_ENHANCED++;

@@ -72,7 +72,7 @@ namespace tempo::univariate {
 
 
     template<typename FloatType, auto dist = square_dist<FloatType>>
-    [[nodiscard]] FloatType lb_Keogh2(
+    [[nodiscard]] FloatType lb_Keogh2j(
             const FloatType *query, size_t lq,
             const FloatType *qu, const FloatType *ql,
             const FloatType *candidate, [[maybe_unused]] size_t lc,

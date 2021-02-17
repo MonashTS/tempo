@@ -154,7 +154,7 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh2: must be a lower bound
-                    double vk2 = lb_Keogh2(
+                    double vk2 = lb_Keogh2j(
                             query.data(), query.size(), qup.data(), qlo.data(),
                             candidate.data(), candidate.size(), cup.data(), clo.data(),
                             bsf_lbk2);
@@ -186,7 +186,7 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb enhanced2: must be a lower bound
-                    double ve2 = lb_Enhanced2(
+                    double ve2 = lb_Enhanced2j(
                             query.data(), query.size(), qup.data(), qlo.data(),
                             candidate.data(), candidate.size(), cup.data(), clo.data(),
                             3, w, bsf_lbe);
