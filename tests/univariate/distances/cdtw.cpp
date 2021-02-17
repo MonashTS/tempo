@@ -87,9 +87,10 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                 // LB KEOGH
                 int idx_lbk = 0;
                 double bsf_lbk = POSITIVE_INFINITY;
-                const auto& candidate = fset[i];
-                std::vector<double> cup, clo;
-                get_keogh_envelopes(candidate, cup, clo, w);
+
+                // LB KEOGH2 (joined)
+                int idx_lbk2 = 0;
+                double bsf_lbk2 = POSITIVE_INFINITY;
 
                 // LB Enhanced
                 int idx_lbe = 0;

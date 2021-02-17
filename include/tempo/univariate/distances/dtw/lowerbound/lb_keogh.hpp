@@ -69,4 +69,36 @@ namespace tempo::univariate {
         return lb_Keogh<FloatType, dist>(query.data(), query.size(), upper.data(), lower.data(), ub);
     }
 
+
+
+    template<typename FloatType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] FloatType lb_Keogh2(
+            const FloatType *query, size_t lq,
+            const FloatType *qu, const FloatType *ql,
+            const FloatType *candidate, size_t lc,
+            const FloatType *cu, const FloatType *cl,
+            FloatType ub
+    ) {
+        // Init
+        FloatType lb1{0};
+        FloatType lb2{0};
+        // Main loop, continue while we are <= ub
+        for (size_t i = 0; i < lq && lb1 <= ub && lb2 <= ub; ++i) {
+            // Query - envelope candidate
+            {
+                FloatType qi{query[i]};
+                if (const auto ui{cu[i]}; qi > ui) { lb1 += dist(qi, ui); }
+                else if (const auto li{cl[i]}; qi < li) { lb1 += dist(qi, li); }
+            }
+            // Candidate - envelope query
+            {
+                FloatType ci{candidate[i]};
+                if (const auto ui{qu[i]}; ci > ui) { lb2 += dist(ci, ui); }
+                else if (const auto li{ql[i]}; ci < li) { lb2 += dist(ci, li); }
+            }
+        }
+        FloatType lb = std::max<FloatType>(lb1, lb2);
+        return (lb>ub)?POSITIVE_INFINITY<FloatType>:lb;
+    }
+
 } // End of namespace tempo::univariate
