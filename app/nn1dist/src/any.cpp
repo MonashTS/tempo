@@ -7,68 +7,64 @@ using tempo::reader::as_int;
 
 string to_string(DISTANCE dist) {
     switch (dist) {
-        case DISTANCE::DTW:
-            return "dtw";
-        case DISTANCE::CDTW:
-            return "cdtw";
-        case DISTANCE::WDTW:
-            return "wdtw";
-        case DISTANCE::ERP:
-            return "erp";
-        case DISTANCE::LCSS:
-            return "lcss";
-        case DISTANCE::MSM:
-            return "msm";
-        case DISTANCE::SQED:
-            return "sqed";
-        case DISTANCE::TWE:
-            return "twe";
-        default:
-            tempo::should_not_happen();
+        case DISTANCE::DTW:return "dtw";
+        case DISTANCE::CDTW:return "cdtw";
+        case DISTANCE::WDTW:return "wdtw";
+        case DISTANCE::ERP:return "erp";
+        case DISTANCE::LCSS:return "lcss";
+        case DISTANCE::MSM:return "msm";
+        case DISTANCE::SQED:return "sqed";
+        case DISTANCE::TWE:return "twe";
+        default:tempo::should_not_happen();
     }
 }
 
 string to_string(TRANSFORM tr) {
     switch (tr) {
-        case TRANSFORM::NONE:
-            return "none";
-        case TRANSFORM::DERIVATIVE:
-            return "derivative";
-        default:
-            tempo::should_not_happen();
+        case TRANSFORM::NONE: return "none";
+        case TRANSFORM::DERIVATIVE: return "derivative";
+        default: tempo::should_not_happen();
+    }
+}
+
+string to_string(LB_KEOGH_Kind k) {
+    switch (k) {
+        case LB_KEOGH_Kind::BASE: return "lb-keogh";
+        case LB_KEOGH_Kind::CASCADE2: return "lb-keogh2";
+        case LB_KEOGH_Kind::JOINED2: return "lb-keogh2j";
+        default: tempo::should_not_happen();
+    }
+}
+
+string to_string(LB_ENHANCED_Kind k) {
+    switch (k) {
+        case LB_ENHANCED_Kind::BASE: return "lb-enhanced";
+        case LB_ENHANCED_Kind::JOINED2: return "lb-enhanced2j";
+        default: tempo::should_not_happen();
     }
 }
 
 string to_string(DTWLB lb) {
     switch (lb.kind) {
-        case DTWLB_Kind::NONE:
-            return "\"none\"";
-        case DTWLB_Kind::KEOGH:
-            return "\"keogh\"";
-        case DTWLB_Kind::KEOGH2:
-            return "\"keogh2\"";
+        case DTWLB_Kind::NONE: return "\"none\"";
+        case DTWLB_Kind::KEOGH: return '"' + to_string(lb.lb_param.keogh.kind) + '"';
         case DTWLB_Kind::ENHANCED:
-            return R"("enhanced", "v" : )" + to_string(lb.lb_param.enhanced.v);
-        case DTWLB_Kind::WEBB:
-            return "\"webb\"";
-        default:
-            tempo::should_not_happen();
+            return '"' + to_string(lb.lb_param.enhanced.kind) + '"' + R"(, "v" : )" + to_string(lb.lb_param.enhanced.v);
+        case DTWLB_Kind::WEBB: return "\"lb-webb\"";
+        default: tempo::should_not_happen();
     }
 }
 
-string to_string_JSON(bool wint, double wratio){
+string to_string_JSON(bool wint, double wratio) {
     stringstream ss;
-    if(wint){
-       ss << "\"wint\": " << to_string((int)wratio);
-    } else {
-        ss << "\"wratio\": " << to_string(wratio);
-    }
+    if (wint) { ss << "\"wint\": " << to_string((int) wratio); }
+    else { ss << "\"wratio\": " << to_string(wratio); }
     return ss.str();
 }
 
 string dist_to_JSON(const CMDArgs &args) {
     stringstream ss;
-    ss << "{\"name\": \"" << to_string(args.distance) << "\"";
+    ss << R"({"name": ")" << to_string(args.distance) << "\"";
     switch (args.distance) {
         case DISTANCE::DTW: {
             ss << ", \"lb\": " << to_string(args.distargs.dtw.lb);
@@ -105,8 +101,7 @@ string dist_to_JSON(const CMDArgs &args) {
             ss << ", \"lambda\": " << args.distargs.twe.lambda;
             break;
         }
-        default:
-            tempo::should_not_happen();
+        default:tempo::should_not_happen();
     }
     ss << "}";
 
@@ -117,7 +112,8 @@ string dist_to_JSON(const CMDArgs &args) {
 void print_usage(const string &execname, ostream &out) {
     out << "Elastic Distance NN1 classification - Monash University, Melbourne, Australia, 2021" << endl;
     out << "    Command:" << endl;
-    out << "        " << execname << "< -ucr path name | -tt trainpath testpath> <distance> [-tr transform] [-out outfile]";
+    out << "        " << execname
+        << "< -ucr path name | -tt trainpath testpath> <distance> [-tr transform] [-out outfile]";
     out << R"(
     Dataset:
         -ucr <path to dir> <name>   Path to a directory containing datasets in ts format.
@@ -130,7 +126,10 @@ void print_usage(const string &execname, ostream &out) {
         LB:
           lb-none           Do not use any lower bound (default)
           lb-keogh          LB-Keogh between the query and the envelopes of the candidate
-          lb-keogh2         LB-Keogh both way
+          lb-keogh2         LB-Keogh both way, cascading.
+          lb-keogh2j        LB-Keogh both way, joined.
+          lb-enhanced <v>   LB-Enhanced with tightness parameter (5 recommended)
+          lb-enhanced2j <v> LB-Enhanced, two ways joined, with tightness parameter (5 recommended)
           lb-webb           LB-WEBB
       wdtw <g>              WDTW distance with a weight factor 0<=g
       sqed                  Squared Euclidean distance
@@ -154,8 +153,6 @@ void print_usage(const string &execname, ostream &out) {
     out << "  " << execname << " -dist dtw lb-keogh2 -ucr ~/Univariate_ts/ Crop -tr derivative 1" << endl;
     out << endl;
 }
-
-
 
 
 CMDArgs read_args(int argc, char **argv) {
@@ -227,21 +224,33 @@ CMDArgs read_args(int argc, char **argv) {
                     /* Maybe a lower bound */
                     if (i < argc) {
                         arg = next_arg();
-                        if (arg == "lb-none") { }
-                        else if (arg == "lb-keogh") { config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH; }
-                        else if (arg == "lb-keogh2") { config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH2; }
+                        if (arg == "lb-none") {}
+                        else if (arg == "lb-keogh") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::BASE;
+                        }
+                        else if (arg == "lb-keogh2") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::CASCADE2;
+                        }
+                        else if (arg == "lb-keogh2j") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::JOINED2;
+                        }
                         else if (arg == "lb-webb") { config.distargs.dtw.lb.kind = DTWLB_Kind::WEBB; }
-                        else if (arg == "lb-enhanced") {
+                        else if (arg == "lb-enhanced" || arg == "lb-enhanced2j") {
+                            std::string lb = arg; // Keep name
                             config.distargs.dtw.lb.kind = DTWLB_Kind::ENHANCED;
-                            if(i<argc){
+                            if (i < argc) {
                                 arg = next_arg();
                                 auto vopt = as_int(arg);
-                                if(vopt && vopt.value() > 0){
-                                   config.distargs.dtw.lb.lb_param.enhanced.v = vopt.value();
-                                } else { error = {"lb-enhanced expects an integer > 0, found"  + arg}; }
-                            } else {error = {"lb-enhanced expects a parameter"}; }
-                        }
-                        else { --i; /* revert */}
+                                if (vopt && vopt.value() > 0) {
+                                    auto k = lb == "lb-enhanced" ? LB_ENHANCED_Kind::BASE : LB_ENHANCED_Kind::JOINED2;
+                                    config.distargs.dtw.lb.lb_param.enhanced.kind = k;
+                                    config.distargs.dtw.lb.lb_param.enhanced.v = vopt.value();
+                                } else { error = {lb + " expects an integer > 0, found" + arg}; }
+                            } else { error = {lb + " lb-enhanced expects a parameter"}; }
+                        } else { --i; /* revert */}
                     }
                 } // --- --- ---
                 else if (distname == "cdtw") {
@@ -267,21 +276,33 @@ CMDArgs read_args(int argc, char **argv) {
                     /* Maybe a lower bound */
                     if (i < argc) {
                         arg = next_arg();
-                        if (arg == "lb-none") { }
-                        else if (arg == "lb-keogh") { config.distargs.cdtw.lb.kind = DTWLB_Kind::KEOGH; }
-                        else if (arg == "lb-keogh2") { config.distargs.cdtw.lb.kind = DTWLB_Kind::KEOGH2; }
+                        if (arg == "lb-none") {}
+                        else if (arg == "lb-keogh") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::BASE;
+                        }
+                        else if (arg == "lb-keogh2") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::CASCADE2;
+                        }
+                        else if (arg == "lb-keogh2j") {
+                            config.distargs.dtw.lb.kind = DTWLB_Kind::KEOGH;
+                            config.distargs.dtw.lb.lb_param.keogh.kind = LB_KEOGH_Kind::JOINED2;
+                        }
                         else if (arg == "lb-webb") { config.distargs.cdtw.lb.kind = DTWLB_Kind::WEBB; }
-                        else if (arg == "lb-enhanced") {
+                        else if (arg == "lb-enhanced" || arg == "lb-enhanced2j") {
+                            std::string lb = arg; // Keep name
                             config.distargs.dtw.lb.kind = DTWLB_Kind::ENHANCED;
-                            if(i<argc){
+                            if (i < argc) {
                                 arg = next_arg();
                                 auto vopt = as_int(arg);
-                                if(vopt && vopt.value() > 0){
+                                if (vopt && vopt.value() > 0) {
+                                    auto k = lb == "lb-enhanced" ? LB_ENHANCED_Kind::BASE : LB_ENHANCED_Kind::JOINED2;
+                                    config.distargs.dtw.lb.lb_param.enhanced.kind = k;
                                     config.distargs.dtw.lb.lb_param.enhanced.v = vopt.value();
-                                } else { error = {"lb-enhanced expects an integer > 0, found"  + arg}; }
-                            } else {error = {"lb-enhanced expects a parameter"}; }
-                        }
-                        else { --i; /* revert */}
+                                } else { error = {lb + " expects an integer > 0, found" + arg}; }
+                            } else { error = {lb + " lb-enhanced expects a parameter"}; }
+                        } else { --i; /* revert */}
                     }
                 } // --- --- ---
                 else if (distname == "wdtw") {
@@ -364,31 +385,34 @@ CMDArgs read_args(int argc, char **argv) {
                         if (nu && 0 <= nu.value() && lambda && 0 <= lambda.value()) {
                             config.distargs.twe.nu = nu.value();
                             config.distargs.twe.lambda = lambda.value();
-                        } else { error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"}; }
+                        } else {
+                            error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"};
+                        }
                     } else {
                         error = {"twe expects a stiffness parameter 0<=nu followed by a cost parameter 0<=lambda"};
                     }
                 } else { error = {"Unrecognized distance " + distname}; }
             } else { error = {"Distance name expected after '-dist'"}; }
         } // end of -dist
-        else if (arg == "-tr"){     // Specify the transform to run
-            if(i<argc){
+        else if (arg == "-tr") {     // Specify the transform to run
+            if (i < argc) {
                 auto trname = next_arg();
-                std::transform(trname.begin(), trname.end(), trname.begin(), [](unsigned char c) { return std::tolower(c); });
-                if(trname == "none"){ config.transforms = TRANSFORM::NONE; }
-                else if (trname == "derivative"){
-                    if(i < argc){
+                std::transform(trname.begin(), trname.end(), trname.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+                if (trname == "none") { config.transforms = TRANSFORM::NONE; }
+                else if (trname == "derivative") {
+                    if (i < argc) {
                         arg = next_arg();
                         auto rank = as_int(arg);
-                        if(rank && rank.value()>=1){
+                        if (rank && rank.value() >= 1) {
                             config.transforms = TRANSFORM::DERIVATIVE;
                             config.transargs.derivative.rank = rank.value();
-                        } else {error = {"Derivative rank must be an integer >=1"}; }
+                        } else { error = {"Derivative rank must be an integer >=1"}; }
                     } else { error = {"Derivative rank expected"}; }
-                } else {error={"Unrecognized transform " + trname};}
-            } else {error = {"Transform expected after '-tr'"}; }
+                } else { error = {"Unrecognized transform " + trname}; }
+            } else { error = {"Transform expected after '-tr'"}; }
         } // end of -tr
-        // --- --- --- Unkwnon args
+            // --- --- --- Unkwnon args
         else { error = {"Unkwnon arg: " + arg}; }
 
         // --- --- --- Error checking
@@ -400,15 +424,16 @@ CMDArgs read_args(int argc, char **argv) {
 }
 
 
-
-variant<string, tempo::Dataset<double, string>> read_data(ostream &log, fs::path& dataset_path){
+variant<string, tempo::Dataset<double, string>> read_data(ostream &log, fs::path &dataset_path) {
     log << "Loading " << dataset_path << "... ";
     ifstream istream(dataset_path);
     auto start = tempo::timing::now();
     auto res = tempo::reader::TSReader::read(istream);
     auto stop = tempo::timing::now();
-    if(res.index()==0){return {get<0>(res)}; }
+    if (res.index() == 0) { return {get<0>(res)}; }
     auto tsdata = std::move(get<1>(res));
-    cout << "Done in "; tempo::timing::printDuration(cout, stop-start); cout << endl;
+    cout << "Done in ";
+    tempo::timing::printDuration(cout, stop - start);
+    cout << endl;
     return {tempo::reader::make_dataset(std::move(tsdata))};
 }

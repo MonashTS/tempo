@@ -36,15 +36,26 @@ enum struct TRANSFORM {
 enum struct DTWLB_Kind {
     NONE,
     KEOGH,
-    KEOGH2,
     ENHANCED,
     WEBB
+};
+
+enum struct LB_KEOGH_Kind {
+    BASE,
+    CASCADE2,
+    JOINED2
+};
+
+enum struct LB_ENHANCED_Kind {
+    BASE,
+    JOINED2
 };
 
 struct DTWLB {
     DTWLB_Kind kind;
     union{
-        struct{size_t v;} enhanced;
+        struct{LB_KEOGH_Kind kind;} keogh;
+        struct{LB_ENHANCED_Kind kind; size_t v;} enhanced;
     } lb_param;
 };
 
@@ -76,6 +87,7 @@ struct CMDArgs {
 std::string to_string(DISTANCE dist);
 std::string to_string(TRANSFORM tr);
 std::string to_string(DTWLB_Kind lb);
+std::string to_string(LB_ENHANCED_Kind k);
 
 std::string dist_to_JSON(const CMDArgs& args);
 
