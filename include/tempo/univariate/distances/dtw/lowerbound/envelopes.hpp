@@ -316,7 +316,6 @@ namespace tempo::univariate {
         get_lo_envelope(series.data(), series.size(), lower.data(), w);
     }
 
-
     template<typename FloatType, typename LabelType>
     struct KeoghEnvelopesTransformer {
         static constexpr auto name = "keogh_envelopes";
@@ -365,7 +364,8 @@ namespace tempo::univariate {
     template<typename FloatType, typename LabelType>
     struct KeoghEnvUPTransformer {
         static constexpr auto name = "keogh_env_up";
-        using ElemType = std::vector<FloatType>;
+        using Vec = std::vector<FloatType>;
+        using ElemType = Vec;
         using TS = TSeries<FloatType, LabelType>;
         using TSP = TSPack<FloatType, LabelType>;
         using TSPTr = TSPackTransformer<FloatType, LabelType>;
@@ -397,11 +397,11 @@ namespace tempo::univariate {
         }
     };
 
-
     template<typename FloatType, typename LabelType>
     struct KeoghEnvLOTransformer {
         static constexpr auto name = "keogh_env_lo";
-        using ElemType = std::vector<FloatType>;
+        using Vec = std::vector<FloatType>;
+        using ElemType = Vec;
         using TS = TSeries<FloatType, LabelType>;
         using TSP = TSPack<FloatType, LabelType>;
         using TSPTr = TSPackTransformer<FloatType, LabelType>;
@@ -432,5 +432,6 @@ namespace tempo::univariate {
             return *(static_cast<ElemType*>(ptr));
         }
     };
+
 
 } // End of namespace tempo::univariate
