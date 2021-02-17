@@ -2,10 +2,10 @@
 
 #include <catch.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
-#include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
-#include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
-#include <iostream>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_webb.hpp>
 
 #include "../tests_tools.hpp"
 #include "references/dtw/cdtw.hpp"
@@ -100,18 +100,22 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                 int idx_lbe2 = 0;
                 double bsf_lbe2 = POSITIVE_INFINITY;
 
+                // LB Webb
+                int idx_lbw = 0;
+                double bsf_lbw = POSITIVE_INFINITY;
 
                 const auto& candidate = fset[i];
-                std::vector<double> cup, clo;
-                get_keogh_envelopes(candidate, cup, clo, w);
+                std::vector<double> cup, clo, lo_cup, up_clo;
+                get_keogh_envelopes_Webb(candidate, cup, clo, lo_cup, up_clo, w);
 
                 // NN1 loop
                 for (int j = 0; j < nbitems; j += 5) {
                     // Skip self.
                     if (i == j) { continue; }
                     const auto& query = fset[j];
-                    std::vector<double> qup, qlo;
-                    get_keogh_envelopes(query, qup, qlo, w);
+                    std::vector<double> qup, qlo, lo_qup, up_qlo;
+                    get_keogh_envelopes_Webb(query, qup, qlo, lo_qup, up_qlo, w);
+
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     double v_ref = reference::cdtw_matrix(fset[i], fset[j], w);
@@ -200,6 +204,23 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                     }
 
                     REQUIRE(idx_ref == idx_lbe2);
+
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb webb: must be a lower bound
+                    double vw = lb_Webb(
+                            query.data(), query.size(), qup.data(), qlo.data(), lo_qup.data(), up_qlo.data(),
+                            candidate.data(), candidate.size(), cup.data(), clo.data(), lo_cup.data(), up_clo.data(),
+                            w, bsf_lbw);
+                    if(vw!=POSITIVE_INFINITY){ REQUIRE(vw<=v_eap); }
+                    if(vw<=bsf_lbw){
+                        double v_lbw = cdtw(candidate, query, w, bsf_lbw);
+                        if(v_lbw < bsf_lbw){
+                            idx_lbw = j;
+                            bsf_lbw = v_lbw;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbw);
                 }
             } // End window loop
         }// End query loop

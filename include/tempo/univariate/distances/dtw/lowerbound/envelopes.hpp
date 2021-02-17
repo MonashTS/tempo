@@ -221,7 +221,7 @@ namespace tempo::univariate {
         // Ensure the output vector is large enough
         upper.resize(series.size());
         // Do the work
-        get_up_envelope(series.data(), series.size(), upper.data(), w);
+        get_keogh_up_envelope(series.data(), series.size(), upper.data(), w);
     }
 
 
@@ -313,7 +313,7 @@ namespace tempo::univariate {
         // Ensure the output vector is large enough
         lower.resize(series.size());
         // Do the work
-        get_lo_envelope(series.data(), series.size(), lower.data(), w);
+        get_keogh_lo_envelope(series.data(), series.size(), lower.data(), w);
     }
 
     template<typename FloatType, typename LabelType>
