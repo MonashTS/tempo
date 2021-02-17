@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include "../../../../utils/utils.hpp"
 #include "../../distances.hpp"
 #include "lb_keogh.hpp"
@@ -28,47 +27,44 @@ namespace tempo::univariate {
             size_t w,
             FloatType cutoff
     ) {
-        // Pre check - Series must be of the same size
-        if(lq != lc){ throw std::invalid_argument("LB Enhanced only defined for series of same size"); }
-        if (lq == 0) { return {FloatType(0.0)}; }
-        FloatType lb{0};
+        FloatType lb{INITLB<FloatType>}; // Init with a small negative value: handle numerical instability
         size_t nbands = std::min(lq/2, v);
-        if(nbands>0){
-            // First alignment
-            lb = dist(query[0], candidate[0]);
-            // Manage the case of series of length 1
-            if(lq==1){ return (lb>cutoff)?POSITIVE_INFINITY<FloatType>:lb; }
-            const size_t last = lq-1;
-            // Longer than 1: add last alignment
-            lb += dist(query[last], candidate[last]);
-            if(lb>cutoff){return POSITIVE_INFINITY<FloatType>;}
-            // Do L and R bands
-            for(size_t i=1; i<nbands && lb <= cutoff; ++i){
-                const auto fixR = last-i;
-                FloatType minL = dist(query[i], candidate[i]);
-                FloatType minR = dist(query[fixR], candidate[fixR]);
-                for(size_t j = cap_start_index_to_window(i, w); j<i; ++j){
-                    const auto movR = last-j;
-                    minL=min(minL, dist(query[i], candidate[j]), dist(query[j], candidate[i]));
-                    minR=min(minR, dist(query[fixR], candidate[movR]), dist(query[movR], candidate[fixR]));
-                }
-                lb=nextafter(lb+minL+minR, -1); // Deal with Floating point imprecision
+        // --- --- --- Do L & R Bands
+        // First alignment
+        lb += dist(query[0], candidate[0]);
+        // Manage the case of series of length 1
+        if (lq == 1) { return (lb > cutoff) ? POSITIVE_INFINITY<FloatType> : lb; }
+        const size_t last = lq - 1;
+        // Last alignment
+        lb += dist(query[last], candidate[last]);
+        // L & R bands
+        for (size_t i = 1; i < nbands && lb <= cutoff; ++i) {
+            const auto fixR = last-i;
+            FloatType minL = dist(query[i], candidate[i]);
+            FloatType minR = dist(query[fixR], candidate[fixR]);
+            for (size_t j = cap_start_index_to_window(i, w); j < i; ++j) {
+                const auto movR = last-j;
+                minL = min(minL, dist(query[i], candidate[j]), dist(query[j], candidate[i]));
+                minR=min(minR, dist(query[fixR], candidate[movR]), dist(query[movR], candidate[fixR]));
             }
+            lb = lb + minL + minR;
         }
-        // Bridge with LB Keogh, continue while we are <= cutoff
+        // --- --- ---
+        if(lb>cutoff){return POSITIVE_INFINITY<FloatType>;}
+
+        // --- --- --- Bridge with LB Keogh, continue while we are <= cutoff
         const auto end = lq-nbands;
         for (size_t i = nbands; i < end && lb <= cutoff; ++i) {
             FloatType qi{query[i]};
             if (const auto ui{upper[i]}; qi > ui) { lb += dist(qi, ui); }
             else if (const auto li{lower[i]}; qi < li) { lb += dist(qi, li); }
-            lb = nextafter(lb, -1);
         }
+
         return (lb>cutoff)?POSITIVE_INFINITY<FloatType>:lb;
     }
 
 
-
-    template<typename FloatType, auto dist = square_dist<FloatType>>
+        template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] inline FloatType lb_Enhanced(
             const std::vector<FloatType> &query,
             const std::vector<FloatType> &candidate,

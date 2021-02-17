@@ -55,6 +55,10 @@ namespace tempo {
     template<typename FloatType>
     constexpr FloatType DNAN{std::numeric_limits<FloatType>::quiet_NaN()};
 
+    /// Lower Bound inital value, use to deal with numerical instability
+    template<typename FloatType>
+    FloatType INITLB{-pow(FloatType(10), -(std::numeric_limits<FloatType>::digits10-1))};
+
     // --- --- --- --- --- ---
     // --- Tooling
     // --- --- --- --- --- ---

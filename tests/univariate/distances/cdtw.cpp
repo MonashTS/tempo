@@ -88,8 +88,8 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                 int idx_lbk = 0;
                 double bsf_lbk = POSITIVE_INFINITY;
                 const auto& candidate = fset[i];
-                std::vector<double> up, lo;
-                get_keogh_envelopes(candidate, up, lo, w);
+                std::vector<double> cup, clo;
+                get_keogh_envelopes(candidate, cup, clo, w);
 
                 // LB Enhanced
                 int idx_lbe = 0;
@@ -103,6 +103,8 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                     // Skip self.
                     if (i == j) { continue; }
                     const auto& query = fset[j];
+                    std::vector<double> qup, qlo;
+                    get_keogh_envelopes(query, qup, qlo, w);
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     double v_ref = reference::cdtw_matrix(fset[i], fset[j], w);
@@ -131,7 +133,7 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh: must be a lower bound
-                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
+                    double vk = lb_Keogh(query.data(), query.size(), cup.data(), clo.data(), candidate.size(), w, bsf_lbk);
                     if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
                     if(vk<=bsf_lbk){
                         double v_lbk = cdtw(candidate, query, w, bsf_lbk);
@@ -143,9 +145,10 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     REQUIRE(idx_ref == idx_lbk);
 
+
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb enhanced: must be a lower bound
-                    double ve = lb_Enhanced(query, candidate, up, lo, 3, w, bsf_lbe);
+                    double ve = lb_Enhanced(query, candidate, cup, clo, 3, w, bsf_lbe);
                     INFO( query.size() << " " << candidate.size() << " cutoff = " << bsf_lbe << " w = " << w);
                     if(ve!=POSITIVE_INFINITY){ REQUIRE(ve<=v_eap); }
                     if(ve<=bsf_lbe){
