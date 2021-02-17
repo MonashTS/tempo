@@ -95,9 +95,15 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                 // LB Enhanced
                 int idx_lbe = 0;
                 double bsf_lbe = POSITIVE_INFINITY;
-                // Reuse lb keogh envelope
-                // std::vector<double> up, lo;
-                // get_keogh_envelopes(candidate, up, lo, w);
+
+                // LB Enhanced2 (joined)
+                int idx_lbe2 = 0;
+                double bsf_lbe2 = POSITIVE_INFINITY;
+
+
+                const auto& candidate = fset[i];
+                std::vector<double> cup, clo;
+                get_keogh_envelopes(candidate, cup, clo, w);
 
                 // NN1 loop
                 for (int j = 0; j < nbitems; j += 5) {
@@ -146,11 +152,27 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     REQUIRE(idx_ref == idx_lbk);
 
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb keogh2: must be a lower bound
+                    double vk2 = lb_Keogh2(
+                            query.data(), query.size(), qup.data(), qlo.data(),
+                            candidate.data(), candidate.size(), cup.data(), clo.data(),
+                            bsf_lbk2);
+                    if(vk2!=POSITIVE_INFINITY){ REQUIRE(vk2<=v_eap); }
+                    if(vk2<=bsf_lbk){
+                        double v_lbk2 = cdtw(candidate, query, w, bsf_lbk2);
+                        if(v_lbk2 < bsf_lbk2){
+                            idx_lbk2 = j;
+                            bsf_lbk2 = v_lbk2;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbk2);
+
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb enhanced: must be a lower bound
                     double ve = lb_Enhanced(query, candidate, cup, clo, 3, w, bsf_lbe);
-                    INFO( query.size() << " " << candidate.size() << " cutoff = " << bsf_lbe << " w = " << w);
                     if(ve!=POSITIVE_INFINITY){ REQUIRE(ve<=v_eap); }
                     if(ve<=bsf_lbe){
                         double v_lbe = cdtw(candidate, query, w, bsf_lbe);
@@ -161,6 +183,23 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
                     }
 
                     REQUIRE(idx_ref == idx_lbe);
+
+                    // --- --- --- --- --- --- --- --- --- --- --- ---
+                    // Test lb enhanced2: must be a lower bound
+                    double ve2 = lb_Enhanced2(
+                            query.data(), query.size(), qup.data(), qlo.data(),
+                            candidate.data(), candidate.size(), cup.data(), clo.data(),
+                            3, w, bsf_lbe);
+                    if(ve2!=POSITIVE_INFINITY){ REQUIRE(ve2<=v_eap); }
+                    if(ve2<=bsf_lbe){
+                        double v_lbe2 = cdtw(candidate, query, w, bsf_lbe2);
+                        if(v_lbe2 < bsf_lbe2){
+                            idx_lbe2 = j;
+                            bsf_lbe2 = v_lbe2;
+                        }
+                    }
+
+                    REQUIRE(idx_ref == idx_lbe2);
                 }
             } // End window loop
         }// End query loop

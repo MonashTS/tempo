@@ -75,7 +75,7 @@ namespace tempo::univariate {
     [[nodiscard]] FloatType lb_Keogh2(
             const FloatType *query, size_t lq,
             const FloatType *qu, const FloatType *ql,
-            const FloatType *candidate, size_t lc,
+            const FloatType *candidate, [[maybe_unused]] size_t lc,
             const FloatType *cu, const FloatType *cl,
             FloatType ub
     ) {

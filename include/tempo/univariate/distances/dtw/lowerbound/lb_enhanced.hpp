@@ -21,7 +21,7 @@ namespace tempo::univariate {
     template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] FloatType lb_Enhanced(
             const FloatType *query, size_t lq,
-            const FloatType *candidate, size_t lc,
+            const FloatType *candidate, [[maybe_unused]] size_t lc,
             const FloatType *upper, const FloatType *lower,
             size_t v,
             size_t w,
@@ -62,6 +62,69 @@ namespace tempo::univariate {
 
         return (lb>cutoff)?POSITIVE_INFINITY<FloatType>:lb;
     }
+
+
+
+    template<typename FloatType, auto dist = square_dist<FloatType>>
+    [[nodiscard]] FloatType lb_Enhanced2(
+            const FloatType *query, size_t lq,
+            const FloatType *qup, const FloatType *qlo,
+            const FloatType *candidate, [[maybe_unused]] size_t lc,
+            const FloatType *cup, const FloatType *clo,
+            size_t v,
+            size_t w,
+            FloatType cutoff
+    ) {
+        FloatType lb1{INITLB<FloatType>}; // Init with a small negative value: handle numerical instability
+        size_t nbands = std::min(lq/2, v);
+        // --- --- --- Do L & R Bands
+        // First alignment
+        lb1 += dist(query[0], candidate[0]);
+        // Manage the case of series of length 1
+        if (lq == 1) { return (lb1 > cutoff) ? POSITIVE_INFINITY<FloatType> : lb1; }
+        const size_t last = lq - 1;
+        // Last alignment
+        lb1 += dist(query[last], candidate[last]);
+        // L & R bands
+        for (size_t i = 1; i < nbands && lb1 <= cutoff; ++i) {
+            const auto fixR = last-i;
+            FloatType minL = dist(query[i], candidate[i]);
+            FloatType minR = dist(query[fixR], candidate[fixR]);
+            for (size_t j = cap_start_index_to_window(i, w); j < i; ++j) {
+                const auto movR = last-j;
+                minL = min(minL, dist(query[i], candidate[j]), dist(query[j], candidate[i]));
+                minR=min(minR, dist(query[fixR], candidate[movR]), dist(query[movR], candidate[fixR]));
+            }
+            lb1 = lb1 + minL + minR;
+        }
+        // --- --- ---
+        if(lb1 > cutoff){return POSITIVE_INFINITY<FloatType>;}
+
+        // --- --- --- Bridge with LB Keogh, continue while we are <= cutoff
+        FloatType lb2{lb1};
+        const auto end = lq-nbands;
+        for (size_t i = nbands; i < end && lb1 <= cutoff && lb2 <= cutoff; ++i) {
+            // Query - envelope candidate
+            {
+                FloatType qi{query[i]};
+                if (const auto ui{cup[i]}; qi > ui) { lb1 += dist(qi, ui); }
+                else if (const auto li{clo[i]}; qi < li) { lb1 += dist(qi, li); }
+            }
+            // Candidate - envelope query
+            {
+                FloatType ci{candidate[i]};
+                if (const auto ui{qup[i]}; ci > ui) { lb2 += dist(ci, ui); }
+                else if (const auto li{qlo[i]}; ci < li) { lb2 += dist(ci, li); }
+            }
+        }
+
+        lb1=std::max<FloatType>(lb1, lb2);
+        return (lb1 > cutoff) ? POSITIVE_INFINITY<FloatType> : lb1;
+    }
+
+
+
+
 
 
         template<typename FloatType, auto dist = square_dist<FloatType>>
