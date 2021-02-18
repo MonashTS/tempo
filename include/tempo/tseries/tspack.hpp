@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tseries.hpp"
+#include "../utils/capsule.hpp"
 
 #include <any>
 #include <functional>
@@ -19,21 +20,9 @@ namespace tempo {
      */
     struct TSPackTR {
         std::string name;
-        std::shared_ptr<std::any> capsule;
+        Capsule capsule;
         void* transform;
     };
-
-    /// Capsule builder helper
-    template<typename CapsuleT, typename... Args>
-    [[nodiscard]] inline std::shared_ptr<std::any> make_capsule(Args&&... args){
-        return std::make_shared<std::any>(std::make_any<CapsuleT>(args...));
-    }
-
-    /// Capsule pointer accessor
-    template<typename CapsuleT>
-    [[nodiscard]] inline CapsuleT* capsule_ptr(const std::shared_ptr<std::any>& ptr){
-        return std::any_cast<CapsuleT>(ptr.get());
-    }
 
     // Declaration of TSPack for use in TSPackTransformer
     template <typename FloatType, typename LabelType>
@@ -85,7 +74,8 @@ namespace tempo {
             transform_infos.emplace_back(
                     TSPackTR {
                             .name = "raw",
-                            .capsule = std::make_shared<std::any>(std::make_any<std::shared_ptr<TS>>(raw_capsule)),
+                            //.capsule = std::make_shared<std::any>(std::make_any<std::shared_ptr<TS>>(raw_capsule)),
+                            .capsule = make_capsule<std::shared_ptr<TS>>(raw_capsule),
                             .transform = raw_capsule.get()
                     }
             );

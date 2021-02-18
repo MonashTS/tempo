@@ -61,6 +61,7 @@ set(TEMPO_SRC
         include/tempo/utils/utils/timing.hpp
         include/tempo/utils/utils/unsignedutils.hpp
         include/tempo/utils/utils.hpp
+        include/tempo/utils/capsule.hpp
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
         )
