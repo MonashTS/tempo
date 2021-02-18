@@ -101,4 +101,56 @@ namespace tempo::univariate {
         return (lb>ub)?POSITIVE_INFINITY<FloatType>:lb;
     }
 
+
+
+    /** Dataset/TSPack transformer for LB Keogh.
+     *  Input: TSeries<FloatType, LabelType>
+     *  Output: A tuple of vector<FloatType> containing the envelopes (Upper, Lower).
+     *  Use the provided static functions for easier access.
+     */
+    template<typename FloatType, typename LabelType>
+    struct KeoghEnvelopesTransformer {
+        static constexpr auto name = "keogh_envelopes";
+        using Vec = std::vector<FloatType>;
+        using ElemType = std::tuple<Vec,Vec>;
+        using TS = TSeries<FloatType, LabelType>;
+        using TSP = TSPack<FloatType, LabelType>;
+        using TSPTr = TSPackTransformer<FloatType, LabelType>;
+
+        [[nodiscard]] static TSPTr get(size_t w, size_t source_index, const std::string& pfx){
+            auto n = pfx + "_" + name;
+            return TSPTr {
+                    .name = n,
+                    .extra_json = "{\"window\":" + std::to_string(w) + "}",
+                    .transfun = [source_index, n, w](const TSPack<FloatType, LabelType>& tsp){
+                        const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
+                        std::vector<FloatType> upper(s.size());
+                        std::vector<FloatType> lower(s.size());
+                        get_keogh_envelopes(s.data(), s.size(), upper.data(), lower.data(), w);
+                        auto capsule = make_capsule<ElemType>(std::move(upper), std::move(lower));
+                        auto* ptr = capsule_ptr<ElemType>(capsule);
+                        return TSPackResult {
+                                TSPackTR {
+                                        .name = n,
+                                        .capsule = capsule,
+                                        .transform = ptr
+                                }
+                        };
+                    }
+            };
+        }
+
+        [[nodiscard]] inline static const ElemType& cast(void* ptr){
+            return *(static_cast<ElemType*>(ptr));
+        }
+
+        [[nodiscard]] inline static const Vec& up(void* ptr){
+            return std::get<0>(cast(ptr));
+        }
+
+        [[nodiscard]] inline static const Vec& lo(void* ptr){
+            return std::get<1>(cast(ptr));
+        }
+    };
+
 } // End of namespace tempo::univariate

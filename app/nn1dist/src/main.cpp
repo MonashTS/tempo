@@ -5,6 +5,7 @@
 #include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
+#include <tempo/univariate/distances/dtw/lowerbound/lb_webb.hpp>
 #include <tempo/univariate/distances/dtw/dtw.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
@@ -37,22 +38,14 @@ inline size_t get_w(const P &param, size_t maxl) {
     return param.wint ? param.wratio : maxl * param.wratio;
 }
 
-/** Envelope computation for lb keogh */
-tuple<vector<FloatType>, vector<FloatType>> compute_envelopes(const TS &series, size_t w) {
-    const auto l = series.length();
-    vector<FloatType> up(l);
-    vector<FloatType> lo(l);
-    tu::get_keogh_envelopes(series.data(), l, up.data(), lo.data(), w);
-    return {up, lo};
-}
-
 size_t GLB_KEOGH1{0};
 size_t GLB_KEOGH2{0};
 size_t GLB_ENHANCED{0};
+size_t GLB_WEBB{0};
 
 /// Compute envelopes of a dataset, returns an error or the index of the transform
-std::variant<std::string, size_t> compute_envelope(DS &ds, size_t w, size_t source_index,
-                                                   const std::string &LBName, const std::string &DSName
+std::variant<std::string, size_t> compute_envelopes(DS &ds, size_t w, size_t source_index,
+                                                    const std::string &LBName, const std::string &DSName
 ) {
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
     auto start = tt::now();
@@ -69,9 +62,32 @@ std::variant<std::string, size_t> compute_envelope(DS &ds, size_t w, size_t sour
     return res;
 }
 
+/** Compute envelopes of a dataset for LB Webb, returns an error or the index of the transforms
+ *  @return An error (string) or a tuple of transform index (up & lo envelopes, lo of up, up of lo)
+ */
+std::variant<std::string, std::size_t>
+    compute_envelopes_Webb(DS &ds, size_t w, size_t source_index,
+                           const std::string &LBName, const std::string &DSName
+) {
+    using WET = tu::WebbEnvelopesTransformer<FloatType, LabelType>;
+    auto start = tt::now();
+    const string &source_name = ds[0].transform_infos[source_index].name;
+    auto env_transformer = WET::get(w, source_index, source_name);  // Get the transformer
+    auto res = ds.apply(env_transformer);                           // Apply the transformation, may fail
+    if (res.index() == 0) { return {std::get<0>(res)}; }
+    auto stop = tt::now();
+    auto duration = stop - start;
+    std::cout << LBName << ": pre-computation of " << DSName << " envelopes in ";
+    tt::printDuration(std::cout, duration);
+    std::cout << " (transform index: " << std::get<1>(res) << ")";
+    std::cout << std::endl;
+    return res;
+}
+
 
 MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source_index) {
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
+    using WET = tu::WebbEnvelopesTransformer<FloatType, LabelType>;
     // Pre check
     if (train.empty()) { return {"Empty train dataset"}; }
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
@@ -84,7 +100,7 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
             const auto kind = lb.lb_param.keogh.kind;
             size_t env_idx_train;
             { // --- --- --- Envelopes TRAIN
-                auto res = compute_envelope(train, w, source_index, "lb-keogh2", "train");
+                auto res = compute_envelopes(train, w, source_index, "lb-keogh", "train");
                 if (res.index() == 0) { return {std::get<0>(res)}; }
                 env_idx_train = std::get<1>(res);
             }
@@ -107,7 +123,7 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                 case LB_KEOGH_Kind::CASCADE2: {
                     size_t env_idx_test;
                     { // --- --- --- Envelopes TEST
-                        auto res = compute_envelope(test, w, source_index, "lb-keogh2", "test");
+                        auto res = compute_envelopes(test, w, source_index, "lb-keogh2", "test");
                         if (res.index() == 0) { return {std::get<0>(res)}; }
                         env_idx_test = std::get<1>(res);
                     }
@@ -141,7 +157,7 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                 case LB_KEOGH_Kind::JOINED2: {
                     size_t env_idx_test;
                     { // --- --- --- Envelopes TEST
-                        auto res = compute_envelope(test, w, source_index, "lb-keogh2j", "test");
+                        auto res = compute_envelopes(test, w, source_index, "lb-keogh2j", "test");
                         if (res.index() == 0) { return {std::get<0>(res)}; }
                         env_idx_test = std::get<1>(res);
                     }
@@ -172,7 +188,7 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
             const auto kind = lb.lb_param.enhanced.kind;
             size_t env_idx_train;
             { // --- --- --- Envelopes TRAIN
-                auto res = compute_envelope(train, w, source_index, "lb-keogh2", "train");
+                auto res = compute_envelopes(train, w, source_index, "lb-enhanced", "train");
                 if (res.index() == 0) { return {std::get<0>(res)}; }
                 env_idx_train = std::get<1>(res);
             }
@@ -197,7 +213,7 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                 case LB_ENHANCED_Kind::JOINED2: {
                     size_t env_idx_test;
                     { // --- --- --- Envelopes TEST
-                        auto res = compute_envelope(test, w, source_index, "lb-keogh2", "test");
+                        auto res = compute_envelopes(test, w, source_index, "lb-enhanced2j", "test");
                         if (res.index() == 0) { return {std::get<0>(res)}; }
                         env_idx_test = std::get<1>(res);
                     }
@@ -222,8 +238,39 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
                 default: tempo::should_not_happen();
             }
         }
-
-        case DTWLB_Kind::WEBB: { return {"Sorry, lb-webb not implemented yet"}; }
+        case DTWLB_Kind::WEBB: {
+            size_t env_idx_train;
+            {  // --- --- --- Envelopes TRAIN
+                auto res = compute_envelopes_Webb(train, w, source_index, "lb-webb", "train");
+                if (res.index() == 0) { return {std::get<0>(res)}; }
+                env_idx_train = std::get<1>(res);
+            }
+            size_t env_idx_test;
+            { // --- --- --- Envelopes TEST
+                auto res = compute_envelopes_Webb(test, w, source_index, "lb-webb", "test");
+                if (res.index() == 0) { return {std::get<0>(res)}; }
+                env_idx_test = std::get<1>(res);
+            }
+            return { // Remember: returns a variant, hence the { } for construction
+                    [w, source_index, env_idx_train, env_idx_test, d = std::move(df)]
+                            (const TSP &q, const TSP &c, FloatType cutoff) {
+                        // Query
+                        const auto &qs = q.tseries_at(source_index);
+                        const auto &[qu, ql, qlu, qul] = WET::cast(q.transforms[env_idx_test]);
+                        // Candidate
+                        const auto &cs = c.tseries_at(source_index);
+                        const auto &[cu, cl, clu, cul] = WET::cast(c.transforms[env_idx_train]);
+                        // Call
+                        double v = tu::lb_Webb(
+                                qs.data(), qs.size(), qu.data(), ql.data(), qlu.data(), qul.data(),
+                                cs.data(), cs.size(), cu.data(), cl.data(), clu.data(), cul.data(),
+                                w, cutoff
+                        );
+                        if (v < cutoff) { return d(q, c, cutoff); }
+                        else { GLB_WEBB++; return tempo::POSITIVE_INFINITY<double>; }
+                    }
+            };
+        }
         default: tempo::should_not_happen();
     }
 }
@@ -442,6 +489,13 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs &con
             break;
         }
         case DTWLB_Kind::WEBB: {
+            size_t nn1 = nb_ea - GLB_WEBB;
+            std::cout << "lb-webb: number of early abandon: "
+                      << GLB_WEBB << "/" << total << " (" << percent(GLB_WEBB, total) << ")" << std::endl;
+            std::cout << "nn1: number of early abandon: "
+                      << nn1 << "/" << total << " (" << percent(nn1, total) << ")" << std::endl;
+            std::cout << "nn1: total number of early abandon: "
+                      << nb_ea << "/" << total << " (" << percent(nb_ea, total) << ")" << std::endl;
             break;
         }
         default: tempo::should_not_happen();
@@ -529,6 +583,4 @@ int main(int argc, char **argv) {
         }
     }
 }
-
-
 
