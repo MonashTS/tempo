@@ -9,13 +9,15 @@
 
 namespace pytempo {
 
-    using pyTSeries = tempo::TSeries<double, std::string>;
-    namespace details {
-        using ft = pyTSeries::FloatType_t;
-        constexpr ssize_t scalar_size = sizeof(ft);
-        const std::string format = py::format_descriptor<ft>::format();  // Python struct-style format descriptor
+    using FloatType = double;
+    using LabelType = std::string;
 
-        pyTSeries make_pyTseries(nparray a, bool has_missing, std::optional<std::string> label){
+    using pyTSeries = tempo::TSeries<FloatType, LabelType>;
+    namespace details {
+        constexpr ssize_t scalar_size = sizeof(FloatType);
+        const std::string format = py::format_descriptor<FloatType>::format();  // Python struct-style format descriptor
+
+        pyTSeries make_pyTseries(nparray a, bool has_missing, std::optional<LabelType> label){
             if(a.ndim() == 1){
                 return pyTSeries(a.data(), a.shape(0), 1, has_missing, label, std::make_shared<std::any>(a));
             } else if(a.ndim() == 2){
