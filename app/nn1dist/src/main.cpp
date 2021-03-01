@@ -580,6 +580,11 @@ int main(int argc, char **argv) {
             ss << "}" << endl;
             string str = ss.str();
             std::cout << str;
+            if(config.outpath){
+                auto p = config.outpath.value();
+                std::ofstream out(p);
+                out << str;
+            }
         }
     }
 }
