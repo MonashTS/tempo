@@ -24,11 +24,11 @@ def generate_cmd(HEAD_CMD, RESULT_DIR, record, lb, output):
 
     # CDTW
     cmd = HEAD_CMD+f" {name} -dist cdtw {cdtw_w} " + lb + f" -out {RESULT_DIR}/{name}_cdtw_{lb_name}.json"
-    print(cmd, output)
+    print(cmd, file=output)
 
     # DTW
     cmd = HEAD_CMD+f" {name} -dist dtw " + lb + f" -out {RESULT_DIR}/{name}_dtw_{lb_name}.json"
-    print(cmd, output)
+    print(cmd, file=output)
 
 # --- --- --- --- Main
 if __name__ == '__main__':
