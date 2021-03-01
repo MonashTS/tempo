@@ -1,5 +1,6 @@
 import csv
 import pathlib
+import cpuinfo
 
 # --- --- --- --- Load configuration
 import importlib.util
@@ -51,12 +52,18 @@ if __name__ == '__main__':
     # Head (common part) of commands
     HEAD = f"{EXEC_PATH} -ucr {UCR_PATH} "
 
-    # --- --- --- ---
+    # --- --- --- --- Commands
     with open(EE_PATH, newline='') as csvfile:
         records = csv.reader(csvfile)
         header = next(records)          # Skip header
         print(header)
         for r in records:
-            for lb in ["lb-none", "lb-keogh", "lb-keogh2", "lb-keogh2j", "lb-enhanced", "lb-enhanced2j", "lb-webb"]:
+            for lb in ["lb-none", "lb-keogh", "lb-keogh2", "lb-keogh2j", "lb-enhanced 5", "lb-enhanced2j 5", "lb-webb"]:
                 generate_cmd(HEAD, RESULT_DIR, r, lb, OUT)
+
+    # --- --- --- --- CPU INFO
+    # CPU_INFO file
+    OUT_CPU = (OUT_DIR/"cpu.json").absolute()
+    OUT_CPU = open(OUT_CPU, "w")
+    print(cpuinfo.get_cpu_info_json(), file=OUT_CPU)
 

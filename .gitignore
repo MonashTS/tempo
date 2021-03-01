@@ -20,3 +20,6 @@ _deps
 bindings/python/build
 bindings/python/dist
 bindings/python/pytempo.egg-info
+
+# Generated files
+generated*
