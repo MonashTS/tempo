@@ -24,11 +24,11 @@ def generate_cmd(HEAD_CMD, RESULT_DIR, record, lb, output):
 
     # CDTW
     cmd = HEAD_CMD+f" {name} -dist cdtw {cdtw_w} " + lb + f" -out {RESULT_DIR}/{name}_cdtw_{lb_name}.json"
-    print(cmd)
+    print(cmd, output)
 
     # DTW
     cmd = HEAD_CMD+f" {name} -dist dtw " + lb + f" -out {RESULT_DIR}/{name}_dtw_{lb_name}.json"
-    print(cmd)
+    print(cmd, output)
 
 # --- --- --- --- Main
 if __name__ == '__main__':
@@ -59,5 +59,4 @@ if __name__ == '__main__':
         for r in records:
             for lb in ["lb-none", "lb-keogh", "lb-keogh2", "lb-keogh2j", "lb-enhanced", "lb-enhanced2j", "lb-webb"]:
                 generate_cmd(HEAD, RESULT_DIR, r, lb, OUT)
-                print(r)
 
