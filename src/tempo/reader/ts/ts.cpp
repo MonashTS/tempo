@@ -349,7 +349,7 @@ namespace tempo::reader {
                         }
                         // Mark the end of the current series: check the dimension, no label
                         if (c == '\n' || c == EOF) {
-                            if (has_labels) { return {"Error reading the data: missing label"}; }
+                            if (has_labels) { return {"Error reading the data: missing get_label"}; }
                             else if (series.size() != cur_dim * length) {
                                 return {"Error reading the data: non matching dimension"};
                             }

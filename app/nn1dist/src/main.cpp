@@ -27,10 +27,8 @@ namespace tu = tempo::univariate;
 using FloatType = double;
 using LabelType = string;
 using TS = tempo::TSeries<FloatType, LabelType>;
-using TSP = tempo::TSPack<FloatType, LabelType>;
 using DS = tempo::Dataset<FloatType, LabelType>;
-using distfun = tu::distpackfun_cutoff_t<FloatType, LabelType>;
-using MBFun = variant<string, distfun>;
+//using MBFun = variant<string, distfun>;
 
 /** Helper to compute the window distance */
 template<typename P>
@@ -44,6 +42,7 @@ size_t GLB_ENHANCED{0};
 size_t GLB_WEBB{0};
 
 /// Compute envelopes of a dataset, returns an error or the index of the transform
+/*
 std::variant<std::string, size_t> compute_envelopes(DS &ds, size_t w, size_t source_index,
                                                     const std::string &LBName, const std::string &DSName
 ) {
@@ -61,10 +60,12 @@ std::variant<std::string, size_t> compute_envelopes(DS &ds, size_t w, size_t sou
     std::cout << std::endl;
     return res;
 }
+*/
 
 /** Compute envelopes of a dataset for LB Webb, returns an error or the index of the transforms
  *  @return An error (string) or a tuple of transform index (up & lo envelopes, lo of up, up of lo)
  */
+ /*
 std::variant<std::string, std::size_t>
     compute_envelopes_Webb(DS &ds, size_t w, size_t source_index,
                            const std::string &LBName, const std::string &DSName
@@ -83,8 +84,9 @@ std::variant<std::string, std::size_t>
     std::cout << std::endl;
     return res;
 }
+*/
 
-
+ /*
 MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source_index) {
     using KET = tu::KeoghEnvelopesTransformer<FloatType, LabelType>;
     using WET = tu::WebbEnvelopesTransformer<FloatType, LabelType>;
@@ -274,9 +276,11 @@ MBFun lbDTW(distfun &&df, DTWLB lb, DS &train, DS &test, size_t w, size_t source
         default: tempo::should_not_happen();
     }
 }
+  */
 
 /** Create a distance function given the command line argument and the min/max size of the dataset.
  *  Can precompute info (like the envelope), directly updating the datasets */
+ /*
 MBFun mk_distfun(const CMDArgs &conf, DS &train, DS &test, size_t source_index) {
     auto maxl = max(train.store_info().max_length, test.store_info().max_length);
     auto minl = min(train.store_info().min_length, test.store_info().min_length);
@@ -323,9 +327,11 @@ MBFun mk_distfun(const CMDArgs &conf, DS &train, DS &test, size_t source_index) 
     }
     return {"Should not happen"};
 }
+  */
 
 /** Manage the transforms.
  *  Can precompute info (like the derivative), directly updtaing the datasets */
+ /*
 MBFun mk_transform(const CMDArgs &conf, DS &train, DS &test) {
     switch (conf.transforms) {
         case TRANSFORM::NONE: { return mk_distfun(conf, train, test, 0); }
@@ -359,14 +365,17 @@ MBFun mk_transform(const CMDArgs &conf, DS &train, DS &test) {
         default: tempo::should_not_happen();
     }
 }
+  */
 
 [[nodiscard]] inline std::string percent(double v, double total) {
     return to_string(100 * v / total) + "%";
 }
 
+
 /** NN1, in case of ties, first found win
  * Return a tuple (nb correct, accuracy, duration)
  * where accuracy = nb correct/test size*/
+ /*
 variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs &conf, DS &train, DS &test) {
     // --- --- --- Get the transform/distance function/lower bound
     MBFun mbfun = mk_transform(conf, train, test);
@@ -502,63 +511,113 @@ variant<string, tuple<size_t, double, tt::duration_t>> do_NN1(const CMDArgs &con
     }
 
     return {tuple<size_t, double, tt::duration_t>{nb_correct, nb_correct / (test.size()), duration}};
-}
+}*/
 
+#include "parsarg.hpp"
 
 int main(int argc, char **argv) {
-    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-    // --- Read args
-    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-    CMDArgs config = read_args(argc, argv);
+    using namespace tempo::utils;
 
-    // --- Dataset path
-    fs::path path_train;
-    fs::path path_test;
-    {
-        switch (config.ucr_traintest_path.index()) {
-            case 0: {
-                auto[path, name] = get<0>(config.ucr_traintest_path);
-                path_train = path / name / (name + "_TRAIN.ts");
-                path_test = path / name / (name + "_TEST.ts");
-                break;
-            }
+    auto as = ArgStream(argc, argv);
 
-            case 1: {
-                auto[train, test] = get<0>(config.ucr_traintest_path);
-                path_train = train;
-                path_test = test;
-                break;
-            }
-            default: tempo::should_not_happen();
+    std::optional<int> output_i;
+    std::optional<bool> output_b;
+
+    std::shared_ptr<ArgSum> root = std::make_shared<ArgSum>(ArgSum{
+        .name = "root",
+        .description = "je ne sais paaaaas",
+        .default_action = reject,
+        .alternatives = {
+            std::make_shared<ArgAlt>(ArgAlt{
+                .name = "v",
+                .description = "int value",
+                .parse_action = mkAction(int_reader, output_i),
+                .product = {
+                        std::make_shared<ArgSum>(ArgSum{
+                            .name = " after v",
+                            .description = "haha",
+                            .default_action = reject,
+                            .alternatives = {
+                                std::make_shared<ArgAlt>(ArgAlt{
+                                        .name = "v2",
+                                        .description = "bool value",
+                                        .parse_action = mkAction(bool_reader, output_b),
+                                        .product = {}
+                                })
+                        }})
+                }
+            })
+        }
+    });
+
+    auto r = parse(root, &as);
+    if(isError(r)){
+        std::cout << "Error: " << std::get<0>(r) << std::endl;
+    } else {
+        if(output_i){
+            std::cout << " read " << output_i.value() << std::endl;
+        }
+        if(output_b){
+            std::cout << " read " << output_b.value() << std::endl;
         }
     }
+}
 
-    // --- Parameter recall
-    {
-        cout << "Configuration: distance: " << dist_to_JSON(config) << endl;
-        cout << "Configuration: train path: " << path_train << endl;
-        cout << "Configuration: test path: " << path_test << endl;
-    }
-
-    // --- Load the datasets
-    tempo::Dataset<double, string> train;
-    tempo::Dataset<double, string> test;
-    {
-        auto res_train = read_data(cout, path_train);
-        if (res_train.index() == 0) { print_error_exit(argv[0], get<0>(res_train), 2); }
-        train = std::move(get<1>(std::move(res_train)));
-        cout << train.store_info().to_json() << endl;
-
-        auto res_test = read_data(cout, path_test);
-        if (res_test.index() == 0) { print_error_exit(argv[0], get<0>(res_test), 2); }
-        test = std::move(get<1>(std::move(res_test)));
-        cout << test.store_info().to_json() << endl;
-    }
+// //
+// //      // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+// //      // --- Read args
+// //      // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+// //      CMDArgs config = read_args(argc, argv);
+// //
+// //      // --- Dataset path
+// //      fs::path path_train;
+// //      fs::path path_test;
+// //      {
+// //          switch (config.ucr_traintest_path.index()) {
+// //              case 0: {
+// //                  auto[path, name] = get<0>(config.ucr_traintest_path);
+// //                  path_train = path / name / (name + "_TRAIN.ts");
+// //                  path_test = path / name / (name + "_TEST.ts");
+// //                  break;
+// //              }
+// //
+// //              case 1: {
+// //                  auto[train, test] = get<0>(config.ucr_traintest_path);
+// //                  path_train = train;
+// //                  path_test = test;
+// //                  break;
+// //              }
+// //              default: tempo::should_not_happen();
+// //          }
+// //      }
+// //
+// //      // --- Parameter recall
+// //      {
+// //          cout << "Configuration: distance: " << dist_to_JSON(config) << endl;
+// //          cout << "Configuration: train path: " << path_train << endl;
+// //          cout << "Configuration: test path: " << path_test << endl;
+// //      }
+// //
+// //      // --- Load the datasets
+// //      tempo::Dataset<double, string> train;
+// //      tempo::Dataset<double, string> test;
+// //      {
+// //          auto res_train = read_data(cout, path_train);
+// //          if (res_train.index() == 0) { print_error_exit(argv[0], get<0>(res_train), 2); }
+// //          train = std::move(get<1>(std::move(res_train)));
+// //   //       cout << train.store_info().to_json() << endl;
+// //
+// //          auto res_test = read_data(cout, path_test);
+// //          if (res_test.index() == 0) { print_error_exit(argv[0], get<0>(res_test), 2); }
+// //          test = std::move(get<1>(std::move(res_test)));
+// //    //      cout << test.store_info().to_json() << endl;
+// //    }
 
     // --- Classification
-    auto res = do_NN1(config, train, test);
+  //  auto res = do_NN1(config, train, test);
 
     // --- Analys results
+    /*
     switch (res.index()) {
         case 0: {
             std::cout << "Error: " << std::get<0>(res) << std::endl;
@@ -586,6 +645,6 @@ int main(int argc, char **argv) {
                 out << str;
             }
         }
-    }
-}
+    }*/
+// }
 

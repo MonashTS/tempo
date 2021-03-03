@@ -1,7 +1,11 @@
 #pragma once
 
+#include <any>
+#include <memory>
+
 namespace tempo {
 
+    /// Capsule
     using Capsule = std::shared_ptr<std::any>;
 
     /// Capsule builder helper
@@ -15,5 +19,6 @@ namespace tempo {
     [[nodiscard]] inline CapsuleT *capsule_ptr(const std::shared_ptr <std::any> &ptr) {
         return std::any_cast<CapsuleT>(ptr.get());
     }
+
 
 }

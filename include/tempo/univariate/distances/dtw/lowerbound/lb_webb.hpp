@@ -175,6 +175,7 @@ namespace tempo::univariate {
      *  Output: A tuple of vector<FloatType> containing the envelopes (Upper, Lower, Lower of Upper, Upper of Lower).
      *  Use the provided static functions for easier access.
      */
+     /*
     template<typename FloatType, typename LabelType>
     struct WebbEnvelopesTransformer {
         static constexpr auto name = "webb_envelopes";
@@ -233,5 +234,6 @@ namespace tempo::univariate {
             return std::get<3>(cast(ptr));
         }
     };
+      */
 
 } // End of namespace tempo::univariate

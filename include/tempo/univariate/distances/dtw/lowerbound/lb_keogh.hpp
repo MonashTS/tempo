@@ -5,6 +5,7 @@
 
 namespace tempo::univariate {
 
+    // Todo - separate in equal length and non equal length.
     template<typename FloatType, auto dist = square_dist<FloatType>>
     [[nodiscard]] FloatType lb_Keogh(
             const FloatType *query, size_t lq,
@@ -108,6 +109,7 @@ namespace tempo::univariate {
      *  Output: A tuple of vector<FloatType> containing the envelopes (Upper, Lower).
      *  Use the provided static functions for easier access.
      */
+     /*
     template<typename FloatType, typename LabelType>
     struct KeoghEnvelopesTransformer {
         static constexpr auto name = "keogh_envelopes";
@@ -152,5 +154,6 @@ namespace tempo::univariate {
             return std::get<1>(cast(ptr));
         }
     };
+      */
 
 } // End of namespace tempo::univariate

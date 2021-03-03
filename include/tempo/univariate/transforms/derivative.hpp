@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../../tseries/tspack.hpp"
-
 #include <cstddef>
 #include <exception>
 
@@ -28,6 +26,7 @@ namespace tempo::univariate {
     }
 
 
+    /*
     template<typename FloatType, typename LabelType>
     struct DerivativeTransformer {
         using TS = TSeries<FloatType, LabelType>;
@@ -97,6 +96,6 @@ namespace tempo::univariate {
         [[nodiscard]] inline static const ElemType& cast(void* ptr){
             return *(static_cast<ElemType*>(ptr));
         }
-    };
+    };*/
 
 } // End of namespace tempo::univariate

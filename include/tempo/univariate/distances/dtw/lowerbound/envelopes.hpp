@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../../../tseries/tseries.hpp"
-#include "../../../../tseries/tspack.hpp"
 #include "../../../../utils/utils.hpp"
 
 #include <deque>
