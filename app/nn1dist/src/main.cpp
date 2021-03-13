@@ -126,7 +126,16 @@ int main(int argc, char** argv) {
       break;
     }
 
-    case DISTANCE::WDTW: { throw std::logic_error("not implemented"); }
+    case DISTANCE::WDTW: {
+      auto param = config.distargs.wdtw;
+      auto weights = std::make_shared<vector<FloatType>>(tu::generate_weights(param.weight_factor, maxl));
+      distance = [&test_source, &train_source, weights](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::wdtw(tsq, tsc, *weights, bsf);
+      };
+      break;
+    }
 
     case DISTANCE::ERP: {
       auto param = config.distargs.erp;
