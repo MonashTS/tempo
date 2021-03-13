@@ -42,7 +42,7 @@ namespace tempo::univariate {
         throw std::invalid_argument("Dataset is not univariate");
       }
       // --- Transform identification
-      auto name = "derivative "+std::to_string(degree);
+      auto name = "derivative("+std::to_string(degree)+")";
       auto parent = src.get_transform().get_name_components();
       // --- Compute data
       const std::vector<TS>& src_vec = src.get();
