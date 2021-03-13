@@ -159,7 +159,15 @@ int main(int argc, char** argv) {
       break;
     }
 
-    case DISTANCE::MSM: { throw std::logic_error("not implemented"); }
+    case DISTANCE::MSM: {
+      auto param = config.distargs.msm;
+      distance = [&test_source, &train_source, cost=param.cost](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::msm(tsq, tsc, cost, bsf);
+      };
+      break;
+    }
 
     case DISTANCE::SQED: { throw std::logic_error("not implemented"); }
 
