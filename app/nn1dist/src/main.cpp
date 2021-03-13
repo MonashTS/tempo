@@ -48,11 +48,21 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Keogh
     case DTWLB_Kind::KEOGH: {
-      switch (lb.lb_param.keogh.kind) {
+      const auto kind = lb.lb_param.keogh.kind;
+      tu::KeoghEnvelopesTransformer<FloatType, LabelType> keogh_envelopes_transformer;
+      auto train_env = keogh_envelopes_transformer.transform_and_add(train, w);
+      switch (kind) {
 
         case LB_KEOGH_Kind::BASE: {
-          break;
+          return [df, train_env, test](size_t q, size_t c, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[q];
+            const auto& candidate_env = train_env.get()[c];
+            auto res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
+            if(res<bsf){ return df(q, c, bsf); }
+            else { return tempo::POSITIVE_INFINITY<double>; }
+          };
         }
+
 
         case LB_KEOGH_Kind::CASCADE2: {
           break;
@@ -152,11 +162,14 @@ int main(int argc, char** argv) {
   switch (config.distance) {
 
     case DISTANCE::DTW: {
+      // DTW
       distance = [&test_source, &train_source](size_t q, size_t c, FloatType bsf) -> FloatType {
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::dtw(tsq, tsc, bsf);
       };
+      // Embeds under lower bound
+      distance = dtw_lb(std::move(distance), config.distargs.dtw.lb, test_source, train_source, maxl);
       break;
     }
 

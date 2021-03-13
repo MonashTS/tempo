@@ -65,8 +65,8 @@ namespace tempo {
      * @param c     Capsule containing the data
      * @param p     Raw pointer to the data
      */
-    Transform(std::string&& n, std::vector<std::string>&& pn, Capsule&& c, const void* p) :
-      name(std::move(n)), parents(std::move(pn)), capsule(std::move(c)), data_ptr(p) {
+    Transform(std::string&& n, std::vector<std::string>&& pn, Capsule&& c, const void* p)
+      : name(std::move(n)), parents(std::move(pn)), capsule(std::move(c)), data_ptr(p) {
       full_name = mk_full_name(name, parents);
     }
 
@@ -94,23 +94,20 @@ namespace tempo {
   struct TransformHandle {
     using DS = Dataset<FloatType, LabelType>;
     using Self = TransformHandle<T, FloatType, LabelType>;
-    const DS* dataset{};
+    DS* dataset{};
     size_t index{};
+    const T* data{};
 
     TransformHandle() = default;
 
     /// Create a handler over a dataset and transform index inside this dataset
-    TransformHandle(const DS* ds, size_t idx)
-      :
-      dataset(ds), index(idx), data((T*) ds->get_transform(idx).get_data_ptr()) {
-    }
+    TransformHandle(DS* ds, size_t idx)
+      :dataset(ds), index(idx), data((T*) ds->get_transform(idx).get_data_ptr()) { }
 
     [[nodiscard]] const Transform& get_transform() const { return dataset->get_transform(index); }
 
     [[nodiscard]] const T& get() const { return *data; }
 
-  private:
-    const T* data{nullptr};
   };
 
 } // End of namespace tempo
