@@ -1,5 +1,8 @@
 #pragma once
 
+#include <any>
+#include <memory>
+
 namespace tempo {
 
     using Capsule = std::shared_ptr<std::any>;

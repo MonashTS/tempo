@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../utils/utils.hpp"
+#include <tempo/utils/utils.hpp>
+#include <tempo/utils/capsule.hpp>
 
 #include <any>
 
@@ -35,7 +36,7 @@ namespace tempo {
         std::optional<LabelType> label_{};
 
         /// When owning (backend storage) or holding reference
-        std::shared_ptr<const std::any> capsule_{};
+        std::shared_ptr<std::any> capsule_{};
 
     public:
 
@@ -69,8 +70,9 @@ namespace tempo {
             }
 
             length_ = data.size() / nbdim_;
-            data_ = data.data();
-            capsule_ = std::make_shared<std::any>(std::move(data));
+            capsule_ = make_capsule<std::vector<FloatType>>(std::move(data));
+            auto* ptr = capsule_ptr<std::vector<FloatType>>(capsule_);
+            data_ = ptr->data();
         }
 
         /** Constructor taking ownership of a vector<FloatType>.
