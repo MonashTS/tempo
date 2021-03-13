@@ -34,23 +34,24 @@ namespace tempo::univariate {
 
     int degree;
 
-    explicit DerivativeTransformer(int degree):degree(degree){}
+    explicit DerivativeTransformer(int degree)
+      :degree(degree) { }
 
-    [[nodiscard]] Transform operator() (const SRC& src){
-      if((src.dataset->get_header()).get_ndim()!=1){
+    [[nodiscard]] Transform operator()(const SRC& src) {
+      if ((src.dataset->get_header()).get_ndim()!=1) {
         throw std::invalid_argument("Dataset is not univariate");
       }
       // --- Transform identification
-      auto name = "derivative " + std::to_string(degree);
+      auto name = "derivative "+std::to_string(degree);
       auto parent = src.get_transform().get_name_components();
       // --- Compute data
       const std::vector<TS>& src_vec = src.get();
       std::vector<TS> output;
       output.reserve(src_vec.size());
-      for(const auto& ts: src_vec){
+      for (const auto& ts: src_vec) {
         const size_t l = ts.length();
         std::vector<FloatType> d(l);
-        if(degree==1){
+        if (degree==1) {
           derivative(ts.data(), l, d.data());
         } else {
           // Repeated application: require an extra buffer to hold previous transform.
@@ -69,7 +70,7 @@ namespace tempo::univariate {
       }
       // --- Create transform
       Capsule capsule = tempo::make_capsule<std::vector<TS>>(std::move(output));
-      const void * ptr = tempo::capsule_ptr<std::vector<TS>>(capsule);
+      const void* ptr = tempo::capsule_ptr<std::vector<TS>>(capsule);
       return Transform(std::move(name), std::move(parent), std::move(capsule), ptr);
     }
   };
