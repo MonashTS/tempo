@@ -37,6 +37,51 @@ using distfun_t = function<FloatType(size_t query_idx, size_t candidate_idx, Flo
 template<typename P>
 inline size_t get_w(const P& param, size_t maxl) { return param.wint ? param.wratio : maxl*param.wratio; }
 
+/** Wrap DTW/CDTW distance behind lower bounds */
+distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
+  switch (lb.kind) {
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // None
+    case DTWLB_Kind::NONE: { return df; }
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Keogh
+    case DTWLB_Kind::KEOGH: {
+      switch (lb.lb_param.keogh.kind) {
+
+        case LB_KEOGH_Kind::BASE: {
+          break;
+        }
+
+        case LB_KEOGH_Kind::CASCADE2: {
+          break;
+        }
+
+        case LB_KEOGH_Kind::JOINED2: {
+          break;
+        }
+      }
+      break;
+    }
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Enhanced
+    case DTWLB_Kind::ENHANCED: {
+      break;
+    }
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Webb
+    case DTWLB_Kind::WEBB: {
+      break;
+    }
+
+    default: tempo::should_not_happen();
+  }
+
+}
+
 int main(int argc, char** argv) {
   // --- Manage command line argument (defined in "any")
   CMDArgs config = read_args(argc, argv);
@@ -140,7 +185,7 @@ int main(int argc, char** argv) {
     case DISTANCE::ERP: {
       auto param = config.distargs.erp;
       size_t w = get_w(param, maxl);
-      distance = [&test_source, &train_source, w, gv=param.gv](size_t q, size_t c, FloatType bsf) -> FloatType {
+      distance = [&test_source, &train_source, w, gv = param.gv](size_t q, size_t c, FloatType bsf) -> FloatType {
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::erp(tsq, tsc, gv, w, bsf);
@@ -151,7 +196,7 @@ int main(int argc, char** argv) {
     case DISTANCE::LCSS: {
       auto param = config.distargs.lcss;
       size_t w = get_w(param, maxl);
-      distance = [&test_source, &train_source, w, e=param.epsilon](size_t q, size_t c, FloatType bsf) -> FloatType {
+      distance = [&test_source, &train_source, w, e = param.epsilon](size_t q, size_t c, FloatType bsf) -> FloatType {
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::lcss(tsq, tsc, e, w, bsf);
@@ -161,7 +206,7 @@ int main(int argc, char** argv) {
 
     case DISTANCE::MSM: {
       auto param = config.distargs.msm;
-      distance = [&test_source, &train_source, cost=param.cost](size_t q, size_t c, FloatType bsf) -> FloatType {
+      distance = [&test_source, &train_source, cost = param.cost](size_t q, size_t c, FloatType bsf) -> FloatType {
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::msm(tsq, tsc, cost, bsf);
@@ -180,7 +225,8 @@ int main(int argc, char** argv) {
 
     case DISTANCE::TWE: {
       auto param = config.distargs.twe;
-      distance = [&test_source, &train_source, nu=param.nu, la=param.lambda](size_t q, size_t c, FloatType bsf) -> FloatType {
+      distance = [&test_source, &train_source, nu = param.nu, la = param.lambda](size_t q, size_t c,
+        FloatType bsf) -> FloatType {
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::twe(tsq, tsc, nu, la, bsf);
@@ -232,8 +278,8 @@ int main(int argc, char** argv) {
   }
   auto stop = tt::now();
   std::cout << endl;
-  duration += (stop - start);
-  double acc = nb_correct / (test->size());
+  duration += (stop-start);
+  double acc = nb_correct/(test->size());
 
   std::cout << "nb ea = " << nb_ea << std::endl;
 
@@ -251,7 +297,7 @@ int main(int argc, char** argv) {
   ss << "}" << endl;
   string str = ss.str();
   std::cout << str;
-  if(config.outpath){
+  if (config.outpath) {
     auto p = config.outpath.value();
     std::ofstream out(p);
     out << str;
