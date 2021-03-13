@@ -169,7 +169,14 @@ int main(int argc, char** argv) {
       break;
     }
 
-    case DISTANCE::SQED: { throw std::logic_error("not implemented"); }
+    case DISTANCE::SQED: {
+      distance = [&test_source, &train_source](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::elementwise(tsq, tsc, bsf);
+      };
+      break;
+    }
 
     case DISTANCE::TWE: { throw std::logic_error("not implemented"); }
 
