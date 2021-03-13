@@ -51,15 +51,15 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
       const auto kind = lb.lb_param.keogh.kind;
       tu::KeoghEnvelopesTransformer<FloatType, LabelType> keogh_envelopes_transformer;
       auto train_env = keogh_envelopes_transformer.transform_and_add(train, w);
-      switch (kind) {
+
+      switch (lb.lb_param.keogh.kind) {
 
         case LB_KEOGH_Kind::BASE: {
           return [df, train_env, test](size_t q, size_t c, FloatType bsf) -> FloatType {
             const TS& tsq = test.get()[q];
             const auto& candidate_env = train_env.get()[c];
             auto res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
-            if(res<bsf){ return df(q, c, bsf); }
-            else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
@@ -81,10 +81,21 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
         }
 
         case LB_KEOGH_Kind::JOINED2: {
-          break;
+          auto test_env = keogh_envelopes_transformer.transform_and_add(test, w);
+          return [df, test_env, train_env, test, train](size_t q, size_t c, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[q];
+            const auto& query_env = test_env.get()[q];
+            const TS& tsc = train.get()[c];
+            const auto& candidate_env = train_env.get()[c];
+            double res = tu::lb_Keogh2j(
+              tsq.data(), tsq.length(), query_env.up.data(), query_env.lo.data(),
+              tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(),
+              bsf);
+            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+          };
         }
-      }
-      break;
+      } // End switch lb keogh kind
+      tempo::should_not_happen(); // Unreachable
     }
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

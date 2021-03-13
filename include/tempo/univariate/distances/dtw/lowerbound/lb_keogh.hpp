@@ -167,8 +167,6 @@ namespace tempo::univariate {
       auto tr = transform(src, w);
       return src.dataset->template add_transform<std::vector<Env>>(std::move(tr));
     }
-
-
   };
 
 } // End of namespace tempo::univariate
