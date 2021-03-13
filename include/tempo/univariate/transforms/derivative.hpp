@@ -37,7 +37,8 @@ namespace tempo::univariate {
     explicit DerivativeTransformer(int degree)
       :degree(degree) { }
 
-    [[nodiscard]] Transform operator()(const SRC& src) {
+    /// Create the transform. Do not add to the src's dataset.
+    [[nodiscard]] Transform transform(const SRC& src) {
       if ((src.dataset->get_header()).get_ndim()!=1) {
         throw std::invalid_argument("Dataset is not univariate");
       }
@@ -73,6 +74,15 @@ namespace tempo::univariate {
       const void* ptr = tempo::capsule_ptr<std::vector<TS>>(capsule);
       return Transform(std::move(name), std::move(parent), std::move(capsule), ptr);
     }
+
+
+    /// Create the transform and add it to the src's dataset. Return the corresponding handle.
+    [[nodiscard]] TransformHandle<std::vector<TS>, FloatType, LabelType> transform_and_add(SRC& src){
+      auto tr = transform(src);
+      return src.dataset->template add_transform<std::vector<TS>>(std::move(tr));
+    }
+
+
   };
 
 

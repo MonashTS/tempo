@@ -150,8 +150,8 @@ int main(int argc, char** argv) {
     case TRANSFORM::NONE: { break; }
     case TRANSFORM::DERIVATIVE: {
       tu::DerivativeTransformer<FloatType, LabelType> deriver(config.transargs.derivative.rank);
-      train_source = train->add_transform<std::vector<TS>>(deriver(train_source));
-      test_source = train->add_transform<std::vector<TS>>(deriver(test_source));
+      train_source = deriver.transform_and_add(train_source);
+      test_source = deriver.transform_and_add(test_source);
       break;
     }
   }
