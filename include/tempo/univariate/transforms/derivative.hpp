@@ -1,101 +1,78 @@
 #pragma once
 
+#include <tempo/tseries/transform.hpp>
+
 #include <cstddef>
 #include <exception>
 
 namespace tempo::univariate {
 
-    /** Computation of a series derivative according to "Derivative Dynamic Time Warping" by Keogh & Pazzani
-     * @tparam FloatType    The floating number type used to represent the series.
-     * @param series        Pointer to the series's data
-     * @param length        Length of the series
-     * @param out           Pointer where to write the derivative. Must be able to store 'length' values.
-     * Warning: series and out should not overlap (i.e. not in place derivation)
-     */
-    template<typename FloatType>
-    void derivative(const FloatType *series, size_t length, FloatType *out) {
-        if (length > 2) {
-            for (size_t i{1}; i < length - 1; ++i) {
-                out[i] = ((series[i] - series[i - 1]) + ((series[i + 1] - series[i - 1]) / 2.0)) / 2.0;
-            }
-            out[0] = out[1];
-            out[length - 1] = out[length - 2];
-        } else {
-            std::copy(series, series + length, out);
-        }
+  /** Computation of a series derivative according to "Derivative Dynamic Time Warping" by Keogh & Pazzani
+   * @tparam FloatType    The floating number type used to represent the series.
+   * @param series        Pointer to the series's data
+   * @param length        Length of the series
+   * @param out           Pointer where to write the derivative. Must be able to store 'length' values.
+   * Warning: series and out should not overlap (i.e. not in place derivation)
+   */
+  template<typename FloatType>
+  void derivative(const FloatType* series, size_t length, FloatType* out) {
+    if (length>2) {
+      for (size_t i{1}; i<length-1; ++i) {
+        out[i] = ((series[i]-series[i-1])+((series[i+1]-series[i-1])/2.0))/2.0;
+      }
+      out[0] = out[1];
+      out[length-1] = out[length-2];
+    } else {
+      std::copy(series, series+length, out);
     }
+  }
 
+  template<typename FloatType, typename LabelType>
+  struct DerivativeTransformer {
+    using TS = TSeries<FloatType, LabelType>;
+    using SRC = TransformHandle<std::vector<TS>, FloatType, LabelType>;
 
-    /*
-    template<typename FloatType, typename LabelType>
-    struct DerivativeTransformer {
-        using TS = TSeries<FloatType, LabelType>;
-        using TSP = TSPack<FloatType, LabelType>;
-        using TSPTr = TSPackTransformer<FloatType, LabelType>;
-        using ElemType = TS;
+    int degree;
 
-        [[nodiscard]] static TSPTr get(size_t source_index, const std::string& name){
-            return TSPTr {
-                    .name = name,
-                    .extra_json = R"({"derivative name": ")"+name+"\"}",
-                    .transfun = [source_index, name](const TSPack<FloatType, LabelType>& tsp){
-                        const auto& s = tsp.tseries_at(source_index);
-                        std::vector<FloatType> d(s.size());
-                        derivative(s.data(), s.size(), d.data());
-                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.tseries_at(source_index)));
-                        ElemType* ptr = std::any_cast<ElemType>(capsule.get());
-                        return TSPackResult{
-                                TSPackTR {
-                                        .name = name,
-                                        .capsule = capsule,
-                                        .transform = ptr
-                                }
-                        };
-                    }
-            };
+    explicit DerivativeTransformer(int degree):degree(degree){}
+
+    [[nodiscard]] Transform operator() (const SRC& src){
+      if((src.dataset->get_header()).get_ndim()!=1){
+        throw std::invalid_argument("Dataset is not univariate");
+      }
+      // --- Transform identification
+      auto name = "derivative " + std::to_string(degree);
+      auto parent = src.get_transform().get_name_components();
+      // --- Compute data
+      const std::vector<TS>& src_vec = src.get();
+      std::vector<TS> output;
+      output.reserve(src_vec.size());
+      for(const auto& ts: src_vec){
+        const size_t l = ts.length();
+        std::vector<FloatType> d(l);
+        if(degree==1){
+          derivative(ts.data(), l, d.data());
+        } else {
+          // Repeated application: require an extra buffer to hold previous transform.
+          std::vector<FloatType> input(ts.data(), ts.data()+l);
+          // Do until the penultimate, swapping roles of input and d
+          for (int i = 0; i<degree-1; ++i) {
+            derivative(input.data(), l, d.data());
+            swap(input, d);
+          }
+          // At the end of the for loop, the last computed derivative is in 'input'.
+          // Do the last round derivative, with the result ending up in d
+          derivative(input.data(), l, d.data());
         }
+        // Build the series using other as source of information (missing, labels, etc...)
+        output.template emplace_back(TS(std::move(d), ts));
+      }
+      // --- Create transform
+      Capsule capsule = tempo::make_capsule<std::vector<TS>>(std::move(output));
+      const void * ptr = tempo::capsule_ptr<std::vector<TS>>(capsule);
+      return Transform(std::move(name), std::move(parent), std::move(capsule), ptr);
+    }
+  };
 
-        [[nodiscard]] static TSPTr get_nth(size_t source_index, const std::string& name, int nth) {
-            if(nth<1){
-                throw std::invalid_argument("Derivative transform: called with invalid derivative rank");
-            }
-            return TSPTr{
-                    .name = name,
-                    .extra_json = R"({"derivative name": ")"+name+"\"}",
-                    .transfun = [nth, source_index, name](const TSPack<FloatType, LabelType> &tsp) {
-                        const auto& s = tsp.tseries_at(source_index);
-                        std::vector<FloatType> d(s.size());
-                        if(nth==1){
-                            derivative(s.data(), s.size(), d.data());
-                        } else {
-                            // Repeated application: require an extra buffer to hold previous transform.
-                            std::vector<FloatType> input(s.data(), s.data()+s.size());
-                            // Do until the penultimate, swapping roles of input and d
-                            for (int i = 0; i<nth-1; ++i) {
-                                derivative(input.data(), input.size(), d.data());
-                                swap(input, d);
-                            }
-                            // At the end of the for loop, the last computed derivative is in 'input'.
-                            // Do the last round derivative, with the result ending up in d
-                            derivative(input.data(), input.size(), d.data());
-                        }
-                        auto capsule = std::make_shared<std::any>(std::make_any<ElemType>(std::move(d), tsp.tseries_at(source_index)));
-                        ElemType* ptr = std::any_cast<ElemType>(capsule.get());
-                        return TSPackResult{
-                                TSPackTR{
-                                        .name = name,
-                                        .capsule = capsule,
-                                        .transform = ptr
-                                }
-                        };
-                    }
-            };
-        }
-
-
-        [[nodiscard]] inline static const ElemType& cast(void* ptr){
-            return *(static_cast<ElemType*>(ptr));
-        }
-    };*/
 
 } // End of namespace tempo::univariate

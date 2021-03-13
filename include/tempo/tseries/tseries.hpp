@@ -55,9 +55,14 @@ namespace tempo {
                 throw std::domain_error("Vector size is not a multiple of nb_dimensions");
             }
             length_ = vec.size() / nb_dimensions;
-            data_ = vec.data();
             c_ = make_capsule<std::vector<FloatType>>(std::move(vec));
+            const auto* ptr = capsule_ptr<std::vector<FloatType>>(c_);
+            data_ = ptr->data();
         }
+
+        /// Create a new TSeries owning its data, copying its information from "other".
+        TSeries(std::vector<FloatType> &&vec, const TSeries<FloatType, LabelType>& other)
+        :TSeries(std::move(vec), other.nb_dimensions_, other.has_missing_values_, other.opt_label_){}
 
 
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

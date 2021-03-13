@@ -20,8 +20,6 @@ namespace tempo::reader {
         // --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- ---
         // Fields:
         // --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- --- --- -- --- --- ---
-        // --- --- --- Other
-        std::string url;
 
         // --- --- --- Header
         std::optional<std::string> problem_name{};
@@ -68,10 +66,10 @@ namespace tempo::reader {
         [[nodiscard]] inline bool has_labels() const { return !labels.empty(); }
     };
 
-    /** Build DatasetInfo<std::string> from a TSData */
-    [[nodiscard]] static inline DatasetHeader<TSData::LabelType> make_DSHeader(const TSData& tsdata) {
+    /** Build DatasetHeader<Label> from a TSData */
+    [[nodiscard]] inline DatasetHeader<TSData::LabelType> make_DSHeader(const TSData& tsdata, const std::string& id) {
         return DatasetHeader<TSData::LabelType>(
-                tsdata.url,
+          id,
                 tsdata.series.size(),
                 tsdata.nb_dimensions,
                 tsdata.shortest_length,
@@ -81,11 +79,12 @@ namespace tempo::reader {
         );
     }
 
-    /** Build a Dataset<std::string, double> from a TSData.
+    /** Build a Dataset<Float, Label> from a TSData.
      *  Take ownership of the TSData content*/
-    [[nodiscard]] static inline Dataset<TSData::FloatType, TSData::LabelType>make_dataset(TSData&& tsdata){
-        auto header = make_DSHeader(tsdata);
-        return tempo::Dataset<TSData::FloatType, TSData::LabelType>(std::move(tsdata.series), header);
+    [[nodiscard]] inline std::shared_ptr<Dataset<TSData::FloatType, TSData::LabelType>>
+    make_dataset(TSData&& tsdata, const std::string& id){
+        auto header = make_DSHeader(tsdata, id);
+        return tempo::Dataset<TSData::FloatType, TSData::LabelType>::make(std::move(tsdata.series), header);
     }
 
 

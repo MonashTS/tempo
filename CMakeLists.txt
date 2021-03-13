@@ -65,6 +65,7 @@ set(TEMPO_SRC
         include/tempo/utils/capsule.hpp
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
+        include/tempo/utils/jsonvalue.hpp
     )
 
 add_library(tempo SHARED ${TEMPO_SRC})
