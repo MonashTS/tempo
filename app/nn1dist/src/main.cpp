@@ -128,7 +128,16 @@ int main(int argc, char** argv) {
 
     case DISTANCE::WDTW: { throw std::logic_error("not implemented"); }
 
-    case DISTANCE::ERP: { throw std::logic_error("not implemented"); }
+    case DISTANCE::ERP: {
+      auto param = config.distargs.erp;
+      size_t w = get_w(param, maxl);
+      distance = [&test_source, &train_source, w, gv=param.gv](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::erp(tsq, tsc, gv, w, bsf);
+      };
+      break;
+    }
 
     case DISTANCE::LCSS: { throw std::logic_error("not implemented"); }
 
