@@ -148,7 +148,16 @@ int main(int argc, char** argv) {
       break;
     }
 
-    case DISTANCE::LCSS: { throw std::logic_error("not implemented"); }
+    case DISTANCE::LCSS: {
+      auto param = config.distargs.lcss;
+      size_t w = get_w(param, maxl);
+      distance = [&test_source, &train_source, w, e=param.epsilon](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::lcss(tsq, tsc, e, w, bsf);
+      };
+      break;
+    }
 
     case DISTANCE::MSM: { throw std::logic_error("not implemented"); }
 
