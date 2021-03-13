@@ -138,6 +138,7 @@ int main(int argc, char** argv) {
 
     case DISTANCE::TWE: { throw std::logic_error("not implemented"); }
 
+    default: tempo::should_not_happen();
   }
 
   // --- NN1 classification
