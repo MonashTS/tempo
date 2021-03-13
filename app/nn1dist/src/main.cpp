@@ -178,7 +178,15 @@ int main(int argc, char** argv) {
       break;
     }
 
-    case DISTANCE::TWE: { throw std::logic_error("not implemented"); }
+    case DISTANCE::TWE: {
+      auto param = config.distargs.twe;
+      distance = [&test_source, &train_source, nu=param.nu, la=param.lambda](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::twe(tsq, tsc, nu, la, bsf);
+      };
+      break;
+    }
 
     default: tempo::should_not_happen();
   }
