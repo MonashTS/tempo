@@ -65,7 +65,19 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
 
 
         case LB_KEOGH_Kind::CASCADE2: {
-          break;
+          auto test_env = keogh_envelopes_transformer.transform_and_add(test, w);
+          return [df, test_env, train_env, test, train](size_t q, size_t c, FloatType bsf) -> FloatType {
+            double res;
+            const TS& tsq = test.get()[q];
+            const auto& candidate_env = train_env.get()[c];
+            res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
+            if (res<bsf) {
+              const TS& tsc = train.get()[c];
+              const auto& query_env = test_env.get()[q];
+              res = tu::lb_Keogh(tsc.data(), tsc.length(), query_env.up.data(), query_env.lo.data(), bsf);
+              if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            } else { return tempo::POSITIVE_INFINITY<double>; }
+          };
         }
 
         case LB_KEOGH_Kind::JOINED2: {
