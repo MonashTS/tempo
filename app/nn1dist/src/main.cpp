@@ -58,7 +58,7 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
             const TS& tsq = test.get()[q];
             const auto& candidate_env = train_env.get()[c];
             auto res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
-            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
@@ -69,11 +69,11 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
             const TS& tsq = test.get()[q];
             const auto& candidate_env = train_env.get()[c];
             res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
-            if (res<bsf) {
+            if (res<=bsf) {
               const TS& tsc = train.get()[c];
               const auto& query_env = test_env.get()[q];
               res = tu::lb_Keogh(tsc.data(), tsc.length(), query_env.up.data(), query_env.lo.data(), bsf);
-              if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+              if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
             } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
@@ -89,7 +89,7 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
               tsq.data(), tsq.length(), query_env.up.data(), query_env.lo.data(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(),
               bsf);
-            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
       } // End switch lb keogh kind
@@ -112,7 +112,7 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
             auto res = tu::lb_Enhanced(
               tsq.data(), tsq.length(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(), v, w, bsf);
-            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
@@ -126,7 +126,7 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
             auto res = tu::lb_Enhanced2j(
               tsq.data(), tsq.length(), query_env.up.data(), query_env.lo.data(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(), v, w, bsf);
-            if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
@@ -151,7 +151,7 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
           tsc.data(), tsc.length(),
           candidate_env.up.data(), candidate_env.lo.data(), candidate_env.lo_up.data(), candidate_env.up_lo.data(),
           w, bsf);
-        if (res<bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+        if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
       };
     }
 
