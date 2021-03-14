@@ -35,8 +35,8 @@ namespace pytempo {
         py::class_<pyTSeries>(m, "TSeries", py::buffer_protocol())
                 .def("length", &pyTSeries::length, "Length of the time series")
                 .def("ndim", &pyTSeries::nb_dimensions, "Number of 'dimensions' of the series (i.e. number of 'tracks')")
-                .def("has_missing", &pyTSeries::has_missing, "Has missing values?")
-                .def("label", &pyTSeries::label, "Get the label (a string)")
+                .def("has_missing", &pyTSeries::has_missing_values, "Has missing values?")
+                .def("label", &pyTSeries::get_label, "Get the label (a string)")
                 .def("__getitem__", [](const pyTSeries &s, std::pair<py::ssize_t, py::ssize_t> i) {
                     if (i.first >= (ssize_t)s.nb_dimensions()
                         || i.second >= (ssize_t)s.length()

@@ -65,6 +65,35 @@ namespace tempo {
         :TSeries(std::move(vec), other.nb_dimensions_, other.has_missing_values_, other.opt_label_){}
 
 
+      /** Constructor with a raw pointer.
+       *  The new instance relies on the raw pointer and does not directly manage the memory.
+       *  However, by providing a "capsule", TSeries can maintain a reference on the actual memory owner,
+       *  preventing collection while alive.
+       * @param data_ptr         Pointer to the data
+       * @param length           Length of the dimension (not the total size of the buffer!)
+       * @param nb_dimensions    Number of dimension. The size of the buffer should be nb_dimensions * length.
+       * @param has_missing      Is there any missing data?
+       * @param label            The label, optional.
+       * @param capsule          Allow to maintain a reference on the actual storage
+       */
+      TSeries(const FloatType *data_ptr, size_t length, size_t nb_dimensions, bool has_missing,
+        std::optional<LabelType> label, Capsule capsule) :
+        nb_dimensions_(nb_dimensions),
+        length_(length),
+        has_missing_values_(has_missing),
+        opt_label_(std::move(label)),
+        c_(std::move(capsule)),
+        data_(data_ptr){
+
+        if ((length == 0) ^ (data_ptr == nullptr)) {
+          throw std::domain_error("A length of 0 requires a null pointer, and vice versa");
+        }
+
+        if (nb_dimensions < 1) {
+          throw std::domain_error("nb_dimensions must be >= 1");
+        }
+      }
+
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
         [[nodiscard]] inline const FloatType *data() const { return data_; }

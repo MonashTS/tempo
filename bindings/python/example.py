@@ -5,8 +5,8 @@ import numpy as np
 from math import nan
 
 # Flags to (de)activate section of the example
-doPrintMod = False
-doTSeries = False
+doPrintMod = True
+doTSeries = True
 doUniDist = True
 doUniTransform = True
 
@@ -68,8 +68,8 @@ def funTSeries():
     print()
 
     print("Getting an array back from a TSeries")
-    print("'copy=False' saves a copy, but also prevents us from modifying the series through the obtained array")
-    print("TSeries uses the 'Buffer Protocol', so this applied to anything obtained this way")
+    print("'copy=False' prevents copying, but also prevents us from modifying the series through the resulting array")
+    print("TSeries uses the 'Buffer Protocol', and this applied to anything obtained this way")
     array1D_back = np.array(ts1, copy=False)
     try:
         array1D_back[0] = 7
@@ -102,7 +102,7 @@ def funTSeries():
     try:
         assert (array1D_origin == array1D_back).all()
     except AssertionError as err:
-        print("Assertion error")
+        print("Assertion error (origin != back)")
         print(err)
     print()
 
