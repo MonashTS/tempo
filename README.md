@@ -79,7 +79,7 @@ Ensure that the `wheel` packages is installed (e.g. with `pip install wheel`)
 ```bash
 pip install wheel                             # To install wheel
 python setup.py bdist_wheel                   # Build the package
-pip install ./dist/pytempo-[info].whl         # Path to wheel
+pip install ./dist/pytempo-[info].whl         # Path to wheel ( --force-reinstall to overwrite a previous installation)
 ```
 
 Distances must be called with numpy arrays.

@@ -103,4 +103,4 @@ void print_usage(const std::string &execname, std::ostream &out);
 CMDArgs read_args(int argc, char** argv);
 
 
-std::variant<std::string, tempo::Dataset<double, std::string>> read_data(std::ostream &log, fs::path& dataset_path);
+std::variant<std::string, std::shared_ptr<tempo::Dataset<double, std::string>>> read_data(std::ostream &log, fs::path& dataset_path);

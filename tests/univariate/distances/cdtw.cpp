@@ -144,7 +144,7 @@ TEST_CASE("CDTW Fixed length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh: must be a lower bound
-                    double vk = lb_Keogh(query.data(), query.size(), cup.data(), clo.data(), candidate.size(), w, bsf_lbk);
+                    double vk = lb_Keogh(query.data(), query.size(), cup.data(), clo.data(), bsf_lbk);
                     if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
                     if(vk<=bsf_lbk){
                         double v_lbk = cdtw(candidate, query, w, bsf_lbk);
@@ -332,7 +332,7 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     // Test lb keogh: must be a lower bound
-                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), candidate.size(), w, bsf_lbk);
+                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), bsf_lbk);
                     if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
                     if(vk<=bsf_lbk){
                         double v_lbk = cdtw(candidate, query, w, bsf_lbk);

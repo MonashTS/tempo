@@ -128,10 +128,12 @@ namespace tempo::reader {
 
     /** Attempt to convert a string into an double */
     inline std::optional<double> as_double(const std::string &str) {
-        errno = 0;
-        double d = strtod(str.c_str(), 0);
-        if (errno != 0) { return {}; }
-        else { return {d}; }
+      try {
+        double d = std::stod(str);
+        return {d};
+      } catch (...) {
+        return {};
+      }
     }
 
 } // End of namespace tempo::reader

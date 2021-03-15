@@ -6,7 +6,6 @@
 
 #include <catch.hpp>
 #include <tempo/tseries/tseries.hpp>
-#include <tempo/tseries/tspack.hpp>
 #include <tempo/tseries/dataset.hpp>
 #include <tempo/univariate/classifiers/nn1/nn1.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
@@ -152,6 +151,7 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
         test.emplace_back(std::move(s), 1, false, std::optional<int>());
     }
 
+    /*
     tempo::Dataset<double, int> train_ds{tempo::TSPack<double, int>::wrap(std::move(train))};
     REQUIRE(train_ds.size() == nbitems);
 
@@ -173,6 +173,7 @@ TEST_CASE("NN1 CDTW Fixed length with Store and Dataset") {
 
     //std::cout << train_ds.size() << std::endl;
     //std::cout << train_range.size() << std::endl;
+     */
 
     /*
     tempo::StoreInfo<int> sinfo{1, fixed, fixed, false, {1}};

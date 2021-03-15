@@ -146,7 +146,7 @@ namespace tempo::univariate {
                 }
             }
         }
-        return lb;
+        return (lb<=ub)?lb:tempo::POSITIVE_INFINITY<double>;
     }
 
 
@@ -170,68 +170,55 @@ namespace tempo::univariate {
         );
     }
 
-    /** Dataset/TSPack transformer for LB Webb.
-     *  Input: TSeries<FloatType, LabelType>
-     *  Output: A tuple of vector<FloatType> containing the envelopes (Upper, Lower, Lower of Upper, Upper of Lower).
-     *  Use the provided static functions for easier access.
-     */
-    template<typename FloatType, typename LabelType>
-    struct WebbEnvelopesTransformer {
-        static constexpr auto name = "webb_envelopes";
-        using Vec = std::vector<FloatType>;
-        using ElemType = std::tuple<Vec,Vec, Vec, Vec>;
-        using TS = TSeries<FloatType, LabelType>;
-        using TSP = TSPack<FloatType, LabelType>;
-        using TSPTr = TSPackTransformer<FloatType, LabelType>;
 
-        [[nodiscard]] static TSPTr get(size_t w, size_t source_index, const std::string& pfx){
-            auto n = pfx + "_" + name;
-            return TSPTr {
-                    .name = n,
-                    .extra_json = "{\"window\":" + std::to_string(w) + "}",
-                    .transfun = [source_index, n, w](const TSPack<FloatType, LabelType>& tsp){
-                        const auto& s = *(static_cast<TS*>(tsp.transforms[source_index]));
-                        const auto l = s.size();
-                        std::vector<FloatType> upper(s.size());
-                        std::vector<FloatType> lower(s.size());
-                        std::vector<FloatType> lower_upper(s.size());
-                        std::vector<FloatType> upper_lower(s.size());
-                        get_keogh_envelopes(s.data(), l, upper.data(), lower.data(), w);
-                        get_keogh_lo_envelope(upper.data(), l, lower_upper.data(), w);
-                        get_keogh_up_envelope(lower.data(), l, upper_lower.data(), w);
-                        auto capsule = make_capsule<ElemType>(std::move(upper), std::move(lower),
-                                                              std::move(lower_upper), std::move(upper_lower));
-                        auto* ptr = capsule_ptr<ElemType>(capsule);
-                        return TSPackResult {
-                                TSPackTR {
-                                        .name = n,
-                                        .capsule = capsule,
-                                        .transform = ptr
-                                }
-                        };
-                    }
-            };
-        }
 
-        [[nodiscard]] inline static const ElemType& cast(void* ptr){
-            return *(static_cast<ElemType*>(ptr));
-        }
+    ///Transformer computing LB-Webb's envelopes (Upper, Lower, Lower of Upper, Upper of lower).
+  template<typename FloatType, typename LabelType>
+  struct WebbEnvelopesTransformer {
+    using TS = TSeries<FloatType, LabelType>;
+    using SRC = TransformHandle<std::vector<TS>, FloatType, LabelType>;
 
-        [[nodiscard]] inline static const Vec& up(void* ptr){
-            return std::get<0>(cast(ptr));
-        }
-
-        [[nodiscard]] inline static const Vec& lo(void* ptr){
-            return std::get<1>(cast(ptr));
-        }
-
-        [[nodiscard]] inline static const Vec& lo_up(void* ptr){
-            return std::get<2>(cast(ptr));
-        }
-
-        [[nodiscard]] inline static const Vec& up_lo(void* ptr){
-            return std::get<3>(cast(ptr));
-        }
+    struct Env {
+      std::vector<FloatType> lo;
+      std::vector<FloatType> up;
+      std::vector<FloatType> lo_up;
+      std::vector<FloatType> up_lo;
     };
+
+    /// Create the transform. Do not add to the src's dataset.
+    [[nodiscard]] Transform transform(const SRC& src, size_t w) {
+      if ((src.dataset->get_header()).get_ndim()!=1) { throw std::invalid_argument("Dataset is not univariate"); }
+      // --- Transform identification
+      auto name = "webb_envelopes("+std::to_string(w)+")";
+      auto parent = src.get_transform().get_name_components();
+      // --- Compute data
+      const std::vector<TS>& src_vec = src.get();
+      std::vector<Env> output;
+      output.reserve(src_vec.size());
+      for (const auto& ts: src_vec) {
+        const size_t l = ts.length();
+        Env env;
+        env.up.resize(l);
+        env.lo.resize(l);
+        env.lo_up.resize(l);
+        env.up_lo.resize(l);
+        get_keogh_envelopes<FloatType>(ts.data(), l, env.up.data(), env.lo.data(), w);
+        get_keogh_lo_envelope(env.up.data(), l, env.lo_up.data(), w);
+        get_keogh_up_envelope(env.lo.data(), l, env.up_lo.data(), w);
+        output.template emplace_back(std::move(env));
+      }
+      // --- Create transform
+      Capsule capsule = tempo::make_capsule<std::vector<Env>>(std::move(output));
+      const void* ptr = tempo::capsule_ptr<std::vector<Env>>(capsule);
+      return Transform(std::move(name), std::move(parent), std::move(capsule), ptr);
+    }
+
+    /// Create the transform and add it to the src's dataset. Return the corresponding handle.
+    [[nodiscard]] TransformHandle<std::vector<Env>, FloatType, LabelType> transform_and_add(SRC& src, size_t w){
+      auto tr = transform(src, w);
+      return src.dataset->template add_transform<std::vector<Env>>(std::move(tr));
+    }
+  };
+
 
 } // End of namespace tempo::univariate

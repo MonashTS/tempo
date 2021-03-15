@@ -34,9 +34,10 @@ set(TEMPO_SRC
         include/tempo/reader/ts/ts.hpp
         src/tempo/reader/ts/ts.cpp
         # --- --- --- TSeries
-        include/tempo/tseries/tseries.hpp
-        include/tempo/tseries/tspack.hpp
         include/tempo/tseries/dataset.hpp
+        include/tempo/tseries/indexSet.hpp
+        include/tempo/tseries/transform.hpp
+        include/tempo/tseries/tseries.hpp
         # --- --- --- Univariate
         # --- Classifiers
         include/tempo/univariate/classifiers/nn1/nn1.hpp
@@ -64,12 +65,17 @@ set(TEMPO_SRC
         include/tempo/utils/capsule.hpp
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
-        )
+        include/tempo/utils/jsonvalue.hpp
+    )
 
 add_library(tempo SHARED ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})
 target_include_directories(tempo PUBLIC "include")
 target_include_directories(tempo PRIVATE "src")
+
+add_executable(test_tempo ${TEMPO_SRC})
+target_include_directories(test_tempo PUBLIC "include")
+target_include_directories(test_tempo PRIVATE "src")
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Adding the tests

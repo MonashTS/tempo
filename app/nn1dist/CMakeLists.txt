@@ -21,7 +21,7 @@ add_subdirectory(../../ cpp EXCLUDE_FROM_ALL)
 add_executable(nn1dist
         src/main.cpp
         src/any.cpp src/any.hpp
-        )
+        src/parsarg.hpp)
 
 target_link_libraries(nn1dist PRIVATE tempo)
 target_include_directories(nn1dist PRIVATE src)

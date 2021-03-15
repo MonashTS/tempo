@@ -4,7 +4,6 @@
 #include <tempo/utils/uncopyable.hpp>
 #include <tempo/tseries/tseries.hpp>
 #include <tempo/tseries/dataset.hpp>
-#include <tempo/tseries/tspack.hpp>
 
 namespace tempo::reader {
 
@@ -67,24 +66,25 @@ namespace tempo::reader {
         [[nodiscard]] inline bool has_labels() const { return !labels.empty(); }
     };
 
-    /** Build DatasetInfo<std::string> from a TSData */
-    [[nodiscard]] static inline DatasetInfo<TSData::LabelType> make_info(const TSData& tsdata) {
-        tempo::DatasetInfo<std::string> di;
-        di.nb_dimensions = tsdata.nb_dimensions;
-        di.min_length = tsdata.shortest_length;
-        di.max_length = tsdata.longest_length;
-        di.has_missing =  tsdata.has_missings();
-        di.size = tsdata.series.size();
-        di.labels = tsdata.labels;
-        return di;
+    /** Build DatasetHeader<Label> from a TSData */
+    [[nodiscard]] inline DatasetHeader<TSData::LabelType> make_DSHeader(const TSData& tsdata, const std::string& id) {
+        return DatasetHeader<TSData::LabelType>(
+          id,
+                tsdata.series.size(),
+                tsdata.nb_dimensions,
+                tsdata.shortest_length,
+                tsdata.longest_length,
+                tsdata.has_missings(),
+                tsdata.labels
+        );
     }
 
-    /** Build a Dataset<std::string, double> from a TSData.
+    /** Build a Dataset<Float, Label> from a TSData.
      *  Take ownership of the TSData content*/
-    [[nodiscard]] static inline Dataset<TSData::FloatType, TSData::LabelType>make_dataset(TSData&& tsdata){
-        using TSP = TSPack<TSData::FloatType , TSData::LabelType>;
-        auto info = make_info(tsdata);
-        return tempo::Dataset(TSP::wrap(std::move(tsdata.series)), info);
+    [[nodiscard]] inline std::shared_ptr<Dataset<TSData::FloatType, TSData::LabelType>>
+    make_dataset(TSData&& tsdata, const std::string& id){
+        auto header = make_DSHeader(tsdata, id);
+        return tempo::Dataset<TSData::FloatType, TSData::LabelType>::make(std::move(tsdata.series), header);
     }
 
 
