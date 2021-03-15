@@ -146,7 +146,7 @@ namespace tempo::univariate {
                 }
             }
         }
-        return lb;
+        return (lb<=ub)?lb:tempo::POSITIVE_INFINITY<double>;
     }
 
 

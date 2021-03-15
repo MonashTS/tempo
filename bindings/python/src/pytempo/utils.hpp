@@ -44,5 +44,12 @@ namespace pytempo {
         check_dimension(series1, 1);
     }
 
+    /// Check if two numpy arrays have the same length
+    inline void check_same_length(nparray a1, nparray a2) {
+      if (a1.size() != a2.size()) {
+        throw std::invalid_argument("Length are not matching");
+      }
+    }
+
 
 }
