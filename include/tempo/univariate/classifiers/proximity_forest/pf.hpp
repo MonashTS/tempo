@@ -82,7 +82,7 @@ namespace tempo::univariate::pf {
       for (auto n = 0; n<nbcandidates; ++n) {
         // Get the set of series exemplars, one per class
         auto exemplars = pick_one_by_class(bcm, prng);
-        auto splitter = sg.get_splitter(is, ds, exemplars, prng);
+        auto splitter = sg.get_splitter(ds, is, exemplars, prng);
         Split split;
         // Compute the split
         for (const auto& query_idx: is) {
@@ -178,6 +178,41 @@ namespace tempo::univariate::pf {
     template<typename PRNG>
     Classifier<PRNG> get_classifier(PRNG& prng) { return Classifier<PRNG>(*this, prng); }
 
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- ---
+    // Info on the tree
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- ---
+
+    /** Recursively compute the depth of the tree */
+    [[nodiscard]] size_t depth() const {
+      switch (node.index()) {
+        case 0: return 1; // Leaf
+        case 1: { // Children
+          const auto&[_, sub_nodes] = std::get<1>(node);
+          size_t max = 0;
+          for (const auto&[k, v]: sub_nodes) {
+            size_t d = v->depth();
+            if (d > max) { max = d; }
+          }
+          return max + 1;
+        }
+        default: throw std::runtime_error("Should not happen");
+      }
+    }
+
+    /** Recursively compute the number of nodes */
+    [[nodiscard]] size_t node_number() const {
+      switch (node.index()) {
+        case 0: return 1; // Leaf
+        case 1: { // Children
+          const auto&[_, sub_nodes] = std::get<1>(node);
+          size_t nb = 1; // include this
+          for (const auto&[k, v]: sub_nodes) { nb += v->node_number(); }
+          return nb;
+        }
+        default: throw std::runtime_error("Should not happen");
+      }
+    }
 
   };
 
