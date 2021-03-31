@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../src/tempo/reader/readingtools.hpp"
+
 #include <functional>
 #include <optional>
 #include <stdexcept>
