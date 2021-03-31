@@ -10,6 +10,7 @@
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
 #include <tempo/univariate/distances/elementwise/elementwise.hpp>
 #include <tempo/univariate/distances/erp/erp.hpp>
+#include <tempo/univariate/distances/lcss/lcss.hpp>
 
 #include <functional>
 
@@ -163,7 +164,6 @@ namespace tempo::univariate::pf {
   // --- --- --- ERP
   // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
-
   /** Create a NN1-ERP classifier with a window in [0, (l+1)/4] and a penalty in [stddev/5, stddev]
    * @tparam PRNG Type of the pseudo random number generator
    */
@@ -175,7 +175,6 @@ namespace tempo::univariate::pf {
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
       const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
-
       // Compute the size of the window - 0 to max l+1/4
       const size_t top = (ds.get_header().get_maxl()+1)/4;
       const auto w = std::uniform_int_distribution<size_t>(0, top)(prng);

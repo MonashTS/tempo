@@ -89,12 +89,14 @@ int main(int argc, char** argv) {
   IndexSet exemplars_is(exemplars);
   std::cout << "Size = " << exemplars_is.size() << std::endl;
 
-  tempo::univariate::pf::SG_Eucl<FloatType, LabelType, PRNG> sg;
+  tempo::univariate::pf::SG_ERP<FloatType, LabelType, PRNG> sg;
 
   // --- --- --- Test a tree
   std::cout << "Starting training" << std::endl;
   auto ptree = tempo::univariate::pf::PTree<FloatType, LabelType>::make(*train, 5, sg, prng);
-  std::cout << "training done!" << std::endl;
+  std::cout << "Training done!" << std::endl;
+  std::cout << "  Tree depth: " << ptree->depth() << std::endl;
+  std::cout << "  Nb node:    " << ptree->node_number() << std::endl;
   auto classifier = ptree->get_classifier(prng);
   size_t nbcorrect{0};
   for(const auto& idx:test_is){
