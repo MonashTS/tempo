@@ -39,9 +39,14 @@ set(TEMPO_SRC
         include/tempo/tseries/transform.hpp
         include/tempo/tseries/tseries.hpp
         # --- --- --- Univariate
-        # --- Classifiers
+        # --- --- --- --- Classifiers
+        # --- --- --- --- --- NN1
         include/tempo/univariate/classifiers/nn1/nn1.hpp
-        # --- Distances
+        # --- --- --- --- --- PF
+        include/tempo/univariate/classifiers/proximity_forest/pf.hpp
+        include/tempo/univariate/classifiers/proximity_forest/splitters/splitters.hpp
+        include/tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp
+        # --- --- --- --- Distances
         include/tempo/univariate/distances/distances.hpp
         include/tempo/univariate/distances/dtw/lowerbound/envelopes.hpp
         include/tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp
@@ -54,7 +59,7 @@ set(TEMPO_SRC
         include/tempo/univariate/distances/erp/erp.hpp
         include/tempo/univariate/distances/lcss/lcss.hpp
         include/tempo/univariate/distances/msm/msm.hpp
-        # --- Transforms
+        # --- --- --- --- Transforms
         include/tempo/univariate/transforms/derivative.hpp
         # --- --- --- Utils
         include/tempo/utils/utils/rand.hpp
@@ -66,7 +71,7 @@ set(TEMPO_SRC
         include/tempo/utils/uncopyable.hpp
         include/tempo/utils/version.hpp
         include/tempo/utils/jsonvalue.hpp
-    )
+        )
 
 add_library(tempo SHARED ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})

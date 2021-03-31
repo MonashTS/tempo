@@ -1,16 +1,22 @@
 #pragma once
 
 #include <tempo/utils/utils.hpp>
+#include <tempo/tseries/dataset.hpp>
 
 #include <variant>
 #include <vector>
+#include <unordered_map>
 
 namespace tempo {
 
+  /** Type gathering indexes by class */
+  template<typename LabelType>
+  using ByClassMap = std::unordered_map<LabelType, std::vector<size_t>>;
+
   /** Manage a set of indexes.
    * Used to create sub-dataset.
-   * A series' index of a dataset's original transform is stable,
-   * i.e. can be use as an identifier in the context of the dataset.
+   * Index in dataset are assumed to be "stable",
+   * i.e. a series's index from the original transform also is its identifier.
    **/
   struct IndexSet {
   private:
@@ -50,6 +56,7 @@ namespace tempo {
     IndexSet(size_t low, size_t high)
       :low(low), high(high), subset{Range{low, high}} { }
 
+
     /// Set of index based on a collection. Collection must be ordered!
     explicit IndexSet(std::vector<size_t> collection) {
       Subset s = std::make_shared<std::vector<size_t>>(std::move(collection));
@@ -59,6 +66,27 @@ namespace tempo {
         subset = {s};
       }
     }
+
+    /// Create an IndexSet over a Dataset
+    template<typename FloatType, typename LabelType>
+    explicit IndexSet(const Dataset<FloatType, LabelType>& ds)
+      :IndexSet(0, ds.size()) { }
+
+
+    /// Create an IndexSet over a ByClassMap
+    template<typename LabelType>
+    explicit IndexSet(const ByClassMap<LabelType>& bcm){
+      using std::begin, std::end;
+      std::shared_ptr<std::vector<size_t>> idx = std::make_shared<std::vector<size_t>>();
+      for(const auto& [c,v]: bcm){  (*idx).insert(end(*idx), begin(v), end(v)); }
+      std::sort(idx->begin(), idx->end());
+      if (!idx->empty()) {
+        low = idx->front();
+        high = idx->back();
+        subset = {std::move(idx)};
+      }
+    }
+
 
     /** New dataset made out of a subrange [0<=start <= end<=other.size()[ of another one
      * @param other     Other dataset
@@ -175,7 +203,7 @@ namespace tempo {
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Accesses
 
-    /** index into the indexSet
+    /** index into the indexSet, returning a "real index" usable in a dataset.
      * @param index  [0, size[
      * @return [low, high[
      */
@@ -342,5 +370,62 @@ namespace tempo {
       return It(it_index, this);
     }
   };
+
+
+
+
+  /** Obtain a "by class" structure given an IndexSet and a Dataset.
+   *  Throw an exception if series don't have a class label.*/
+  template<typename FloatType, typename LabelType>
+  [[nodiscard]] ByClassMap<LabelType> get_by_class(const Dataset<FloatType, LabelType>& ds, const IndexSet& is) {
+    ByClassMap<LabelType> result;
+    auto it = is.begin();
+    auto end = is.end();
+    while (it!=end) {
+      const auto idx = *it;
+      const auto& label = ds[idx].get_label().value();
+      result[label].push_back(idx); // Note: default construction of the vector of first access
+      ++it;
+    }
+    return std::move(result);
+  }
+
+  /** Given a by class mapping, pick an exemplar by class */
+  template<typename PRNG, typename LabelType>
+  ByClassMap<LabelType> pick_one_by_class(const ByClassMap<LabelType>& bcm, PRNG& prng) {
+    ByClassMap<LabelType> result;
+    for (const auto&[c, v]: bcm) {
+      assert(v.size()>0);
+      std::uniform_int_distribution<size_t> dist(0, v.size()-1);
+      result[c].push_back(v[dist(prng)]);
+    }
+    return result;
+  }
+
+  /** Gini impurity of a "by class" map */
+  template<typename LabelType>
+  [[nodiscard]] inline double gini_impurity(const ByClassMap<LabelType>& by_classes) {
+    assert(!by_classes.empty());
+    // Ensure that we never encounter a "floating point near 0" issue.
+    if (by_classes.size()==1) { return 0; }
+    else {
+      double total_size = 0;
+      for (const auto&[k, v]: by_classes) { total_size += v.size(); }
+      double sum{0};
+      for (const auto&[cl, val]: by_classes) { double p = val.size()/total_size; sum += p*p; }
+      return 1-sum;
+    }
+  }
+
+  /** Compute the stddev of a selection of a dataset, over a transform that is serie-like */
+  template<typename FloatType, typename LabelType>
+  double stddev(
+    const IndexSet& is,
+    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t) {
+    stats::StddevWelford s;
+    for (const auto& ts: t.get()) { for (size_t i{0}; i<ts.length(); ++i) { s.update(ts(0, i)); }}
+    return s.get_stddev_p();
+  }
+
 
 } // End of namespace tempo
