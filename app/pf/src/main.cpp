@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
   IndexSet exemplars_is(exemplars);
   std::cout << "Size = " << exemplars_is.size() << std::endl;
 
-  tempo::univariate::pf::SG_ERP<FloatType, LabelType, PRNG> sg;
+  tempo::univariate::pf::SG_MSM<FloatType, LabelType, PRNG> sg;
 
   // --- --- --- Test a tree
   std::cout << "Starting training" << std::endl;
