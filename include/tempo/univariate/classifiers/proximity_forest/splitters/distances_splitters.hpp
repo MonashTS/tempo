@@ -12,6 +12,7 @@
 #include <tempo/univariate/distances/erp/erp.hpp>
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
+#include <tempo/univariate/distances/twe/twe.hpp>
 
 #include <functional>
 
@@ -239,14 +240,21 @@ namespace tempo::univariate::pf {
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
     /** MSM cost parameters */
-    static constexpr std::array<FloatType, 100> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625, 0.04, 0.04375,
-                                                  0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375, 0.0775, 0.08125,
-                                                  0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244, 0.28, 0.316, 0.352,
-                                                  0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712, 0.748, 0.784,
-                                                  0.82, 0.856, 0.892, 0.928, 0.964, 1, 1.36, 1.72, 2.08, 2.44, 2.8, 3.16, 3.52, 3.88,
-                                                  4.24, 4.6, 4.96, 5.32, 5.68, 6.04, 6.4, 6.76, 7.12, 7.48, 7.84, 8.2, 8.56, 8.92, 9.28,
-                                                  9.64, 10, 13.6, 17.2, 20.8, 24.4, 28, 31.6, 35.2, 38.8, 42.4, 46, 49.6, 53.2, 56.8,
-                                                  60.4, 64, 67.6, 71.2, 74.8, 78.4, 82, 85.6, 89.2, 92.8, 96.4, 100};
+    static constexpr std::array<FloatType, 100> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
+                                                     0.04, 0.04375,
+                                                     0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375,
+                                                     0.0775, 0.08125,
+                                                     0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244,
+                                                     0.28, 0.316, 0.352,
+                                                     0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712,
+                                                     0.748, 0.784,
+                                                     0.82, 0.856, 0.892, 0.928, 0.964, 1, 1.36, 1.72, 2.08, 2.44, 2.8,
+                                                     3.16, 3.52, 3.88,
+                                                     4.24, 4.6, 4.96, 5.32, 5.68, 6.04, 6.4, 6.76, 7.12, 7.48, 7.84,
+                                                     8.2, 8.56, 8.92, 9.28,
+                                                     9.64, 10, 13.6, 17.2, 20.8, 24.4, 28, 31.6, 35.2, 38.8, 42.4, 46,
+                                                     49.6, 53.2, 56.8,
+                                                     60.4, 64, 67.6, 71.2, 74.8, 78.4, 82, 85.6, 89.2, 92.8, 96.4, 100};
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -258,6 +266,44 @@ namespace tempo::univariate::pf {
       const auto& th = ds.get_original_handle();
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_msm<FloatType, LabelType>(c));
+      // Embed in a unique ptr
+      return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
+    }
+  };
+
+
+
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  // --- --- --- TWE
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+  /** Create a NN1-TWE Classifier with random parameters for lambda (penalties) et nu (stiffness)
+   * @tparam PRNG Type of the pseudo random number generator
+   */
+  template<typename FloatType, typename LabelType, typename PRNG>
+  struct SG_TWE : public SplitterGenerator<FloatType, LabelType, PRNG> {
+    using DS = Dataset<FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+
+    /** TWE nu parameters */
+    static constexpr std::array<FloatType, 10> nus{0.00001, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1};
+
+    /** TWE lambda parameters */
+    static constexpr std::array<FloatType, 10> lambdas{0, 0.011111111, 0.022222222, 0.033333333, 0.044444444,
+                                                       0.055555556, 0.066666667,
+                                                       0.077777778, 0.088888889, 0.1};
+
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+      // Get a random lambda and nu
+      auto distribution = std::uniform_int_distribution<std::size_t>(0, 9);
+      const FloatType n = nus[distribution(prng)];
+      const FloatType l = lambdas[distribution(prng)];
+      // Get the handler
+      const auto& th = ds.get_original_handle();
+      // Create the splitter
+      auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_twe<FloatType, LabelType>(n, l));
       // Embed in a unique ptr
       return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
     }
