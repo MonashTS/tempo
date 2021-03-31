@@ -27,9 +27,11 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SplitterGenerator {
     using DS = Dataset<FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-    virtual std::unique_ptr<Splitter<FloatType, LabelType>>
-    get_splitter(const DS& ds, const ByClassMap<LabelType>& exemplars, PRNG& prng) = 0;
+    virtual Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) = 0;
 
     virtual ~SplitterGenerator() = default;
   };

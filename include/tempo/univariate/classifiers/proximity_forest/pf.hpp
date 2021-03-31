@@ -82,7 +82,7 @@ namespace tempo::univariate::pf {
       for (auto n = 0; n<nbcandidates; ++n) {
         // Get the set of series exemplars, one per class
         auto exemplars = pick_one_by_class(bcm, prng);
-        auto splitter = sg.get_splitter(ds, exemplars, prng);
+        auto splitter = sg.get_splitter(is, ds, exemplars, prng);
         Split split;
         // Compute the split
         for (const auto& query_idx: is) {

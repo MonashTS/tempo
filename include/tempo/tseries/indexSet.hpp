@@ -419,7 +419,7 @@ namespace tempo {
 
   /** Compute the stddev of a selection of a dataset, over a transform that is serie-like */
   template<typename FloatType, typename LabelType>
-  double stddev(
+  FloatType stddev(
     const IndexSet& is,
     const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t) {
     stats::StddevWelford s;
