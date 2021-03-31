@@ -17,6 +17,8 @@
 #include <tempo/univariate/distances/twe/twe.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
 
+#include <tempo/tseries/indexSet.hpp>
+
 #include "any.hpp"
 
 // --- --- --- Namespaces
@@ -319,6 +321,12 @@ int main(int argc, char** argv) {
       break;
     }
   }
+
+  tempo::IndexSet itrainset(0, train_source.get().size());
+  cout << "Train set stddev: " << tempo::stddev(itrainset, train_source) << endl;
+
+  tempo::IndexSet itestset(0, test_source.get().size());
+  cout << "Test set stddev: " << tempo::stddev(itestset, test_source) << endl;
 
 
   // --- Get the distance
