@@ -9,6 +9,7 @@
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
 #include <tempo/univariate/distances/elementwise/elementwise.hpp>
+#include <tempo/univariate/distances/erp/erp.hpp>
 
 #include <functional>
 
@@ -74,7 +75,9 @@ namespace tempo::univariate::pf {
     using DS = Dataset<FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-    Splitter_ptr get_splitter(const DS& ds, const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
       // Get the handler
       const auto& th = ds.get_original_handle();
       // Create the splitter
@@ -93,8 +96,10 @@ namespace tempo::univariate::pf {
     using DS = Dataset<FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-    Splitter_ptr get_splitter(const DS& ds, const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
-      // Compute the size of the window - 0 to
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+      // Compute the size of the window - 0 to max l+1/4
       const size_t top = (ds.get_header().get_maxl()+1)/4;
       const auto w = std::uniform_int_distribution<size_t>(0, top)(prng);
       // Get the handler
@@ -114,7 +119,9 @@ namespace tempo::univariate::pf {
     using DS = Dataset<FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-    Splitter_ptr get_splitter(const DS& ds, const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
       // Compute the weight vector
       const FloatType g = std::uniform_real_distribution<FloatType>(0, 1)(prng);
       auto weights = std::make_shared<std::vector<FloatType>>(generate_weights(g, ds.get_header().get_maxl()));
@@ -140,7 +147,9 @@ namespace tempo::univariate::pf {
     using DS = Dataset<FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-    Splitter_ptr get_splitter(const DS& ds, const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
       // Get the handler
       const auto& th = ds.get_original_handle();
       // Create the splitter
@@ -148,6 +157,39 @@ namespace tempo::univariate::pf {
       // Embed in a unique ptr
       return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
     }
+  };
+
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  // --- --- --- ERP
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+
+  /** Create a NN1-ERP classifier with a window in [0, (l+1)/4] and a penalty in [stddev/5, stddev]
+   * @tparam PRNG Type of the pseudo random number generator
+   */
+  template<typename FloatType, typename LabelType, typename PRNG>
+  struct SG_ERP : public SplitterGenerator<FloatType, LabelType, PRNG> {
+    using DS = Dataset<FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+
+      // Compute the size of the window - 0 to max l+1/4
+      const size_t top = (ds.get_header().get_maxl()+1)/4;
+      const auto w = std::uniform_int_distribution<size_t>(0, top)(prng);
+      // Compute the penalty
+      auto stddev_ = stddev(is, ds.get_original_handle());
+      const double gValue = std::uniform_real_distribution<double>(0.2*stddev_, stddev_)(prng);
+      // Get the handler
+      const auto& th = ds.get_original_handle();
+      // Create the splitter
+      auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_erp<FloatType, LabelType>(gValue, w));
+      // Embed in a unique ptr
+      return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
+    }
+
   };
 
 
