@@ -38,8 +38,31 @@ namespace tempo::univariate::pf {
 
 
   // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-  // Splitter
+  // Splitters chooser
   // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  template<typename FloatType, typename LabelType, typename PRNG>
+  struct SplitterChooser:public SplitterGenerator<FloatType, LabelType, PRNG> {
+
+    using DS = Dataset<FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using SplitterGen_ptr = std::unique_ptr<SplitterGenerator<FloatType, LabelType, PRNG>>;
+
+    std::vector<SplitterGen_ptr> splitter_generators;
+
+    SplitterChooser(std::vector<SplitterGen_ptr>&& splitter_generators)
+    : splitter_generators{std::forward<std::vector<SplitterGen_ptr>>(splitter_generators)}
+    { }
+
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+      const auto sidx = std::uniform_int_distribution<size_t>(0, splitter_generators.size()-1)(prng);
+      return splitter_generators[sidx]->get_splitter(ds, is, exemplars, prng);
+    }
+
+  };
+
+
 
 
 } // end of namespace tempo::univariate::pf
