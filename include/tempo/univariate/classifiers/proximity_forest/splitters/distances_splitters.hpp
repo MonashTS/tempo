@@ -62,7 +62,7 @@ namespace tempo::univariate::pf {
 
       for (const auto&[ex_label, ex_index]: exemplars) {
         // Skip same label
-        if(ex_label == query_label){continue;}
+        if (ex_label==query_label) { continue; }
         // NN1 body
         const TS& candidate = (*train_set)[ex_index];
         auto dist = distance(candidate, query, bsf);
@@ -81,28 +81,29 @@ namespace tempo::univariate::pf {
     }
 
     /*
-    std::vector<LabelType> classify_train(const DS& ds, size_t index) {
-      const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
-      double bsf = POSITIVE_INFINITY<double>;
-      std::vector<LabelType> labels{};
-      for (const auto&[ex_label, ex_index]: exemplars) {
-        const TS& candidate = (*train_set)[ex_index];
-        auto dist = distance(candidate, query, bsf);
-        if (dist<bsf) {
-          labels.clear();
-          labels.emplace_back(candidate.get_label().value());
-          bsf = dist;
-        } else if (bsf==dist) { // Manage ties
-          const auto& l = candidate.get_label().value();
-          if (std::none_of(labels.begin(), labels.end(), [l](const auto& v) { return v==l; })) {
-            labels.emplace_back(l);
+      std::vector<LabelType> classify_train(const DS& ds, size_t index) {
+        const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
+        double bsf = POSITIVE_INFINITY<double>;
+        std::vector<LabelType> labels{};
+        for (const auto&[ex_label, ex_index]: exemplars) {
+          const TS& candidate = (*train_set)[ex_index];
+          auto dist = distance(candidate, query, bsf);
+          if (dist<bsf) {
+            labels.clear();
+            labels.emplace_back(candidate.get_label().value());
+            bsf = dist;
+          } else if (bsf==dist) { // Manage ties
+            const auto& l = candidate.get_label().value();
+            if (std::none_of(labels.begin(), labels.end(), [l](const auto& v) { return v==l; })) {
+              labels.emplace_back(l);
+            }
           }
         }
+        return labels;
       }
-      return labels;
-    }*/
+      */
 
-    std::vector<LabelType> classify_test(const DS& ds, size_t index){
+    std::vector<LabelType> classify_test(const DS& ds, size_t index) {
       const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
       double bsf = POSITIVE_INFINITY<double>;
       std::vector<LabelType> labels{};
