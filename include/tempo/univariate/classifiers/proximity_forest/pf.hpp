@@ -214,6 +214,20 @@ namespace tempo::univariate::pf {
       }
     }
 
+    /** Number of leaves */
+    [[nodiscard]] size_t leaf_number() const {
+      switch (node.index()) {
+        case 0: return 1; // Leaf
+        case 1: { // Children
+          const auto&[_, sub_nodes] = std::get<1>(node);
+          size_t nb = 0; // Exclude this
+          for (const auto&[k, v]: sub_nodes) { nb += v->leaf_number(); }
+          return nb;
+        }
+        default: throw std::runtime_error("Should not happen");
+      }
+    }
+
   };
 
 

@@ -93,10 +93,15 @@ int main(int argc, char** argv) {
 
   // --- --- --- Test a tree
   std::cout << "Starting training" << std::endl;
+  auto start = tempo::timing::now();
   auto ptree = tempo::univariate::pf::PTree<FloatType, LabelType>::make(*train, 5, sg, prng);
-  std::cout << "Training done!" << std::endl;
+  auto stop = tempo::timing::now();
+  std::cout << "Training done in" << std::endl;
+  tempo::timing::printDuration(std::cout, stop-start);
+  std::cout << std::endl;
   std::cout << "  Tree depth: " << ptree->depth() << std::endl;
   std::cout << "  Nb node:    " << ptree->node_number() << std::endl;
+  std::cout << "  Nb leaf:    " << ptree->leaf_number() << std::endl;
   auto classifier = ptree->get_classifier(prng);
   size_t nbcorrect{0};
   for(const auto& idx:test_is){
