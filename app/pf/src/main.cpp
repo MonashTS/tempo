@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
 
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
+  /*
   // --- --- --- Test a tree
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
@@ -137,6 +138,30 @@ int main(int argc, char** argv) {
   size_t nbcorrect{0};
   for (const auto& idx:test_is) {
     auto res = tempo::rand::pick_one(classifier.classify(*test, idx), prng);
+    if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
+  }
+  stop = tempo::timing::now();
+  std::cout << "Testing done in" << std::endl;
+  tempo::timing::printDuration(std::cout, stop-start);
+  std::cout << std::endl;
+  std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
+  std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
+  */
+
+  // --- --- --- Test a Forest
+  std::cout << "Starting training..." << std::endl;
+  auto start = tempo::timing::now();
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 6, &std::cout);
+  auto stop = tempo::timing::now();
+  std::cout << "Training done in" << std::endl;
+  tempo::timing::printDuration(std::cout, stop-start);
+  std::cout << std::endl;
+  std::cout << "Starting testing..." << std::endl;
+  start = tempo::timing::now();
+  auto classifier = pforest->get_classifier(900, 4);
+  size_t nbcorrect{0};
+  for (const auto& idx:test_is) {
+    auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
     if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
   }
   stop = tempo::timing::now();
