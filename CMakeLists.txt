@@ -11,6 +11,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(CMAKE_CXX_STANDARD 17)
 
+find_package(Threads REQUIRED)
+
 # Use an INTERFACE library to add option to target.
 # To be used with target_link_library(target PRIVATE project_option)
 add_library(project_options INTERFACE)
@@ -77,6 +79,7 @@ add_library(tempo SHARED ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})
 target_include_directories(tempo PUBLIC "include")
 target_include_directories(tempo PRIVATE "src")
+target_link_libraries(tempo INTERFACE Threads::Threads)
 
 add_executable(test_tempo ${TEMPO_SRC})
 target_include_directories(test_tempo PUBLIC "include")
