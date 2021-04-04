@@ -85,7 +85,7 @@ namespace tempo::univariate::pf {
     }
 
     /* Classic classify - train
-      std::vector<LabelType> classify_train(const DS& ds, size_t index) {
+      std::vector<LabelType> classify_train(const DS& ds, size_t index, const LabelType& mflabel) {
         const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
         double bsf = POSITIVE_INFINITY<double>;
         std::vector<LabelType> labels{};
