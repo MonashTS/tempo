@@ -20,12 +20,14 @@ namespace tempo::univariate::pf {
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
     /// Mapping class->subnode
     using BranchMap_t = std::unordered_map<LabelType, std::unique_ptr<PTree>>;
-    /// Internal node (not pure) type: a splitter and a mapping class->subnode.
-    using INode_t = std::tuple<Splitter_ptr, BranchMap_t>;
-    /// Leaf node (pure) type: the class.
-    using LNode_t = LabelType;
     /// Type of a split
     using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
+    /// Record ratio of subtree
+    using SplitRatios = std::vector<std::tuple<LabelType, double>>;
+    /// Internal node (not pure) type: a splitter and a mapping class->subnode. Also record the splitratio.
+    using INode_t = std::tuple<Splitter_ptr, BranchMap_t, SplitRatios>;
+    /// Leaf node (pure) type: the class.
+    using LNode_t = LabelType;
 
     // --- --- --- Fields
 
@@ -35,12 +37,11 @@ namespace tempo::univariate::pf {
     // --- --- --- Constructors
 
     /// Leaf constructor
-    explicit PTree(const std::string& cname)
-      :node{cname} { }
+    explicit PTree(const std::string& cname) :node{cname} { }
 
     /// INode constructor
-    PTree(Splitter_ptr splitter, BranchMap_t mapping)
-      :node{INode_t{std::move(splitter), std::move(mapping)}} { }
+    PTree(Splitter_ptr splitter, BranchMap_t mapping, SplitRatios&& sr)
+      :node{INode_t{std::move(splitter), std::move(mapping), std::move(sr)}} { }
 
 
     // --- --- --- Tooling
@@ -107,17 +108,24 @@ namespace tempo::univariate::pf {
       // Note: iterate using the incoming 'by_class' map and not the computed 'split' as the split may not contains
       // all incoming classes (i.e. never selected by the splitter)
       unordered_map<LabelType, unique_ptr<PTree>> sub_trees;
+      SplitRatios split_ratios;
+      auto size = (double)is.size();
       for (const auto&[label, _]: bcm) {
         if (contains(best_split, label)) {
           const auto&[bcm, indexes] = best_split[label];
           sub_trees[label] = make_tree(ds, IndexSet(indexes), bcm, nbcandidates, sg, prng);
+          split_ratios.push_back({label, indexes.size()/size});
         } else {
           // Label not showing up at all in the split (never selected by the splitter). Create a leaf.
           sub_trees[label] = unique_ptr<PTree>(new PTree(label));
         }
       }
 
-      return unique_ptr<PTree>(new PTree(std::move(best_splitter), std::move(sub_trees)));
+      sort(split_ratios.begin(), split_ratios.end(), [](const auto& a, const auto& b)->bool {
+        return get<1>(a) > get<1>(b);
+      });
+
+      return unique_ptr<PTree>(new PTree(std::move(best_splitter), std::move(sub_trees), std::move(split_ratios)));
     }
 
   public:
@@ -155,8 +163,9 @@ namespace tempo::univariate::pf {
           }
           case 1: {
             // Node: find in which branch to go
-            const auto&[splitter, subnodes] = std::get<1>(pt.node);
-            const std::vector<LabelType> res = splitter->classify_test(ds, idx);
+            const auto&[splitter, subnodes, sr] = std::get<1>(pt.node);
+            const auto&[mflabel, _] = sr.front();
+            const std::vector<LabelType> res = splitter->classify_test(ds, idx, mflabel);
             assert(res.size()>0);
             std::string cl = tempo::rand::pick_one(res, prng);
             const auto& sn = subnodes.at(cl); // Use at (is const, when [ ] is not)
@@ -188,7 +197,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes] = std::get<1>(node);
+          const auto&[_, sub_nodes, __] = std::get<1>(node);
           size_t max = 0;
           for (const auto&[k, v]: sub_nodes) {
             size_t d = v->depth();
@@ -205,7 +214,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes] = std::get<1>(node);
+          const auto&[_, sub_nodes, __] = std::get<1>(node);
           size_t nb = 1; // include this
           for (const auto&[k, v]: sub_nodes) { nb += v->node_number(); }
           return nb;
@@ -219,7 +228,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes] = std::get<1>(node);
+          const auto&[_, sub_nodes, __] = std::get<1>(node);
           size_t nb = 0; // Exclude this
           for (const auto&[k, v]: sub_nodes) { nb += v->leaf_number(); }
           return nb;

@@ -17,7 +17,7 @@ namespace tempo::univariate::pf {
 
     virtual std::vector<LabelType> classify_train(const DS& dataset, size_t index) = 0;
 
-    virtual std::vector<LabelType> classify_test(const DS& dataset, size_t index) = 0;
+    virtual std::vector<LabelType> classify_test(const DS& dataset, size_t index, const LabelType& mf_label) = 0;
 
     virtual ~Splitter() = default;
   };
