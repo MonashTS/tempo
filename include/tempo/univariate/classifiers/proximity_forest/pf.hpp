@@ -5,6 +5,7 @@
 #include <tempo/utils/utils.hpp>
 #include <tempo/tseries/indexSet.hpp>
 #include <tempo/tseries/dataset.hpp>
+#include <tempo/utils/utils/timing.hpp>
 
 #include <unordered_map>
 #include <mutex>
@@ -14,22 +15,70 @@
 
 namespace tempo::univariate::pf {
 
+  /// Unique pointer type for splitter
+  template<typename FloatType, typename LabelType>
+  using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+
+  /// Type of a split
+  template<typename FloatType, typename LabelType>
+  using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
+
+  /** Compute the weighted gini impurity of a split. */
+  template<typename FloatType, typename LabelType>
+  [[nodiscard]] static double weighted_gini_impurity(const Split<FloatType, LabelType>& split) {
+    double wgini{0};
+    double item_number{0};
+    for (const auto&[c, bcm_vec]: split) {
+      const auto[bcm, _] = bcm_vec;
+      double g = gini_impurity(bcm);
+      size_t bcm_size = 0;
+      for (const auto&[_, v]: bcm) { bcm_size += v.size(); }
+      item_number += bcm_size;
+      wgini += bcm_size*g;
+    }
+    return wgini/item_number;
+  }
+
+  /** Make one split */
+  template<typename FloatType, typename LabelType, typename PRNG>
+  static std::tuple<Splitter_ptr<FloatType, LabelType>, Split<FloatType, LabelType>, double> mk_split(
+    const Dataset<FloatType, LabelType>& ds,
+    const IndexSet& is,
+    const ByClassMap<LabelType>& bcm,
+    SplitterGenerator<FloatType, LabelType, PRNG>& sg,
+    PRNG& prng
+  ) {
+    // Get the set of series exemplars, one per class
+    auto exemplars = pick_one_by_class(bcm, prng);
+    auto splitter = sg.get_splitter(ds, is, exemplars, prng);
+    Split<FloatType, LabelType> split;
+    // Compute the split
+    for (const auto& query_idx: is) {
+      auto query_label = ds.get_original()[query_idx].get_label().value();
+      const std::vector<LabelType> results = splitter->classify_train(ds, query_idx);
+      assert(results.size()>0);
+      LabelType predicted_label = rand::pick_one(results, prng);
+      auto&[bcm, vec] = split[predicted_label];
+      bcm[query_label].push_back(query_idx);
+      vec.push_back(query_idx);
+    }
+    // Compute the weighted gini, save the best split
+    double wg = weighted_gini_impurity<FloatType, LabelType>(split);
+    return {std::move(splitter), std::move(split), wg};
+  }
+
   /** A Proximity Tree */
   template<typename FloatType, typename LabelType>
   class PTree {
     // --- --- --- Types
     /// Dataset type
     using DS = Dataset<FloatType, LabelType>;
-    /// Unique pointer type for splitter
-    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
     /// Mapping class->subnode
     using BranchMap_t = std::unordered_map<LabelType, std::unique_ptr<PTree>>;
-    /// Type of a split
-    using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
     /// Record ratio of subtree
     using SplitRatios = std::vector<std::tuple<LabelType, double>>;
     /// Internal node (not pure) type: a splitter and a mapping class->subnode. Also record the splitratio.
-    using INode_t = std::tuple<Splitter_ptr, BranchMap_t, SplitRatios>;
+    using INode_t = std::tuple<Splitter_ptr<FloatType, LabelType>, BranchMap_t, SplitRatios>;
     /// Leaf node (pure) type: the class.
     using LNode_t = LabelType;
 
@@ -45,27 +94,8 @@ namespace tempo::univariate::pf {
       :node{cname} { }
 
     /// INode constructor
-    PTree(Splitter_ptr splitter, BranchMap_t mapping, SplitRatios&& sr)
+    PTree(Splitter_ptr<FloatType, LabelType> splitter, BranchMap_t mapping, SplitRatios&& sr)
       :node{INode_t{std::move(splitter), std::move(mapping), std::move(sr)}} { }
-
-
-    // --- --- --- Tooling
-
-    /** Compute the weighted gini impurity of a split. */
-    [[nodiscard]] static double
-    weighted_gini_impurity(const Split& split) {
-      double wgini{0};
-      double item_number{0};
-      for (const auto&[c, bcm_vec]: split) {
-        const auto[bcm, _] = bcm_vec;
-        double g = gini_impurity(bcm);
-        size_t bcm_size = 0;
-        for (const auto&[_, v]: bcm) { bcm_size += v.size(); }
-        item_number += bcm_size;
-        wgini += bcm_size*g;
-      }
-      return wgini/item_number;
-    }
 
     /** Recursively build a tree */
     template<typename PRNG>
@@ -81,11 +111,13 @@ namespace tempo::univariate::pf {
       // --- --- --- CASE 2 - internal node case
       // Best variables: gini, associated splitter and split (for each branch, the by class map)
       double best_gini = POSITIVE_INFINITY<double>;
-      Splitter_ptr best_splitter;
-      Split best_split;
+      Splitter_ptr<FloatType, LabelType> best_splitter;
+      Split<FloatType, LabelType> best_split;
 
       // Generate and evaluate the candidate splitters
       for (auto n = 0; n<nbcandidates; ++n) {
+        auto[splitter, split, gini] = mk_split(ds, is, bcm, sg, prng);
+        /*
         // Get the set of series exemplars, one per class
         auto exemplars = pick_one_by_class(bcm, prng);
         auto splitter = sg.get_splitter(ds, is, exemplars, prng);
@@ -100,8 +132,9 @@ namespace tempo::univariate::pf {
           bcm[query_label].push_back(query_idx);
           vec.push_back(query_idx);
         }
+         */
         // Compute the weighted gini, save the best split
-        double wg = weighted_gini_impurity(split);
+        double wg = weighted_gini_impurity<FloatType, LabelType>(split);
         if (wg<best_gini) {
           best_gini = wg;
           best_splitter = move(splitter);
@@ -141,12 +174,52 @@ namespace tempo::univariate::pf {
 
     template<typename PRNG=std::mt19937_64>
     [[nodiscard]] static std::unique_ptr<PTree> make(
-      const DS& ds, size_t nbcandidates, SplitterGenerator<FloatType, LabelType, PRNG>& sg, PRNG& prng
+      const DS& ds, const ByClassMap<LabelType>& bcm,
+      size_t nbcandidates, SplitterGenerator<FloatType, LabelType, PRNG>& sg, PRNG& prng
     ) {
       IndexSet is(ds);
-      auto bcm = get_by_class(ds, is);
       return make_tree<PRNG>(ds, IndexSet(ds), bcm, nbcandidates, sg, prng);
     }
+
+    /// Building a tree using an already made root
+    template<typename PRNG=std::mt19937_64>
+    [[nodiscard]] static std::unique_ptr<PTree> make_from_root(
+      const DS& ds, const IndexSet& is, const ByClassMap<LabelType>& bcm,
+      const std::tuple<Splitter_ptr<FloatType, LabelType>, Split<FloatType, LabelType>, double>& root_split,
+      size_t nbcandidates, SplitterGenerator<FloatType, LabelType, PRNG>& sg, PRNG& prng
+    ) {
+      using namespace std;
+      assert(bcm.size()>0);
+      // --- --- --- CASE 1 - leaf case
+      if (bcm.size()==1) { return unique_ptr<PTree>(new PTree(bcm.begin()->first)); }
+      // --- --- --- CASE 2 - internal node case
+      auto[splitter, split, gini] = mk_split(ds, is, bcm, sg, prng);
+
+      unordered_map<LabelType, unique_ptr<PTree>> sub_trees;
+      SplitRatios split_ratios;
+      auto size = (double) is.size();
+      for (const auto&[label, _]: bcm) {
+        if (contains(split, label)) {
+          const auto&[bcm, indexes] = split[label];
+          sub_trees[label] = make_tree(ds, IndexSet(indexes), bcm, nbcandidates, sg, prng);
+          split_ratios.push_back({label, indexes.size()/size});
+        } else {
+          // Label not showing up at all in the split (never selected by the splitter). Create a leaf.
+          sub_trees[label] = unique_ptr<PTree>(new PTree(label));
+        }
+      }
+
+      sort(split_ratios.begin(), split_ratios.end(), [](const auto& a, const auto& b) -> bool {
+        return get<1>(a)>get<1>(b);
+      });
+
+      return unique_ptr<PTree>(new PTree(std::move(splitter), std::move(sub_trees), std::move(split_ratios)));
+
+
+    }
+
+
+
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- ---
     // Obtain a classifier
@@ -248,8 +321,14 @@ namespace tempo::univariate::pf {
   /** A Proximity Forest, made of trees */
   template<typename FloatType, typename LabelType>
   class PForest {
+    /// Dataset type
     using DS = Dataset<FloatType, LabelType>;
+    /// Collection of trees - use per thread
     using TreeVec = std::vector<std::unique_ptr<PTree<FloatType, LabelType>>>;
+    /// Unique pointer type for splitter
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    /// Type of a split
+    using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- ---
     // Private fields
@@ -281,6 +360,9 @@ namespace tempo::univariate::pf {
       std::mutex mutex;
       size_t nbdone{0};
 
+      auto is = IndexSet(ds);
+      auto bcm = get_by_class(ds, is);
+
       // --- --- --- Function: info printing
       auto print_training_info = [nbtrees, &nbdone](ostream& out, size_t workerid, size_t i, size_t nbtodo,
         const TreeVec& local_forest) {
@@ -296,8 +378,8 @@ namespace tempo::univariate::pf {
       };
 
       // --- --- --- Function: Training task for one tree
-      auto one_train_task = [&ds, nb_candidates, &sg](PRNG& prng) {
-        return PTree<FloatType, LabelType>::template make<PRNG>(ds, nb_candidates, sg, prng);
+      auto one_train_task = [&ds, &bcm, nb_candidates, &sg](PRNG& prng) {
+        return PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
       };
 
       // --- --- --- Function: Training task for several trees
@@ -369,7 +451,7 @@ namespace tempo::univariate::pf {
     class Classifier {
 
       // Fields
-      const PForest &pf;
+      const PForest& pf;
       size_t base_seed;
       size_t nb_threads;
 
@@ -377,9 +459,10 @@ namespace tempo::univariate::pf {
 
     public:
 
-      Classifier(const PForest &pf, size_t base_seed, size_t nb_threads) :
+      Classifier(const PForest& pf, size_t base_seed, size_t nb_threads)
+        :
         pf(pf), base_seed(base_seed), nb_threads(nb_threads) {
-        majority = pf.forest.size() / 2 + 1;
+        majority = pf.forest.size()/2+1;
       }
 
       [[nodiscard]] std::vector<std::string> classify(const DS& qset, size_t query_index) {
@@ -391,30 +474,30 @@ namespace tempo::univariate::pf {
 
         // --- --- --- Lambda: classify several trees
         auto multi_classif = [&qset, query_index, &mutex, &score, &max_score, &go_on, this](size_t starti, size_t nb) {
-          PRNG prng(this->base_seed + starti);
-          auto top = starti + nb;
-          for (size_t i{starti}; i < top && go_on.load(); ++i) {
-            const auto &tree = this->pf.forest[i];
+          PRNG prng(this->base_seed+starti);
+          auto top = starti+nb;
+          for (size_t i{starti}; i<top && go_on.load(); ++i) {
+            const auto& tree = this->pf.forest[i];
             auto ctree = tree->get_classifier(prng);
             auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
             {
               const std::lock_guard lock(mutex);
               score[cl] += 1;
               max_score = std::max(max_score, score[cl]);
-              if (max_score >= majority) { go_on.store(false); }
+              if (max_score>=majority) { go_on.store(false); }
             }
           }
         };
 
         // --- --- --- Launch the tasks
         std::vector<std::future<void>> tasks;
-        const size_t slice = pf.forest.size() / nb_threads;
-        size_t extra = pf.forest.size() % nb_threads;
+        const size_t slice = pf.forest.size()/nb_threads;
+        size_t extra = pf.forest.size()%nb_threads;
         size_t next_start = 0;
-        for (size_t workerid = 1; workerid <= nb_threads; ++workerid) {
+        for (size_t workerid = 1; workerid<=nb_threads; ++workerid) {
           // Distribute remaining trees
           size_t nbt = slice;
-          if (extra > 0) {
+          if (extra>0) {
             ++nbt;
             extra--;
           }
@@ -424,7 +507,7 @@ namespace tempo::univariate::pf {
         }
 
         // --- --- --- Collect the results
-        for (auto &f:tasks) { f.get(); }
+        for (auto& f:tasks) { f.get(); }
 
 
         // --- --- --- Create a vector of results
@@ -432,11 +515,11 @@ namespace tempo::univariate::pf {
         int bsf = 0;
 
         for (const auto&[k, v]: score) {
-          if (v > bsf) {
+          if (v>bsf) {
             bsf = v;
             results.clear();
             results.push_back(k);
-          } else if (v == bsf) {
+          } else if (v==bsf) {
             results.push_back(k);
           }
         }
@@ -444,7 +527,6 @@ namespace tempo::univariate::pf {
         return results;
       }
     };
-
 
     /** Method style helper for building a classifier for proximity tree */
     template<typename PRNG=std::mt19937_64>
@@ -455,6 +537,165 @@ namespace tempo::univariate::pf {
       );
     }
 
+    /** */
+    template<typename PRNG, bool doInstrumentation = false>
+    [[nodiscard]] static std::unique_ptr<PForest<FloatType, LabelType>> make_poolroot(
+      const DS& ds,
+      size_t nbtrees,
+      size_t nb_candidates,
+      SplitterGenerator<FloatType, LabelType, PRNG>& sg,
+      size_t base_seed,
+      size_t nb_thread = 1,
+      std::ostream* out_ptr = nullptr
+    ) {
+      using namespace std;
+      // Mutex for critical section protecting shared variables
+      std::mutex mutex;
+      size_t nbdone{0};
+
+      auto is = IndexSet(ds);
+      auto bcm = get_by_class(ds, is);
+
+      // --- --- --- Create nb trees * nb candidates root splitters, and sort them by gini impurity
+      std::cout << "Starting root pooling..." << std::endl;
+      auto start = tempo::timing::now();
+      // ---
+      using RootSplit = std::tuple<Splitter_ptr, Split, double>;
+      // --- Workload
+      const size_t nbroots = nbtrees*nb_candidates;
+      // --- Per thread worker
+      auto multi_root = [&ds, &is, &bcm, &sg, base_seed](size_t workerid, size_t nb_todo) {
+        // Create a thread local random number generator, ensuring that each thread gets a different seed.
+        static thread_local PRNG prng(base_seed+workerid);
+        vector<RootSplit> result;
+        for (size_t i{0}; i<nb_todo; ++i) { result.template emplace_back(mk_split(ds, is, bcm, sg, prng)); }
+        return result;
+      };
+      // --- Launch thread & collect work
+      vector<RootSplit> roots;
+      if (nb_thread==1) { roots = move(multi_root(1, nbroots)); }
+      else {
+        // Multiple thread: share the work
+        size_t roots_per_task = nbroots/nb_thread;
+        size_t extra_roots = nbroots%nb_thread; // Distributed one by one
+        // --- --- --- Launch the tasks.
+        // Take the lock as we do some printing (and super fast job may finish quickly!)
+        // Collect the (future) results of the task
+        vector<future<vector<RootSplit>>> tasks;
+        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
+          // Spread tasks, distributing "extra roots"
+          size_t nbt = roots_per_task;
+          if (extra_roots>0) {
+            ++nbt;
+            extra_roots--;
+          }
+          // Launch
+          tasks.push_back(async(launch::async, multi_root, workerid, nbt));
+        }
+        // --- --- --- Collecting the task
+        for (auto& f:tasks) {
+          auto res = f.get();
+          roots.insert(roots.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
+        }
+        // --- --- --- Sort by impurity (small first)
+        sort(roots.begin(), roots.end(), [](const auto& a, const auto& b) -> bool {
+          return std::get<2>(a) < std::get<2>(b);
+        });
+        for (const auto&[a, b, c]: roots) { std::cout << " impurity = " << c << std::endl; }
+        std::cout << roots.size() << std::endl;
+      }
+      auto stop = tempo::timing::now();
+      std::cout << "Root pooling done in" << std::endl;
+      tempo::timing::printDuration(std::cout, stop-start);
+      std::cout << std::endl;
+
+      // -- --- --- Other random number
+      base_seed += nb_thread+7;
+
+      // --- --- --- Create trees using the pool of roots
+      size_t root_index = 0;
+      auto one_train_task = [&root_index, &ds, &is, &bcm, &roots, nb_candidates, &sg, &mutex](PRNG& prng) mutable {
+        mutex.lock();
+        auto root = move(roots[root_index]);
+        ++root_index;
+        mutex.unlock();
+        return PTree<FloatType, LabelType>::template make_from_root<PRNG>(ds, is, bcm, root, nb_candidates, sg, prng);
+      };
+
+
+      // --- --- --- Function: info printing
+      auto print_training_info = [nbtrees, &nbdone](ostream& out, size_t workerid, size_t i, size_t nbtodo,
+        const TreeVec& local_forest) {
+        auto cf = out.fill();
+        out << setfill('0');
+        out << setw(3) << nbdone << " / " << nbtrees << "   ";
+        out << "Worker " << setw(2) << workerid << ": ";
+        out << "Tree " << setw(3) << i;
+        out << " / " << setw(3) << nbtodo;
+        out.fill(cf);
+        out << "    Depth: " << setw(3) << local_forest.back()->depth();
+        out << "    NB nodes: " << setw(4) << local_forest.back()->node_number() << endl;
+      };
+
+
+      // --- --- --- Function: Training task for several trees
+      auto multi_train_task = [nbtrees, base_seed, &nbdone, &one_train_task, &mutex, out_ptr, &print_training_info](
+        size_t workerid,
+        size_t nbtodo) {
+        // Create a thread local random number generator, ensuring that each thread gets a different seed.
+        static thread_local PRNG prng(base_seed+workerid);
+        // Also create a training instrumentation map (will only be used if doInstrumentation=true) for all the trees in this task
+        TreeVec local_forest;
+        for (size_t i{1}; i<=nbtodo; ++i) { // start at one == nicer printing
+          local_forest.push_back(one_train_task(prng));
+          if (out_ptr!=nullptr) {
+            const lock_guard lock(mutex);
+            nbdone++;
+            print_training_info(*out_ptr, workerid, i, nbtodo, local_forest);
+          }
+        }
+        return local_forest;
+      };
+
+      // --- --- --- Train a forest
+      TreeVec forest;
+      if (nb_thread==1) {
+        // If only one thread, just call the training task
+        forest = move(multi_train_task(1, nbtrees));
+
+      } else {
+        // Multiple thread: share the work
+        size_t trees_per_task = nbtrees/nb_thread;
+        size_t extra_trees = nbtrees%nb_thread; // Distributed one by one
+        // --- --- --- Launch the tasks.
+        // Take the lock as we do some printing (and super fast job may finish quickly!)
+        // Collect the (future) results of the task
+        vector<future<TreeVec>> tasks;
+        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
+          size_t nbt = trees_per_task;
+          // Distribute remaining trees
+          if (extra_trees>0) {
+            ++nbt;
+            extra_trees--;
+          }
+          if (out_ptr!=nullptr) {
+            const lock_guard lock(mutex);
+            auto& out = *out_ptr;
+            auto cf = out.fill();
+            out << "Launch worker " << setw(2) << setfill('0') << workerid << " / " << setw(2) << nb_thread;
+            out << " with " << setw(3) << nbt << " tasks." << endl;
+            out.fill(cf);
+          }
+          tasks.push_back(async(launch::async, multi_train_task, workerid, nbt));
+        }
+        // --- --- --- Collecting the task
+        for (auto& f:tasks) {
+          auto res = f.get();
+          forest.insert(forest.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
+        }
+      }
+      return unique_ptr<PForest<FloatType, LabelType>>(new PForest<FloatType, LabelType>(std::move(forest)));
+    }
 
 
   };
