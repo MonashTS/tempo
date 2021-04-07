@@ -36,8 +36,13 @@ namespace tempo::univariate::pf {
     DFun distance;
 
     NN1Splitter(const TH& transform_handle, const ByClassMap<LabelType>& bcm_exemplars, DFun distance)
-      :train_set(transform_handle.data), transform_index(transform_handle.index),
-       exemplars{}, distance(distance) {
+      :
+      //train_set(transform_handle.data),
+      //transform_index(transform_handle.index),
+       exemplars{},
+       distance(distance) {
+      train_set = transform_handle.data;
+      transform_index = transform_handle.index;
       exemplars.reserve(bcm_exemplars.size());
       for (const auto&[label, vec]: bcm_exemplars) { exemplars.template emplace_back(LabelIndex{label, vec.front()}); }
     }
@@ -191,13 +196,20 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_DTW : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_DTW(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
       const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_dtw<FloatType, LabelType>());
       // Embed in a unique ptr
@@ -212,7 +224,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_CDTW : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_CDTW(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -221,7 +240,7 @@ namespace tempo::univariate::pf {
       const size_t top = (ds.get_header().get_maxl()+1)/4;
       const auto w = std::uniform_int_distribution<size_t>(0, top)(prng);
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_cdtw<FloatType, LabelType>(w));
       // Embed in a unique ptr
@@ -235,7 +254,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_WDTW : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_WDTW(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -244,7 +270,7 @@ namespace tempo::univariate::pf {
       const FloatType g = std::uniform_real_distribution<FloatType>(0, 1)(prng);
       auto weights = std::make_shared<std::vector<FloatType>>(generate_weights(g, ds.get_header().get_maxl()));
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_wdtw<FloatType, LabelType>(weights));
       // Embed in a unique ptr
@@ -263,13 +289,20 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_Eucl : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_Eucl(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
       const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_elementwise<FloatType, LabelType>());
       // Embed in a unique ptr
@@ -287,7 +320,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_ERP : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_ERP(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -299,7 +339,7 @@ namespace tempo::univariate::pf {
       auto stddev_ = stddev(is, ds.get_original_handle());
       const double gValue = std::uniform_real_distribution<double>(0.2*stddev_, stddev_)(prng);
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_erp<FloatType, LabelType>(gValue, w));
       // Embed in a unique ptr
@@ -319,7 +359,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_LCSS : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_LCSS(const TransfromProvider& tp):fun_tp{tp}{ }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -331,7 +378,7 @@ namespace tempo::univariate::pf {
       auto stddev_ = stddev(is, ds.get_original_handle());
       const double epsilon = std::uniform_real_distribution<double>(0.2*stddev_, stddev_)(prng);
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_lcss<FloatType, LabelType>(epsilon, w));
       // Embed in a unique ptr
@@ -352,7 +399,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_MSM : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_MSM(const TransfromProvider& tp):fun_tp{tp}{ }
 
     /** MSM cost parameters */
     static constexpr std::array<FloatType, 100> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
@@ -378,7 +432,7 @@ namespace tempo::univariate::pf {
       auto distribution = std::uniform_int_distribution<std::size_t>(0, 99);
       const FloatType c = cost[distribution(prng)];
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_msm<FloatType, LabelType>(c));
       // Embed in a unique ptr
@@ -398,7 +452,14 @@ namespace tempo::univariate::pf {
   template<typename FloatType, typename LabelType, typename PRNG>
   struct SG_TWE : public SplitterGenerator<FloatType, LabelType, PRNG> {
     using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_TWE(const TransfromProvider& tp):fun_tp{tp}{ }
 
     /** TWE nu parameters */
     static constexpr std::array<FloatType, 10> nus{0.00001, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1};
@@ -416,7 +477,7 @@ namespace tempo::univariate::pf {
       const FloatType n = nus[distribution(prng)];
       const FloatType l = lambdas[distribution(prng)];
       // Get the handler
-      const auto& th = ds.get_original_handle();
+      const auto& th = fun_tp(prng);
       // Create the splitter
       auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_twe<FloatType, LabelType>(n, l));
       // Embed in a unique ptr

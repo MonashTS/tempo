@@ -108,6 +108,45 @@ namespace tempo {
 
     [[nodiscard]] const T& get() const { return *data; }
 
+    /// Copy constructor
+    TransformHandle(const TransformHandle& other)
+    :dataset(other.dataset)
+    ,index(other.index)
+    ,data(other.data)
+    { }
+
+    /// Move constructor
+    TransformHandle(TransformHandle&& other)
+      :dataset(other.dataset)
+      ,index(other.index)
+      ,data(other.data)
+    {
+      other.dataset = nullptr;
+      other.index = 0;
+      other.data = nullptr;
+    }
+
+    /// Assignment
+    TransformHandle& operator=(TransformHandle other) {
+      swap(*this, other);
+      return *this;
+    }
+
+    /// Swap
+    friend void swap(TransformHandle& first, TransformHandle& second) {
+      using std::swap;
+      swap(first.dataset, second.dataset);
+      swap(first.index, second.index);
+      swap(first.data, second.data);
+    }
+
+
+
   };
 
-} // End of namespace tempo
+
+
+
+
+
+  } // End of namespace tempo
