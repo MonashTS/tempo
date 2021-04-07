@@ -5,6 +5,8 @@
 #include <tempo/tseries/tseries.hpp>
 #include <tempo/tseries/dataset.hpp>
 
+#include <variant>
+
 namespace tempo::reader {
 
     /** Structure for the TS file format
