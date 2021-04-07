@@ -11,8 +11,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(Threads REQUIRED)
-
 # Use an INTERFACE library to add option to target.
 # To be used with target_link_library(target PRIVATE project_option)
 add_library(project_options INTERFACE)
@@ -25,7 +23,9 @@ target_compile_definitions(project_options INTERFACE $<$<CONFIG:DEBUG>:_GLIBCXX_
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Read version from file
 read_version(VERSION include/tempo/utils/version.hpp)
-project(tempo VERSION ${VERSION})
+project(tempo VERSION ${VERSION} LANGUAGES C CXX)
+
+find_package(Threads REQUIRED)
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Creating the library
