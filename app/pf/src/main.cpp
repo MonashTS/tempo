@@ -1,11 +1,16 @@
 #include "any.hpp"
 #include "../../utils/parsarg.hpp"
 
-#include <tempo/univariate/classifiers/proximity_forest/pf.hpp>
-#include <tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp>
+#include <tempo/tseries/tseries.hpp>
+#include <tempo/tseries/dataset.hpp>
 #include <tempo/reader/ts/ts.hpp>
 
 #include <tempo/utils/utils/timing.hpp>
+
+#include <tempo/univariate/classifiers/proximity_forest/pf.hpp>
+#include <tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp>
+#include <tempo/univariate/transforms/derivative.hpp>
+
 
 #include <filesystem>
 #include <fstream>
@@ -17,6 +22,7 @@ using LabelType = std::string;
 using PRNG = std::mt19937_64;
 using TS = TSeries<FloatType, LabelType>;
 using DS = Dataset<FloatType, LabelType>;
+namespace tu = tempo::univariate;
 
 
 std::variant<std::string, std::shared_ptr<DS>> read_data(std::ostream& log, fs::path& dataset_path) {
@@ -39,6 +45,14 @@ int main(int argc, char** argv) {
 
   // --- Manage command line argument (defined in "any")
   CMDArgs config = read_args(argc, argv);
+
+  // --- --- --- Manage random seed and Pseudo Random Number Generator
+  size_t base_seed=config.random_seed;
+  if(base_seed == 0){
+    std::random_device rd;
+    base_seed = rd();
+  }
+  PRNG prng(base_seed);
 
   // --- Dataset path
   fs::path path_train;
@@ -83,18 +97,55 @@ int main(int argc, char** argv) {
     std::cout << to_string(test->get_header().to_json()) << std::endl;
   }
 
-  // --- --- --- Manage random seed and Pseudo Random Number Generator
-  size_t base_seed=config.random_seed;
-  if(base_seed == 0){
-   std::random_device rd;
-   base_seed = rd();
-  }
-  PRNG prng(base_seed);
+  // --- --- --- Transforms
+  // --- --- --- --- Original
+  auto train_source = train->get_original_handle();
+  IndexSet train_is(*train);
+  auto train_bcm = get_by_class(*train, train_is);
+
+  auto test_source = test->get_original_handle();
+  IndexSet test_is(*test);
+  auto test_bcm = get_by_class(*test, test_is);
+
+  // --- --- --- --- Derivative 1
+  tu::DerivativeTransformer<FloatType, LabelType> deriver1(1);
+  const auto train_source_d1 = deriver1.transform_and_add(train_source);
+  const auto test_source_d1 = deriver1.transform_and_add(test_source);
+
+  // --- --- --- --- Derivative 2
+  tu::DerivativeTransformer<FloatType, LabelType> deriver2(2);
+  const auto train_source_d2 = deriver2.transform_and_add(train_source);
+  const auto test_source_d2 = deriver2.transform_and_add(test_source);
+
+  // --- --- --- --- Derivative 3
+  tu::DerivativeTransformer<FloatType, LabelType> deriver3(3);
+  const auto train_source_d3 = deriver3.transform_and_add(train_source);
+  const auto test_source_d3 = deriver3.transform_and_add(test_source);
+
+  // --- --- --- --- Transform provider
+  using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
+  using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+  TransfromProvider transform_provider =
+    [&train_source, &train_source_d1, &train_source_d2, &train_source_d3](PRNG& prng) -> const TH& {
+      std::discrete_distribution<size_t> transform_weights{4, 2, 1, 1};
+      size_t index = transform_weights(prng);
+      if (index==0) {
+        return train_source;
+      } else if (index==1) {
+        return train_source_d1;
+      } else if (index==2) {
+        return train_source_d2;
+      } else if (index==3) {
+        return train_source_d3;
+      }
+      tempo::should_not_happen();
+    };
+
+
 
   // --- --- --- Compute some info on the dataset
   std::cout << "Train" << std::endl;
-  IndexSet train_is(*train);
-  auto train_bcm = get_by_class(*train, train_is);
   double train_gini = gini_impurity(train_bcm);
   std::cout << "Size = " << train_is.size() << " Train nb class = " << train_bcm.size() << " - gini impurity = "
             << train_gini << std::endl;
@@ -102,8 +153,6 @@ int main(int argc, char** argv) {
   std::cout << std::endl << std::endl;
 
   std::cout << "Test" << std::endl;
-  IndexSet test_is(*test);
-  auto test_bcm = get_by_class(*test, test_is);
   double test_gini = gini_impurity(test_bcm);
   std::cout << "Size = " << test_is.size() << " Test nb class = " << test_bcm.size() << " - gini impurity = "
             << test_gini << std::endl;
@@ -123,22 +172,22 @@ int main(int argc, char** argv) {
   namespace pf = tempo::univariate::pf;
   using splitgen_ptr = std::unique_ptr<pf::SplitterGenerator<FloatType, LabelType, PRNG>>;
   std::vector<splitgen_ptr> gens;
-  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>()));
-  gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>()));
+  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
 
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
-  /*
   // --- --- --- Test a tree
+  /*
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
-  auto ptree = tempo::univariate::pf::PTree<FloatType, LabelType>::make(*train, 5, sg, prng);
+  auto ptree = tu::pf::PTree<FloatType, LabelType>::template make<PRNG>(*train, train_bcm, 5, sg, prng);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   tempo::timing::printDuration(std::cout, stop-start);
@@ -161,29 +210,29 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
   std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
-  */
+   */
 
-  // --- --- --- Test a Forest
-  std::cout << "Starting training..." << std::endl;
-  auto start = tempo::timing::now();
-  //auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 7, &std::cout);
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
-  auto stop = tempo::timing::now();
-  std::cout << "Training done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
-  std::cout << std::endl;
-  std::cout << "Starting testing..." << std::endl;
-  start = tempo::timing::now();
-  auto classifier = pforest->get_classifier(900, 7);
-  size_t nbcorrect{0};
-  for (const auto& idx:test_is) {
-    auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
-    if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
-  }
-  stop = tempo::timing::now();
-  std::cout << "Testing done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
-  std::cout << std::endl;
-  std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
-  std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
+// --- --- --- Test a Forest
+std::cout << "Starting training..." << std::endl;
+auto start = tempo::timing::now();
+//auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 7, &std::cout);
+auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
+auto stop = tempo::timing::now();
+std::cout << "Training done in" << std::endl;
+tempo::timing::printDuration(std::cout, stop-start);
+std::cout << std::endl;
+std::cout << "Starting testing..." << std::endl;
+start = tempo::timing::now();
+auto classifier = pforest->get_classifier(900, 7);
+size_t nbcorrect{0};
+for (const auto& idx:test_is) {
+  auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
+  if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
+}
+stop = tempo::timing::now();
+std::cout << "Testing done in" << std::endl;
+tempo::timing::printDuration(std::cout, stop-start);
+std::cout << std::endl;
+std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
+std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
 }
