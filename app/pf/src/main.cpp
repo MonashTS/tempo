@@ -1,3 +1,4 @@
+#include "any.hpp"
 #include "../../utils/parsarg.hpp"
 
 #include <tempo/univariate/classifiers/proximity_forest/pf.hpp>
@@ -17,6 +18,7 @@ using PRNG = std::mt19937_64;
 using TS = TSeries<FloatType, LabelType>;
 using DS = Dataset<FloatType, LabelType>;
 
+
 std::variant<std::string, std::shared_ptr<DS>> read_data(std::ostream& log, fs::path& dataset_path) {
   log << "Loading " << dataset_path << "... ";
   std::ifstream istream(dataset_path);
@@ -31,26 +33,32 @@ std::variant<std::string, std::shared_ptr<DS>> read_data(std::ostream& log, fs::
   return {tempo::reader::make_dataset(std::move(tsdata), dataset_path.filename().replace_extension(""))};
 }
 
+
 int main(int argc, char** argv) {
+  using namespace std;
 
-  PRNG prng(500);
+  // --- Manage command line argument (defined in "any")
+  CMDArgs config = read_args(argc, argv);
 
-  // --- --- --- Fields
+  // --- Dataset path
   fs::path path_train;
   fs::path path_test;
-
-  // --- --- --- Simple arg parser
-  std::vector<std::string> arguments(argv+1, argv+argc);
   {
-    for (size_t i = 0; i<argc-1; ++i) {
-      if (arguments[i]=="-train") {
-        ++i;
-        path_train = fs::path(arguments.at(i));
+    switch (config.ucr_traintest_path.index()) {
+      case 0: {
+        auto[path, name] = get<0>(config.ucr_traintest_path);
+        if (path.empty()) { print_error_exit(argv[0], "No dataset specified", 1); }
+        path_train = path/name/(name+"_TRAIN.ts");
+        path_test = path/name/(name+"_TEST.ts");
+        break;
       }
-      if (arguments[i]=="-test") {
-        ++i;
-        path_test = fs::path(arguments.at(i));
+      case 1: {
+        auto[train, test] = get<0>(config.ucr_traintest_path);
+        path_train = train;
+        path_test = test;
+        break;
       }
+      default: tempo::should_not_happen();
     }
   }
 
@@ -75,6 +83,13 @@ int main(int argc, char** argv) {
     std::cout << to_string(test->get_header().to_json()) << std::endl;
   }
 
+  // --- --- --- Manage random seed and Pseudo Random Number Generator
+  size_t base_seed=config.random_seed;
+  if(base_seed == 0){
+   std::random_device rd;
+   base_seed = rd();
+  }
+  PRNG prng(base_seed);
 
   // --- --- --- Compute some info on the dataset
   std::cout << "Train" << std::endl;
