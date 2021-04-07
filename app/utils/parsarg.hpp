@@ -129,12 +129,14 @@ namespace PArg {
         std::vector<Parser<T>> tuples;
     };
 
+    /// Append a parser at the end of an alternative tuple
     template<typename T>
     [[nodiscard]] inline PAlt<T> operator && (PAlt<T>&& alt, const Parser<T>& factor){
         alt.tuples.push_back(factor);
         return std::forward<PAlt<T>>(alt);
     }
 
+    /// Append an alternative to a parser
   template<typename T>
   [[nodiscard]] inline Parser<T> operator | (Parser<T>&& sum, const PAlt<T>& alt){
     sum.alternatives.push_back(alt);
