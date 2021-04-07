@@ -20,7 +20,11 @@ add_subdirectory(../../ cpp EXCLUDE_FROM_ALL)
 
 add_executable(pf
         src/main.cpp
-        ../utils/parsarg.hpp)
+        ../utils/parsarg.hpp
+        ../utils/parsarg_predefs.hpp
+        src/any.hpp
+        src/any.cpp
+        )
 
 target_link_libraries(pf PRIVATE tempo)
 target_include_directories(pf PRIVATE src)
