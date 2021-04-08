@@ -235,4 +235,5 @@ tempo::timing::printDuration(std::cout, stop-start);
 std::cout << std::endl;
 std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
 std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
+std::cout << "Error:    " << 100.0-(double(nbcorrect)/test_is.size()*100.0) << "%" << std::endl;
 }
