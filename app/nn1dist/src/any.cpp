@@ -6,8 +6,7 @@ using namespace std;
 using tempo::reader::as_double;
 using tempo::reader::as_int;
 
-string to_string(DISTANCE dist)
-{
+string to_string(DISTANCE dist) {
   switch (dist) {
     case DISTANCE::DTW:return "dtw";
     case DISTANCE::CDTW:return "cdtw";
@@ -15,14 +14,14 @@ string to_string(DISTANCE dist)
     case DISTANCE::ERP:return "erp";
     case DISTANCE::LCSS:return "lcss";
     case DISTANCE::MSM:return "msm";
+    case DISTANCE::WMSM:return "wmsm";
     case DISTANCE::SQED:return "sqed";
     case DISTANCE::TWE:return "twe";
     default:tempo::should_not_happen();
   }
 }
 
-string to_string(TRANSFORM tr)
-{
+string to_string(TRANSFORM tr) {
   switch (tr) {
     case TRANSFORM::NONE: return "none";
     case TRANSFORM::DERIVATIVE: return "derivative";
@@ -30,8 +29,7 @@ string to_string(TRANSFORM tr)
   }
 }
 
-string to_string(LB_KEOGH_Kind k)
-{
+string to_string(LB_KEOGH_Kind k) {
   switch (k) {
     case LB_KEOGH_Kind::BASE: return "lb-keogh";
     case LB_KEOGH_Kind::CASCADE2: return "lb-keogh2";
@@ -40,8 +38,7 @@ string to_string(LB_KEOGH_Kind k)
   }
 }
 
-string to_string(LB_ENHANCED_Kind k)
-{
+string to_string(LB_ENHANCED_Kind k) {
   switch (k) {
     case LB_ENHANCED_Kind::BASE: return "lb-enhanced";
     case LB_ENHANCED_Kind::JOINED2: return "lb-enhanced2j";
@@ -49,8 +46,7 @@ string to_string(LB_ENHANCED_Kind k)
   }
 }
 
-string to_string(DTWLB lb)
-{
+string to_string(DTWLB lb) {
   switch (lb.kind) {
     case DTWLB_Kind::NONE: return "\"none\"";
     case DTWLB_Kind::KEOGH: return '"'+to_string(lb.lb_param.keogh.kind)+'"';
@@ -61,16 +57,14 @@ string to_string(DTWLB lb)
   }
 }
 
-string to_string_JSON(bool wint, double wratio)
-{
+string to_string_JSON(bool wint, double wratio) {
   stringstream ss;
   if (wint) { ss << "\"wint\": " << to_string((int) wratio); }
   else { ss << "\"wratio\": " << to_string(wratio); }
   return ss.str();
 }
 
-string dist_to_JSON(const CMDArgs& args)
-{
+string dist_to_JSON(const CMDArgs& args) {
   stringstream ss;
   ss << R"({"name": ")" << to_string(args.distance) << "\"";
   switch (args.distance) {
@@ -101,6 +95,10 @@ string dist_to_JSON(const CMDArgs& args)
       ss << ", \"cost\": " << args.distargs.msm.cost;
       break;
     }
+    case DISTANCE::WMSM: {
+      ss << ", \"cost_factor\": " << args.distargs.wmsm.cost_factor;
+      break;
+    }
     case DISTANCE::SQED: {
       break;
     }
@@ -116,8 +114,7 @@ string dist_to_JSON(const CMDArgs& args)
   return ss.str();
 }
 
-void print_usage(const string& execname, ostream& out)
-{
+void print_usage(const string& execname, ostream& out) {
   out << "Elastic Distance NN1 classification - Monash University, Melbourne, Australia, 2021" << endl;
   out << "    Command:" << endl;
   out << "        " << execname
@@ -144,6 +141,7 @@ void print_usage(const string& execname, ostream& out)
       erp <gv> <wr>         ERP distance with a gap value 0<=gv and window ratio 0<=wr<=1
       lcss <e> <wr>         LCSS distance with an epsilon 0<=e and window ratio 0<=wr<=1
       msm <cost>            MSM distance with a Split and Merge cost 0<=cost
+      wmsm <cost_factor>    WMSM distance with a Split and Merge cost factor (based on wdtw weights) 0<=cost_factor
       twe <nu> <lambda>     TWE distance with a stiffness 0<=nu and a constant delete penalty 0<=lambda
     Notes:
       Windows are computed using the window ratio and the longest series in the dataset.
@@ -162,8 +160,7 @@ void print_usage(const string& execname, ostream& out)
   out << endl;
 }
 
-CMDArgs read_args(int argc, char** argv)
-{
+CMDArgs read_args(int argc, char** argv) {
   // No argument: print the usage
   if (argc==1) {
     print_usage(argv[0], cout);
@@ -330,6 +327,10 @@ CMDArgs read_args(int argc, char** argv)
               pa_switch<CMDArgs>("msm", [](CMDArgs& a) { a.distance = DISTANCE::MSM; })
                 && mandatory<CMDArgs>("cost", "<cost>",
                   read_value<CMDArgs, double>(number(), [](CMDArgs& a, double v) { a.distargs.msm.cost = v; })),
+              // --- WMSM
+              pa_switch<CMDArgs>("wmsm", [](CMDArgs& a) { a.distance = DISTANCE::WMSM; })
+                && mandatory<CMDArgs>("cost factor", "<cost factor>",
+                  read_value<CMDArgs, double>(number(), [](CMDArgs& a, double v) { a.distargs.wmsm.cost_factor = v; })),
               // --- TWE
               pa_switch<CMDArgs>("twe", [](CMDArgs& a) { a.distance = DISTANCE::TWE; })
                 && mandatory<CMDArgs>("nu", "<nu>",
@@ -436,8 +437,7 @@ CMDArgs read_args(int argc, char** argv)
   } else { return res.state->args; }
 }
 
-variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostream& log, fs::path& dataset_path)
-{
+variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostream& log, fs::path& dataset_path) {
   log << "Loading " << dataset_path << "... ";
   ifstream istream(dataset_path);
   auto start = tempo::timing::now();
