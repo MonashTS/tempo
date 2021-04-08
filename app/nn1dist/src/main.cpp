@@ -14,6 +14,7 @@
 #include <tempo/univariate/distances/erp/erp.hpp>
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
+#include <tempo/univariate/distances/msm/wmsm.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
 
@@ -230,6 +231,16 @@ distfun_t mk_distance(const CMDArgs& config, TH& test_source, TH& train_source){
         const TS& tsq = test_source.get()[q];
         const TS& tsc = train_source.get()[c];
         return tu::msm(tsq, tsc, cost, bsf);
+      };
+    }
+
+    case DISTANCE::WMSM: {
+      auto param = config.distargs.wmsm;
+      auto weights = std::make_shared<vector<FloatType>>(tu::generate_weights(param.cost_factor, maxl));
+      return [&test_source, &train_source, weights](size_t q, size_t c, FloatType bsf) -> FloatType {
+        const TS& tsq = test_source.get()[q];
+        const TS& tsc = train_source.get()[c];
+        return tu::wmsm(tsq, tsc, *weights, bsf);
       };
     }
 
