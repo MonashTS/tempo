@@ -11,7 +11,6 @@
 #include <tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
 
-
 #include <filesystem>
 #include <fstream>
 
@@ -23,7 +22,6 @@ using PRNG = std::mt19937_64;
 using TS = TSeries<FloatType, LabelType>;
 using DS = Dataset<FloatType, LabelType>;
 namespace tu = tempo::univariate;
-
 
 std::variant<std::string, std::shared_ptr<DS>> read_data(std::ostream& log, fs::path& dataset_path) {
   log << "Loading " << dataset_path << "... ";
@@ -39,7 +37,6 @@ std::variant<std::string, std::shared_ptr<DS>> read_data(std::ostream& log, fs::
   return {tempo::reader::make_dataset(std::move(tsdata), dataset_path.filename().replace_extension(""))};
 }
 
-
 int main(int argc, char** argv) {
   using namespace std;
 
@@ -47,8 +44,8 @@ int main(int argc, char** argv) {
   CMDArgs config = read_args(argc, argv);
 
   // --- --- --- Manage random seed and Pseudo Random Number Generator
-  size_t base_seed=config.random_seed;
-  if(base_seed == 0){
+  size_t base_seed = config.random_seed;
+  if (base_seed==0) {
     std::random_device rd;
     base_seed = rd();
   }
@@ -212,28 +209,29 @@ int main(int argc, char** argv) {
   std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
    */
 
-// --- --- --- Test a Forest
-std::cout << "Starting training..." << std::endl;
-auto start = tempo::timing::now();
-//auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 7, &std::cout);
-auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
-auto stop = tempo::timing::now();
-std::cout << "Training done in" << std::endl;
-tempo::timing::printDuration(std::cout, stop-start);
-std::cout << std::endl;
-std::cout << "Starting testing..." << std::endl;
-start = tempo::timing::now();
-auto classifier = pforest->get_classifier(900, 7);
-size_t nbcorrect{0};
-for (const auto& idx:test_is) {
-  auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
-  if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
-}
-stop = tempo::timing::now();
-std::cout << "Testing done in" << std::endl;
-tempo::timing::printDuration(std::cout, stop-start);
-std::cout << std::endl;
-std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
-std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
-std::cout << "Error:    " << 100.0-(double(nbcorrect)/test_is.size()*100.0) << "%" << std::endl;
+  // --- --- --- Test a Forest
+  std::cout << "Starting training..." << std::endl;
+  auto start = tempo::timing::now();
+  //auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 7, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7,
+    &std::cout);
+  auto stop = tempo::timing::now();
+  std::cout << "Training done in" << std::endl;
+  tempo::timing::printDuration(std::cout, stop-start);
+  std::cout << std::endl;
+  std::cout << "Starting testing..." << std::endl;
+  start = tempo::timing::now();
+  auto classifier = pforest->get_classifier(900, 7);
+  size_t nbcorrect{0};
+  for (const auto& idx:test_is) {
+    auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
+    if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
+  }
+  stop = tempo::timing::now();
+  std::cout << "Testing done in" << std::endl;
+  tempo::timing::printDuration(std::cout, stop-start);
+  std::cout << std::endl;
+  std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
+  std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
+  std::cout << "Error:    " << 100.0-(double(nbcorrect)/test_is.size()*100.0) << "%" << std::endl;
 }
