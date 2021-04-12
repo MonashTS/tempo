@@ -9,10 +9,7 @@ import static java.lang.Double.min;
 
 public class DTW {
 	
-	static double distance(double[] lines, double[] cols, double cutoff) {
-		// Upper bound: adjusted cutoff (helps with numerical instability)
-		double ub=cutoff + utils.EPSILON;
-		
+	static double distance(double[] lines, double[] cols, double cutoff) {	
 		// Ensure that lines are longer than columns
 		if(lines.length < cols.length) {
 			double [] swap = lines;
@@ -40,6 +37,11 @@ public class DTW {
 		// Must be init to 0: index 0 is the next starting point and also the "previous pruning point"
 		int next_start = 0;
 		int prev_pp = 0;
+
+		// --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---		
+		// Upper bound: tightened using the last alignment (requires special handling in the code below)
+		// Add EPSILON helps dealing with numerical instability
+		double ub=cutoff + utils.EPSILON - dist(lines[nblines - 1], cols[nbcols - 1]);
 		
 		// --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
 		// Initialization of the first line
