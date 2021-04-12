@@ -134,8 +134,8 @@ namespace tempo::univariate {
                     // --- --- --- Stage 4: After the previous pruning point: only prev.
                     // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
                     for (; j == curr_pp && j < jStop; ++j) {
-                        cost = cost + dist(gValue, cols[j]),  // Previous
-                                buffers[c + j] = cost;
+                        cost = cost + dist(gValue, cols[j]);  // Previous
+                        buffers[c + j] = cost;
                         if (cost <= ub) { ++curr_pp; }
                     }
                     // --- --- ---
