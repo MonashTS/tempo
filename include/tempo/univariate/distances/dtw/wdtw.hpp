@@ -165,24 +165,24 @@ namespace tempo::univariate {
      * @return the weight for index i
      */
     template<typename FloatType>
-    [[nodiscard]] inline FloatType compute_weight(FloatType g, FloatType half_max_length, FloatType i) {
-        return WDTW_MAX_WEIGHT / (1 + exp(-g * (i - half_max_length)));
+    [[nodiscard]] inline FloatType compute_weight(FloatType g, FloatType half_max_length, FloatType i, double wmax) {
+        return wmax / (1 + exp(-g * (i - half_max_length)));
     }
 
     /// Populate the weights_array of size length with weights derive from the g factor
     template<typename FloatType>
-    inline void populate_weights(FloatType g, FloatType *weights_array, size_t length) {
+    inline void populate_weights(FloatType g, FloatType *weights_array, size_t length, double wmax=WDTW_MAX_WEIGHT) {
         FloatType half_max_length = FloatType(length) / 2;
         for (size_t i{0}; i < length; ++i) {
-            weights_array[i] = compute_weight(g, half_max_length, FloatType(i));
+            weights_array[i] = compute_weight(g, half_max_length, FloatType(i), wmax);
         }
     }
 
     /// Create a vector of weights
     template<typename FloatType>
-    inline std::vector<FloatType> generate_weights(FloatType g, size_t length){
+    inline std::vector<FloatType> generate_weights(FloatType g, size_t length, double wmax=WDTW_MAX_WEIGHT){
         std::vector<FloatType> weights(length, 0);
-        populate_weights(g, weights.data(), length);
+        populate_weights(g, weights.data(), length, wmax);
         return weights;
     }
 
