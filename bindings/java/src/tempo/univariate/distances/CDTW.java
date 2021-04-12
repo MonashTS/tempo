@@ -13,8 +13,6 @@ import static java.lang.Integer.min;
 public class CDTW {
 	
 	static double distance(double[] lines, double[] cols, int w, double cutoff) {
-		// Upper bound: adjusted cutoff (helps with numerical instability)
-		double ub=cutoff + utils.EPSILON;
 		
 		// Ensure that lines are longer than columns
 		if(lines.length < cols.length) {
@@ -48,11 +46,15 @@ public class CDTW {
 		// Must be init to 0: index 0 is the next starting point and also the "previous pruning point"
 		int next_start = 0;
 		int prev_pp = 0;
+        
+		// --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---		
+		// Upper bound: tightened using the last alignment (requires special handling in the code below)
+		// Add EPSILON helps dealing with numerical instability
+		double ub=cutoff + utils.EPSILON - dist(lines[nblines - 1], cols[nbcols - 1]);
 		
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Initialization of the top border: already initialized to +INF. Initialise the left corner to 0.
         buffers[c-1] = 0;
-		
         
         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         // Main loop
