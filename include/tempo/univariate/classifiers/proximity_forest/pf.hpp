@@ -601,8 +601,10 @@ namespace tempo::univariate::pf {
         sort(roots.begin(), roots.end(), [](const auto& a, const auto& b) -> bool {
           return std::get<2>(a) < std::get<2>(b);
         });
+        /*
         for (const auto&[a, b, c]: roots) { std::cout << " impurity = " << c << std::endl; }
         std::cout << roots.size() << std::endl;
+         */
       }
       auto stop = tempo::timing::now();
       std::cout << "Root pooling done in" << std::endl;
