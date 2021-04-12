@@ -12,6 +12,7 @@
 #include <tempo/univariate/distances/erp/erp.hpp>
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
+#include <tempo/univariate/distances/msm/wmsm.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 
 #include <functional>
@@ -332,7 +333,7 @@ namespace tempo::univariate::pf {
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
       const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
-      // Compute the size of the window - 0 to max l+1/4
+      // Compute the size of the window - 0 to (max l + 1)/4
       const size_t top = (ds.get_header().get_maxl()+1)/4;
       const auto w = std::uniform_int_distribution<size_t>(0, top)(prng);
       // Compute the penalty
@@ -440,6 +441,72 @@ namespace tempo::univariate::pf {
     }
   };
 
+
+  /** Create a NN1-WMSM Classifier with a weight ratio randomly taken in [0,1]
+   * @tparam PRNG Type of the pseudo random number generator
+   */
+  template<typename FloatType, typename LabelType, typename PRNG>
+  struct SG_WMSM : public SplitterGenerator<FloatType, LabelType, PRNG> {
+    using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_WMSM(const TransfromProvider& tp):fun_tp{tp}{ }
+
+    /** MSM cost parameters */
+    /*
+    static constexpr std::array<FloatType, 100> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
+                                                     0.04, 0.04375,
+                                                     0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375,
+                                                     0.0775, 0.08125,
+                                                     0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244,
+                                                     0.28, 0.316, 0.352,
+                                                     0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712,
+                                                     0.748, 0.784,
+                                                     0.82, 0.856, 0.892, 0.928, 0.964, 1, 1.36, 1.72, 2.08, 2.44, 2.8,
+                                                     3.16, 3.52, 3.88,
+                                                     4.24, 4.6, 4.96, 5.32, 5.68, 6.04, 6.4, 6.76, 7.12, 7.48, 7.84,
+                                                     8.2, 8.56, 8.92, 9.28,
+                                                     9.64, 10, 13.6, 17.2, 20.8, 24.4, 28, 31.6, 35.2, 38.8, 42.4, 46,
+                                                     49.6, 53.2, 56.8,
+                                                     60.4, 64, 67.6, 71.2, 74.8, 78.4, 82, 85.6, 89.2, 92.8, 96.4, 100};
+                                                     */
+
+    /** MSM cost parameters */
+    static constexpr std::array<FloatType, 50> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
+                                                     0.04, 0.04375,
+                                                     0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375,
+                                                     0.0775, 0.08125,
+                                                     0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244,
+                                                     0.28, 0.316, 0.352,
+                                                     0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712,
+                                                     0.748, 0.784,
+                                                     0.82, 0.856, 0.892, 0.928, 0.964, 1};
+
+    Splitter_ptr get_splitter(
+      const DS& ds, const IndexSet& is,
+      const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+      // Get a random cost - wmax
+      auto distribution = std::uniform_int_distribution<std::size_t>(0, 49);
+      const FloatType c = cost[distribution(prng)];
+      // Get a max cost based on the stddev
+      auto stddev_ = stddev(is, ds.get_original_handle());
+      //const double c = std::uniform_real_distribution<double>(0.1*stddev_, 100*stddev_)(prng);
+      // Compute the weight vector
+      // const FloatType g = std::uniform_real_distribution<FloatType>(0.045, 0.055)(prng);
+      auto weights = std::make_shared<std::vector<FloatType>>(generate_weights(0.05, ds.get_header().get_maxl(), stddev_));
+      // Get the handler
+      const auto& th = fun_tp(prng);
+      // Create the splitter
+      auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_wmsm<FloatType, LabelType>(weights));
+      // Embed in a unique ptr
+      return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
+    }
+  };
 
 
   // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

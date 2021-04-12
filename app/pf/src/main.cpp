@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
   if (base_seed==0) {
     std::random_device rd;
     base_seed = rd();
+    std::cout << "base seed = " << base_seed << std::endl;
   }
   PRNG prng(base_seed);
 
@@ -142,41 +143,50 @@ int main(int argc, char** argv) {
 
 
   // --- --- --- Compute some info on the dataset
+  std::cout << std::endl;
   std::cout << "Train" << std::endl;
   double train_gini = gini_impurity(train_bcm);
   std::cout << "Size = " << train_is.size() << " Train nb class = " << train_bcm.size() << " - gini impurity = "
             << train_gini << std::endl;
   for (const auto&[label, vec]: train_bcm) { std::cout << "label='" << label << "' size= " << vec.size() << "  "; }
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl;
+  auto train_stddev = stddev(train_is, train_source);
+  std::cout << "stddev = " << train_stddev << std::endl;
+  FloatType train_max=NEGATIVE_INFINITY<FloatType>;
+  FloatType train_min=POSITIVE_INFINITY<FloatType>;
+  for(const auto& ts: *train_source.data){
+    for(size_t idx=0; idx < ts.length(); ++idx){
+      train_min = std::min<FloatType>(ts(0, idx), train_min);
+      train_max = std::max<FloatType>(ts(0, idx), train_max);
+    }
+  }
+  std::cout << "min v = " << train_min << std::endl;
+  std::cout << "max v = " << train_max << std::endl;
+  std::cout << "delta = " << train_max - train_min << std::endl;
 
+  std::cout << std::endl;
   std::cout << "Test" << std::endl;
   double test_gini = gini_impurity(test_bcm);
   std::cout << "Size = " << test_is.size() << " Test nb class = " << test_bcm.size() << " - gini impurity = "
             << test_gini << std::endl;
   for (const auto&[label, vec]: test_bcm) { std::cout << "label='" << label << "' size= " << vec.size() << "  "; }
   std::cout << std::endl;
-
-  // --- --- --- Test splitter generation
-  std::cout << "Exemplars" << std::endl;
-  auto exemplars = pick_one_by_class(train_bcm, prng);
-  for (const auto&[label, vec]: exemplars) {
-    std::cout << "l=" << label << " size= " << vec.size() << " idx = " << vec.front() << std::endl;
-  }
-  IndexSet exemplars_is(exemplars);
-  std::cout << "Size = " << exemplars_is.size() << std::endl;
+  auto test_stddev = stddev(test_is, test_source);
+  std::cout << "stddev = " << test_stddev << std::endl;
 
 
   namespace pf = tempo::univariate::pf;
   using splitgen_ptr = std::unique_ptr<pf::SplitterGenerator<FloatType, LabelType, PRNG>>;
   std::vector<splitgen_ptr> gens;
-  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_WMSM<FloatType, LabelType, PRNG>(transform_provider)));
+  //gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
 
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
@@ -212,9 +222,8 @@ int main(int argc, char** argv) {
   // --- --- --- Test a Forest
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
-  //auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 7, &std::cout);
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7,
-    &std::cout);
+  //auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 4, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   tempo::timing::printDuration(std::cout, stop-start);
