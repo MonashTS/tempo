@@ -182,8 +182,8 @@ namespace tempo::univariate {
                     // --- --- --- Stage 3: At the previous pruning point. Check if we are within bounds.
                     if (j < jStop) { // If so, two cases.
                         if (j == next_start) { // Case 1: Advancing next start: only diag.
-                            cost = buffers[p + j - 1] + dist(li, cols[j]),     // Diagonal
-                                    buffers[c + j] = cost;
+                            cost = buffers[p + j - 1] + dist(li, cols[j]);     // Diagonal
+                            buffers[c + j] = cost;
                             if (cost <= ub) { curr_pp = j + 1; }
                             else {
                                 // Special case if we are on the last alignment: return the actual cost if we are <= cutoff
