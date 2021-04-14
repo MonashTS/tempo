@@ -293,18 +293,10 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                 int idx_eap = 0;
                 double bsf_eap = POSITIVE_INFINITY;
 
-                // LB KEOGH
-                int idx_lbk = 0;
-                double bsf_lbk = POSITIVE_INFINITY;
-                const auto& candidate = fset[i];
-                std::vector<double> up, lo;
-                get_keogh_envelopes(candidate, up, lo, w);
-
                 // NN1 loop
                 for (int j = 0; j < nbitems; j+=5) {
                     // Skip self.
                     if(i==j){continue;}
-                    const auto& query = fset[j];
 
                     // --- --- --- --- --- --- --- --- --- --- --- ---
                     double v_ref = reference::cdtw_matrix(fset[i], fset[j], w);
@@ -329,20 +321,6 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
                     }
 
                     REQUIRE(idx_ref == idx_eap);
-
-                    // --- --- --- --- --- --- --- --- --- --- --- ---
-                    // Test lb keogh: must be a lower bound
-                    double vk = lb_Keogh(query.data(), query.size(), up.data(), lo.data(), bsf_lbk);
-                    if(vk!=POSITIVE_INFINITY){ REQUIRE(vk<=v_eap); }
-                    if(vk<=bsf_lbk){
-                        double v_lbk = cdtw(candidate, query, w, bsf_lbk);
-                        if(v_lbk < bsf_lbk){
-                            idx_lbk = j;
-                            bsf_lbk = v_lbk;
-                        }
-                    }
-
-                    REQUIRE(idx_ref == idx_lbk);
                 }
             }// End window loop
         }// End candidate loop
