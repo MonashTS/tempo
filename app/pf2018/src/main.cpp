@@ -178,8 +178,7 @@ int main(int argc, char** argv) {
   // --- --- --- Test a Forest
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
-  //auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 4, &std::cout);
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 1, &std::cout);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   auto train_time_ns = stop-start;
@@ -187,7 +186,7 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "Starting testing..." << std::endl;
   start = tempo::timing::now();
-  auto classifier = pforest->get_classifier(900, 7);
+  auto classifier = pforest->get_classifier(900, 1);
   size_t nbcorrect{0};
   for (const auto& idx:test_is) {
     auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
@@ -203,19 +202,22 @@ int main(int argc, char** argv) {
   std::cout << "Accuracy: " <<  accuracy*100 << "%" << std::endl;
   std::cout << "Error:    " << 100.0-(accuracy*100.0) << "%" << std::endl;
 
-  using json::JSONValue;
-  auto jsv = JSONValue({
-    {"task", "Tempo.pf2018"},
-    {"train_set", train->get_header().to_json() },
-    {"test_set", test->get_header().to_json() },
-    {"train_time_ns", train_time_ns.count()},
-    {"train_time", tempo::timing::as_string(train_time_ns)},
-    {"test_time_ns", test_time_ns.count()},
-    {"test_time", tempo::timing::as_string(test_time_ns)},
-    {"Correct", nbcorrect},
-    {"Accuracy", accuracy},
-    {"Error", 1.0-accuracy}
-  });
+  if(config.outpath) {
+    using json::JSONValue;
+    auto jsv = JSONValue({
+      {"task",          "Tempo.pf2018"},
+      {"train_set",     train->get_header().to_json()},
+      {"test_set",      test->get_header().to_json()},
+      {"train_time_ns", train_time_ns.count()},
+      {"train_time",    tempo::timing::as_string(train_time_ns)},
+      {"test_time_ns",  test_time_ns.count()},
+      {"test_time",     tempo::timing::as_string(test_time_ns)},
+      {"Correct",       nbcorrect},
+      {"Accuracy",      accuracy},
+      {"Error",         1.0-accuracy}
+    });
+    ifstream out(config.outpath.value());
+    cout << to_string(jsv) << std::endl;
+  }
 
-  std::cout << to_string(jsv) << std::endl;
 }

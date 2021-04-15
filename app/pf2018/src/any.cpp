@@ -14,7 +14,11 @@ using tempo::reader::as_int;
 
 
 void print_usage(const string& execname, ostream& out) {
-  out << "Proximity Forest - Monash University, Melbourne, Australia, 2021" << endl;
+  out << "Proximity Forest 2018 - Monash University, Melbourne, Australia, 2021" << endl;
+  out << "Simple reimplementation of the original Proximity Forest first released in 2018." << endl;
+  out << "This version removes some switches mainly use for research purpose, and takes ts files as input." << endl;
+  out << "See https://github.com/fpetitjean/ProximityForest for the original Java code." << endl;
+  out << "See https://www.timeseriesclassification.com/ to obtain the UCR datasets." << endl;
   out << "    Command:" << endl;
   out << "        " << execname
       << "< -ucr path name | -tt trainpath testpath> [-c nb candidates] [-t nb trees] [-out outfile]";
