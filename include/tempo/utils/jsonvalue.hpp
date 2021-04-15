@@ -45,22 +45,28 @@ namespace tempo::json {
     JSONValue()
       :index{Index::null} { }
 
-    explicit JSONValue(bool b)
+    JSONValue(bool b)
       :index{Index::boolean}, datum{.boolean = b} { }
 
-    explicit JSONValue(const char* s)
+    JSONValue(const char* s)
       :index{Index::str}, datum{.str = new std::string(s)} { }
 
-    explicit JSONValue(const std::string& s)
+    JSONValue(const std::string& s)
       :index{Index::str}, datum{.str = new std::string(s)} { }
 
-    explicit JSONValue(double n)
+    JSONValue(double n)
       :index{Index::number}, datum{.number = n} { }
 
-    explicit JSONValue(JSONArray&& vec)
+    JSONValue(size_t n)
+      :index{Index::number}, datum{.number = (double)n} { }
+
+    JSONValue(ssize_t n)
+      :index{Index::number}, datum{.number = (double)n} { }
+
+    JSONValue(JSONArray&& vec)
       :index{Index::array}, datum{.array = new JSONArray(std::forward<JSONArray>(vec))} { }
 
-    explicit JSONValue(JSONObject&& obj)
+    JSONValue(JSONObject&& obj)
       :index{Index::object}, datum{.object = new JSONObject(std::forward<JSONObject>(obj))} { }
 
     // Collection into vector
