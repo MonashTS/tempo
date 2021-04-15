@@ -7,8 +7,8 @@
 
 #include <tempo/utils/utils/timing.hpp>
 
-#include <tempo/univariate/classifiers/proximity_forest/pf.hpp>
-#include <tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp>
+#include <tempo/univariate/classifiers/proximity_forest_2018/pf.hpp>
+#include <tempo/univariate/classifiers/proximity_forest_2018/splitters/distances_splitters.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
 
 #include <tempo/utils/jsonvalue.hpp>
@@ -216,8 +216,8 @@ int main(int argc, char** argv) {
       {"Accuracy",      accuracy},
       {"Error",         1.0-accuracy}
     });
-    ifstream out(config.outpath.value());
-    cout << to_string(jsv) << std::endl;
+    ofstream out(config.outpath.value());
+    out << to_string(jsv) << std::endl;
   }
 
 }

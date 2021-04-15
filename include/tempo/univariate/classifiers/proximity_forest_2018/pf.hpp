@@ -468,23 +468,22 @@ namespace tempo::univariate::pf {
       [[nodiscard]] std::vector<std::string> classify(const DS& qset, size_t query_index) {
         std::map<std::string, int> score;
         std::mutex mutex;
-        std::atomic<bool> go_on(true);
-        int max_score{0};
-        std::string max_class;
+        //std::atomic<bool> go_on(true);
+        //int max_score{0};
 
         // --- --- --- Lambda: classify several trees
-        auto multi_classif = [&qset, query_index, &mutex, &score, &max_score, &go_on, this](size_t starti, size_t nb) {
+        auto multi_classif = [&qset, query_index, &mutex, &score, /*&max_score, &go_on,*/ this](size_t starti, size_t nb) {
           PRNG prng(this->base_seed+starti);
           auto top = starti+nb;
-          for (size_t i{starti}; i<top && go_on.load(); ++i) {
+          for (size_t i{starti}; i<top /*&& go_on.load()*/; ++i) {
             const auto& tree = this->pf.forest[i];
             auto ctree = tree->get_classifier(prng);
             auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
             {
               const std::lock_guard lock(mutex);
               score[cl] += 1;
-              max_score = std::max(max_score, score[cl]);
-              if (max_score>=majority) { go_on.store(false); }
+              //max_score = std::max(max_score, score[cl]);
+              //if (max_score>=majority) { go_on.store(false); }
             }
           }
         };

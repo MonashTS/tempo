@@ -44,10 +44,10 @@ set(TEMPO_SRC
         # --- --- --- --- Classifiers
         # --- --- --- --- --- NN1
         include/tempo/univariate/classifiers/nn1/nn1.hpp
-        # --- --- --- --- --- PF
-        include/tempo/univariate/classifiers/proximity_forest/pf.hpp
-        include/tempo/univariate/classifiers/proximity_forest/splitters/splitters.hpp
-        include/tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp
+        # --- --- --- --- --- PF 2018
+        include/tempo/univariate/classifiers/proximity_forest_2018/pf.hpp
+        include/tempo/univariate/classifiers/proximity_forest_2018/splitters/splitters.hpp
+        include/tempo/univariate/classifiers/proximity_forest_2018/splitters/distances_splitters.hpp
         # --- --- --- --- Distances
         include/tempo/univariate/distances/distances.hpp
         include/tempo/univariate/distances/dtw/lowerbound/envelopes.hpp
