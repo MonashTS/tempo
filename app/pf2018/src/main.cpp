@@ -197,20 +197,24 @@ int main(int argc, char** argv) {
   std::cout << "Testing done in" << std::endl;
   auto test_time_ns = stop-start;
   tempo::timing::printDuration(std::cout, test_time_ns);
+  double accuracy = double(nbcorrect)/test_is.size();
   std::cout << std::endl;
   std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
-  std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
-  std::cout << "Error:    " << 100.0-(double(nbcorrect)/test_is.size()*100.0) << "%" << std::endl;
+  std::cout << "Accuracy: " <<  accuracy*100 << "%" << std::endl;
+  std::cout << "Error:    " << 100.0-(accuracy*100.0) << "%" << std::endl;
 
   using json::JSONValue;
   auto jsv = JSONValue({
-    {"task", JSONValue("Tempo.pf2018")},
+    {"task", "Tempo.pf2018"},
     {"train_set", train->get_header().to_json() },
     {"test_set", test->get_header().to_json() },
-    {"train_time_ns", JSONValue((double) train_time_ns.count())},
-    {"train_time", JSONValue(tempo::timing::as_string(train_time_ns))},
-    {"test_time_ns", JSONValue((double) test_time_ns.count())},
-    {"test_time", JSONValue(tempo::timing::as_string(test_time_ns))}
+    {"train_time_ns", train_time_ns.count()},
+    {"train_time", tempo::timing::as_string(train_time_ns)},
+    {"test_time_ns", test_time_ns.count()},
+    {"test_time", tempo::timing::as_string(test_time_ns)},
+    {"Correct", nbcorrect},
+    {"Accuracy", accuracy},
+    {"Error", 1.0-accuracy}
   });
 
   std::cout << to_string(jsv) << std::endl;
