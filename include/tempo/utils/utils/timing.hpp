@@ -49,6 +49,12 @@ namespace tempo::timing {
         }
     }
 
+    /** Shortcut to print in a string */
+    [[nodiscard]] inline std::string as_string(const duration_t &elapsed){
+      std::stringstream ss;
+      printDuration(ss, elapsed);
+      return ss.str();
+    }
 
     /** Shortcut for the above function, converting two time points into a duration. */
     inline void printExecutionTime(std::ostream &out, time_point_t start_time, time_point_t end_time) {
@@ -62,5 +68,6 @@ namespace tempo::timing {
         printExecutionTime(ss, start_time, end_time);
         return ss.str();
     }
+
 
 } // End of namespace tempo::timing

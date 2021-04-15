@@ -37,13 +37,7 @@ namespace tempo::univariate::pf {
     DFun distance;
 
     NN1Splitter(const TH& transform_handle, const ByClassMap<LabelType>& bcm_exemplars, DFun distance)
-      :
-      //train_set(transform_handle.data),
-      //transform_index(transform_handle.index),
-       exemplars{},
-       distance(distance) {
-      train_set = transform_handle.data;
-      transform_index = transform_handle.index;
+      : train_set(transform_handle.data), transform_index(transform_handle.index), exemplars{}, distance(distance) {
       exemplars.reserve(bcm_exemplars.size());
       for (const auto&[label, vec]: bcm_exemplars) { exemplars.template emplace_back(LabelIndex{label, vec.front()}); }
     }
@@ -160,29 +154,29 @@ namespace tempo::univariate::pf {
 
 
 
-    /* Classic classify - train
-    std::vector<LabelType> classify_test(const DS& ds, size_t index) {
-      const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
-      double bsf = POSITIVE_INFINITY<double>;
-      std::vector<LabelType> labels{};
-      for (const auto&[ex_label, ex_index]: exemplars) {
-        const TS& candidate = (*train_set)[ex_index];
-        auto dist = distance(candidate, query, bsf);
-        if (dist<bsf) {
-          labels.clear();
-          labels.emplace_back(candidate.get_label().value());
-          bsf = dist;
-        } else if (bsf==dist) { // Manage ties
-          const auto& l = candidate.get_label().value();
-          if (std::none_of(labels.begin(), labels.end(), [l](const auto& v) { return v==l; })) {
-            labels.emplace_back(l);
-          }
+  /* Classic classify - train
+  std::vector<LabelType> classify_test(const DS& ds, size_t index) {
+    const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
+    double bsf = POSITIVE_INFINITY<double>;
+    std::vector<LabelType> labels{};
+    for (const auto&[ex_label, ex_index]: exemplars) {
+      const TS& candidate = (*train_set)[ex_index];
+      auto dist = distance(candidate, query, bsf);
+      if (dist<bsf) {
+        labels.clear();
+        labels.emplace_back(candidate.get_label().value());
+        bsf = dist;
+      } else if (bsf==dist) { // Manage ties
+        const auto& l = candidate.get_label().value();
+        if (std::none_of(labels.begin(), labels.end(), [l](const auto& v) { return v==l; })) {
+          labels.emplace_back(l);
         }
       }
-      return labels;
     }
-  };
-   */
+    return labels;
+  }
+};
+ */
 
 
 
@@ -204,7 +198,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_DTW(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_DTW(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -232,7 +227,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_CDTW(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_CDTW(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -262,7 +258,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_WDTW(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_WDTW(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -297,7 +294,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_Eucl(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_Eucl(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -328,7 +326,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_ERP(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_ERP(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -367,7 +366,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_LCSS(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_LCSS(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -407,7 +407,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_MSM(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_MSM(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     /** MSM cost parameters */
     static constexpr std::array<FloatType, 100> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
@@ -441,7 +442,6 @@ namespace tempo::univariate::pf {
     }
   };
 
-
   /** Create a NN1-WMSM Classifier with a weight ratio randomly taken in [0,1]
    * @tparam PRNG Type of the pseudo random number generator
    */
@@ -455,7 +455,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_WMSM(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_WMSM(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     /** MSM cost parameters */
     /*
@@ -478,14 +479,14 @@ namespace tempo::univariate::pf {
 
     /** MSM cost parameters */
     static constexpr std::array<FloatType, 50> cost{0.01, 0.01375, 0.0175, 0.02125, 0.025, 0.02875, 0.0325, 0.03625,
-                                                     0.04, 0.04375,
-                                                     0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375,
-                                                     0.0775, 0.08125,
-                                                     0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244,
-                                                     0.28, 0.316, 0.352,
-                                                     0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712,
-                                                     0.748, 0.784,
-                                                     0.82, 0.856, 0.892, 0.928, 0.964, 1};
+                                                    0.04, 0.04375,
+                                                    0.0475, 0.05125, 0.055, 0.05875, 0.0625, 0.06625, 0.07, 0.07375,
+                                                    0.0775, 0.08125,
+                                                    0.085, 0.08875, 0.0925, 0.09625, 0.1, 0.136, 0.172, 0.208, 0.244,
+                                                    0.28, 0.316, 0.352,
+                                                    0.388, 0.424, 0.46, 0.496, 0.532, 0.568, 0.604, 0.64, 0.676, 0.712,
+                                                    0.748, 0.784,
+                                                    0.82, 0.856, 0.892, 0.928, 0.964, 1};
 
     Splitter_ptr get_splitter(
       const DS& ds, const IndexSet& is,
@@ -498,7 +499,8 @@ namespace tempo::univariate::pf {
       //const double c = std::uniform_real_distribution<double>(0.1*stddev_, 100*stddev_)(prng);
       // Compute the weight vector
       // const FloatType g = std::uniform_real_distribution<FloatType>(0.045, 0.055)(prng);
-      auto weights = std::make_shared<std::vector<FloatType>>(generate_weights(0.05, ds.get_header().get_maxl(), stddev_));
+      auto weights = std::make_shared<std::vector<FloatType>>(
+        generate_weights(0.05, ds.get_header().get_maxl(), stddev_));
       // Get the handler
       const auto& th = fun_tp(prng);
       // Create the splitter
@@ -526,7 +528,8 @@ namespace tempo::univariate::pf {
 
     TransfromProvider fun_tp;
 
-    explicit SG_TWE(const TransfromProvider& tp):fun_tp{tp}{ }
+    explicit SG_TWE(const TransfromProvider& tp)
+      :fun_tp{tp} { }
 
     /** TWE nu parameters */
     static constexpr std::array<FloatType, 10> nus{0.00001, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1};

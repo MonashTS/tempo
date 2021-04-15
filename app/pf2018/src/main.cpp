@@ -11,6 +11,8 @@
 #include <tempo/univariate/classifiers/proximity_forest/splitters/distances_splitters.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
 
+#include <tempo/utils/jsonvalue.hpp>
+
 #include <filesystem>
 #include <fstream>
 
@@ -95,54 +97,8 @@ int main(int argc, char** argv) {
     std::cout << to_string(test->get_header().to_json()) << std::endl;
   }
 
-  // --- --- --- Transforms
-  // --- --- --- --- Original
-  auto train_source = train->get_original_handle();
-  IndexSet train_is(*train);
-  auto train_bcm = get_by_class(*train, train_is);
-
-  auto test_source = test->get_original_handle();
-  IndexSet test_is(*test);
-  auto test_bcm = get_by_class(*test, test_is);
-
-  // --- --- --- --- Derivative 1
-  tu::DerivativeTransformer<FloatType, LabelType> deriver1(1);
-  const auto train_source_d1 = deriver1.transform_and_add(train_source);
-  const auto test_source_d1 = deriver1.transform_and_add(test_source);
-
-  // --- --- --- --- Derivative 2
-  tu::DerivativeTransformer<FloatType, LabelType> deriver2(2);
-  const auto train_source_d2 = deriver2.transform_and_add(train_source);
-  const auto test_source_d2 = deriver2.transform_and_add(test_source);
-
-  // --- --- --- --- Derivative 3
-  tu::DerivativeTransformer<FloatType, LabelType> deriver3(3);
-  const auto train_source_d3 = deriver3.transform_and_add(train_source);
-  const auto test_source_d3 = deriver3.transform_and_add(test_source);
-
-  // --- --- --- --- Transform provider
-  using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
-  using TransfromProvider = std::function<const TH&(PRNG&)>;
-
-  TransfromProvider transform_provider =
-    [&train_source, &train_source_d1, &train_source_d2, &train_source_d3](PRNG& prng) -> const TH& {
-      std::discrete_distribution<size_t> transform_weights{4, 2, 1, 1};
-      size_t index = transform_weights(prng);
-      if (index==0) {
-        return train_source;
-      } else if (index==1) {
-        return train_source_d1;
-      } else if (index==2) {
-        return train_source_d2;
-      } else if (index==3) {
-        return train_source_d3;
-      }
-      tempo::should_not_happen();
-    };
-
-
-
   // --- --- --- Compute some info on the dataset
+  /*
   std::cout << std::endl;
   std::cout << "Train" << std::endl;
   double train_gini = gini_impurity(train_bcm);
@@ -173,51 +129,51 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   auto test_stddev = stddev(test_is, test_source);
   std::cout << "stddev = " << test_stddev << std::endl;
+   */
 
+  // --- --- --- Transforms
+  // --- --- --- --- Original
+  auto train_source = train->get_original_handle();
+  IndexSet train_is(*train);
+  auto train_bcm = get_by_class(*train, train_is);
+
+  auto test_source = test->get_original_handle();
+  IndexSet test_is(*test);
+  auto test_bcm = get_by_class(*test, test_is);
+
+  // --- --- --- --- Derivative
+  tu::DerivativeTransformer<FloatType, LabelType> deriver1(1);
+  const auto train_source_d1 = deriver1.transform_and_add(train_source);
+  const auto test_source_d1 = deriver1.transform_and_add(test_source);
+
+  // --- --- --- --- Transform provider
+  using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
+  using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+  TransfromProvider transform_provider = [&train_source](PRNG& prng) -> const TH& { return train_source; };
+
+  TransfromProvider transform_provider_d1 = [&train_source_d1](PRNG& prng) -> const TH& {return train_source_d1; };
+
+
+
+  // --- --- --- Splitters
 
   namespace pf = tempo::univariate::pf;
   using splitgen_ptr = std::unique_ptr<pf::SplitterGenerator<FloatType, LabelType, PRNG>>;
   std::vector<splitgen_ptr> gens;
-  //gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_WMSM<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
 
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
-
-  // --- --- --- Test a tree
-  /*
-  std::cout << "Starting training..." << std::endl;
-  auto start = tempo::timing::now();
-  auto ptree = tu::pf::PTree<FloatType, LabelType>::template make<PRNG>(*train, train_bcm, 5, sg, prng);
-  auto stop = tempo::timing::now();
-  std::cout << "Training done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
-  std::cout << std::endl;
-  std::cout << "  Tree depth: " << ptree->depth() << std::endl;
-  std::cout << "  Nb node:    " << ptree->node_number() << std::endl;
-  std::cout << "  Nb leaf:    " << ptree->leaf_number() << std::endl;
-
-  std::cout << "Starting testing..." << std::endl;
-  start = tempo::timing::now();
-  auto classifier = ptree->get_classifier(prng);
-  size_t nbcorrect{0};
-  for (const auto& idx:test_is) {
-    auto res = tempo::rand::pick_one(classifier.classify(*test, idx), prng);
-    if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
-  }
-  stop = tempo::timing::now();
-  std::cout << "Testing done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
-  std::cout << std::endl;
-  std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
-  std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
-   */
 
   // --- --- --- Test a Forest
   std::cout << "Starting training..." << std::endl;
@@ -226,7 +182,8 @@ int main(int argc, char** argv) {
   auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make_poolroot(*train, 100, 5, sg, 700, 7, &std::cout);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
+  auto train_time_ns = stop-start;
+  tempo::timing::printDuration(std::cout, train_time_ns);
   std::cout << std::endl;
   std::cout << "Starting testing..." << std::endl;
   start = tempo::timing::now();
@@ -238,9 +195,23 @@ int main(int argc, char** argv) {
   }
   stop = tempo::timing::now();
   std::cout << "Testing done in" << std::endl;
-  tempo::timing::printDuration(std::cout, stop-start);
+  auto test_time_ns = stop-start;
+  tempo::timing::printDuration(std::cout, test_time_ns);
   std::cout << std::endl;
   std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
   std::cout << "Accuracy: " << double(nbcorrect)/test_is.size()*100.0 << "%" << std::endl;
   std::cout << "Error:    " << 100.0-(double(nbcorrect)/test_is.size()*100.0) << "%" << std::endl;
+
+  using json::JSONValue;
+  auto jsv = JSONValue({
+    {"task", JSONValue("Tempo.pf2018")},
+    {"train_set", train->get_header().to_json() },
+    {"test_set", test->get_header().to_json() },
+    {"train_time_ns", JSONValue((double) train_time_ns.count())},
+    {"train_time", JSONValue(tempo::timing::as_string(train_time_ns))},
+    {"test_time_ns", JSONValue((double) test_time_ns.count())},
+    {"test_time", JSONValue(tempo::timing::as_string(test_time_ns))}
+  });
+
+  std::cout << to_string(jsv) << std::endl;
 }

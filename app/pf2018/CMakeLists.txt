@@ -13,12 +13,12 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Read version from file
 set(CMAKE_CXX_STANDARD 17)
 read_version(VERSION ../../include/tempo/utils/version.hpp)
-project(pf LANGUAGES CXX VERSION ${VERSION})
+project(pf2018 LANGUAGES CXX VERSION ${VERSION})
 
 add_subdirectory(../../ cpp EXCLUDE_FROM_ALL)
 
 
-add_executable(pf
+add_executable(pf2018
         src/main.cpp
         ../utils/parsarg.hpp
         ../utils/parsarg_predefs.hpp
@@ -26,5 +26,5 @@ add_executable(pf
         src/any.cpp
         )
 
-target_link_libraries(pf PRIVATE tempo)
-target_include_directories(pf PRIVATE src)
+target_link_libraries(pf2018 PRIVATE tempo)
+target_include_directories(pf2018 PRIVATE src)

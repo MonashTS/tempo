@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <vector>
 #include <sstream>
+#include <iomanip>
 
 namespace tempo::json {
 
@@ -201,7 +202,10 @@ namespace tempo::json {
       }
 
       case JSONValue::Index::number: {
+        std::ios_base::fmtflags f( os.flags() );
+        os << std::setprecision(12);
         os << value.datum.number;
+        os.flags( f );
         break;
       }
 
