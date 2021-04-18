@@ -46,13 +46,11 @@ int main(int argc, char** argv) {
   CMDArgs config = read_args(argc, argv);
 
   // --- --- --- Manage random seed and Pseudo Random Number Generator
-  size_t base_seed = config.random_seed;
-  if (base_seed==0) {
+  if (config.random_seed==0) {
     std::random_device rd;
-    base_seed = rd();
-    std::cout << "base seed = " << base_seed << std::endl;
+    config.random_seed = rd();
   }
-  PRNG prng(base_seed);
+  PRNG prng(config.random_seed);
 
   // --- Dataset path
   fs::path path_train;
@@ -176,9 +174,10 @@ int main(int argc, char** argv) {
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
   // --- --- --- Test a Forest
+  std::cout << "seed = " << config.random_seed << std::endl;
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, 100, 5, sg, 700, 1, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, config.nb_trees, config.nb_candidates, sg, config.random_seed, 1, &std::cout);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   auto train_time_ns = stop-start;
@@ -186,10 +185,11 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "Starting testing..." << std::endl;
   start = tempo::timing::now();
-  auto classifier = pforest->get_classifier(900, 1);
+  auto classifier = pforest->get_classifier(config.random_seed, 1);
   size_t nbcorrect{0};
   for (const auto& idx:test_is) {
-    auto res = tempo::rand::pick_one(classifier->classify(*test, idx), prng);
+    auto resvec = classifier->classify(*test, idx);
+    auto res = tempo::rand::pick_one(resvec, prng);
     if (res==test->get_original()[idx].get_label().value()) { nbcorrect++; }
   }
   stop = tempo::timing::now();

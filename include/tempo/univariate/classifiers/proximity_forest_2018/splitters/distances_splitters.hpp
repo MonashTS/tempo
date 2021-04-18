@@ -46,6 +46,7 @@ namespace tempo::univariate::pf {
      *  Initialisation with the distance to exemplar of the same class.
      *  Note: in case of ties, order in labels may be different to a simple loop.
      * */
+     /*
     std::vector<LabelType> classify_train(const DS& ds, size_t index) {
       const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
       const auto& query_label = query.get_label().value();
@@ -83,9 +84,10 @@ namespace tempo::univariate::pf {
       }
       return labels;
     }
+    */
 
-    /* Classic classify - train
-      std::vector<LabelType> classify_train(const DS& ds, size_t index, const LabelType& mflabel) {
+    // Classic classify - train
+      std::vector<LabelType> classify_train(const DS& ds, size_t index) {
         const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
         double bsf = POSITIVE_INFINITY<double>;
         std::vector<LabelType> labels{};
@@ -105,9 +107,10 @@ namespace tempo::univariate::pf {
         }
         return labels;
       }
-      */
 
 
+
+      /*
     std::vector<LabelType> classify_test(const DS& ds, size_t index, const LabelType& mflabel) override {
 
       const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
@@ -150,12 +153,12 @@ namespace tempo::univariate::pf {
       return labels;
     }
   };
+ */
 
 
 
-
-  /* Classic classify - train
-  std::vector<LabelType> classify_test(const DS& ds, size_t index) {
+  // Classic classify - train
+  std::vector<LabelType> classify_test(const DS& ds, size_t index, const LabelType& mflabel) {
     const TS& query = ((std::vector<TS>*) ds.get_transform(transform_index).get_data_ptr())->operator[](index);
     double bsf = POSITIVE_INFINITY<double>;
     std::vector<LabelType> labels{};
@@ -176,7 +179,7 @@ namespace tempo::univariate::pf {
     return labels;
   }
 };
- */
+
 
 
 
