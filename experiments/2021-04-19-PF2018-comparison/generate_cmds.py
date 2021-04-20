@@ -42,7 +42,7 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
     erp_g, erp_w = record
 
     cmd= str(EXEC_PATH)+f" -ucr {UCR_PATH} {name} -t 100 -c 5 -out {RESULT_DIR}/{name}.json"
-    print(cmd)#, file=output)
+    print(cmd, file=output)
 
 
 
@@ -54,19 +54,19 @@ if __name__ == '__main__':
     OUT_DIR = pathlib.Path("generated-"+timestamp).absolute()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # ### ### All
+    OUT_CMD = (OUT_DIR/"commands").absolute()
+    OUT = open(OUT_CMD, "w")
+
     # ### ### CPP & TS
     UCR_TS_PATH = str(CONFIGURE_ME.get_ucr_folder())
     EXEC_CPP_PATH = pathlib.Path("../../app/pf2018/cmake-build-release/pf2018").absolute()
-    OUT_CPP_CMD = (OUT_DIR/"cpp_commands").absolute()
-    OUT_CPP = open(OUT_CPP_CMD, "w")
     RESULT_CPP_DIR = (OUT_DIR/"cpp_results").absolute()
     RESULT_CPP_DIR.mkdir(parents=True, exist_ok=True)
 
     # ### ### Java & ARFF
     UCR_ARFF_PATH = UCR_TS_PATH.replace("Univariate_ts", "Univariate_arff")
     EXEC_JAVA_PATH = pathlib.Path("PF2018_java/pf2018java.sh").absolute()
-    OUT_JAVA_CMD = (OUT_DIR/"java_commands").absolute()
-    OUT_JAVA = open(OUT_JAVA_CMD, "w")
     RESULT_JAVA_DIR = (OUT_DIR/"java_results").absolute()
     RESULT_JAVA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -76,8 +76,8 @@ if __name__ == '__main__':
         header = next(records)          # Skip header
         print(header)
         for r in records:
-            generate_java_cmd(EXEC_JAVA_PATH, UCR_ARFF_PATH, RESULT_JAVA_DIR, r, OUT_JAVA)
-            generate_cpp_cmd(EXEC_CPP_PATH, UCR_TS_PATH, RESULT_CPP_DIR, r, OUT_CPP)
+            generate_java_cmd(EXEC_JAVA_PATH, UCR_ARFF_PATH, RESULT_JAVA_DIR, r, OUT)
+            generate_cpp_cmd(EXEC_CPP_PATH, UCR_TS_PATH, RESULT_CPP_DIR, r, OUT)
 
     # --- --- --- --- CPU INFO
     # CPU_INFO file
