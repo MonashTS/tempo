@@ -23,7 +23,7 @@ def generate_java_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
 
     dataset=f"{UCR_PATH}/{name}/{name}"
 
-    cmd= str(EXEC_PATH)+f" -target_column=last -train={dataset}_TRAIN.arff -test={dataset}_TEST.arff -trees=100 -r=5 -export=1 -out={RESULT_DIR}"
+    cmd= str(EXEC_PATH)+f" -target_column=last -train={dataset}_TRAIN.arff -test={dataset}_TEST.arff -trees=100 -r=5 > {RESULT_DIR}/{name}"
     print(cmd, file=output)
 
 
