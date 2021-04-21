@@ -2,6 +2,7 @@
 
 #include <catch.hpp>
 #include <tempo/univariate/distances/dtw/cdtw.hpp>
+#include <tempo/univariate/distances/dtw/fastee/cdtw.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/envelopes.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp>
 #include <tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp>
@@ -9,6 +10,8 @@
 
 #include "../tests_tools.hpp"
 #include "references/dtw/cdtw.hpp"
+
+#include <iostream>
 
 using namespace tempo::univariate;
 constexpr double POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<double>;
@@ -325,4 +328,30 @@ TEST_CASE("CDTW variable length", "[cdtw]") {
             }// End window loop
         }// End candidate loop
     }// End Section
+}
+
+TEST_CASE("CDTW FastEE Fixed length", "[cdtw]") {
+
+  Catch::StringMaker<double>::precision = 18;
+
+  // Create a random dataset
+  constexpr int nbitems = ttools::def_nbitems;
+  constexpr int fixed = ttools::def_fixed_size;
+  const auto fset = ttools::get_set_fixed_length(ttools::prng, nbitems, fixed);
+
+  // Query loop
+  for (int i = 0; i < nbitems; i += 3) {
+    // Candidate loop
+    for (int j = 0; j < nbitems; j += 5) {
+      if (i!=0 && i == j) { continue; }
+      const auto &query = fset[i];
+      const auto &candidate = fset[j];
+      auto [res1, w1] = fastee::cdtw(query.data(), query.size(), candidate.data(), candidate.size(), fixed, POSITIVE_INFINITY);
+      auto [res2, w2] = fastee::cdtw(query.data(), query.size(), candidate.data(), candidate.size(), w1, POSITIVE_INFINITY);
+      std::cout << "(i,j) = " << i << ", " << j << " res1 = " << res1 << " max window = " << fixed << " next window = " << w1 << " " << w2 <<  std::endl;
+      REQUIRE(w1 == w2);
+      REQUIRE(res1 == res2);
+    }
+  }
+
 }
