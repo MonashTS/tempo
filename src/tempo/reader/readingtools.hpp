@@ -116,14 +116,16 @@ namespace tempo::reader {
         }
     }
 
-    /** Attempt to convert a string into an size_t */
+    /** Attempt to convert a string into an integer */
     inline std::optional<size_t> as_size_t(const std::string &str) {
-        try {
-            size_t i = std::stoul(str);
-            return {i};
-        } catch (...) {
-            return {};
-        }
+      try {
+          std::stringstream sstream(str);
+          size_t result;
+          sstream >> result;
+          return {result};
+      } catch (...) {
+        return {};
+      }
     }
 
     /** Attempt to convert a string into an double */

@@ -13,6 +13,7 @@
 #include <tempo/univariate/distances/lcss/lcss.hpp>
 #include <tempo/univariate/distances/msm/msm.hpp>
 #include <tempo/univariate/distances/msm/wmsm.hpp>
+#include <tempo/univariate/distances/sed/sed.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 
 #include <functional>
@@ -511,6 +512,45 @@ namespace tempo::univariate::pf {
       // Embed in a unique ptr
       return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
     }
+  };
+
+
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  // --- --- --- SED
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+  template<typename FloatType, typename LabelType, typename PRNG>
+  struct SG_SED : public SplitterGenerator<FloatType, LabelType, PRNG> {
+    using DS = Dataset<FloatType, LabelType>;
+    using TS = TSeries<FloatType, LabelType>;
+    using TH = TransformHandle<std::vector<TS>, FloatType, LabelType>;
+    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+    using TransfromProvider = std::function<const TH&(PRNG&)>;
+
+    TransfromProvider fun_tp;
+
+    explicit SG_SED(const TransfromProvider& tp)
+        :fun_tp{tp} { }
+
+    Splitter_ptr get_splitter(
+        const DS& ds, const IndexSet& is,
+        const ByClassMap<LabelType>& exemplars, PRNG& prng) override {
+      // Get the handler
+      const auto& th = fun_tp(prng);
+      // Create the penalty
+      double avg_amp_ = avg_amp(is, ds.get_original_handle());
+      double max_v_ = max_v(is, ds.get_original_handle());
+      double v = (max_v_ + avg_amp_)/2;
+      //const double penalty = std::uniform_real_distribution<double>(0, avg_amp_)(prng);
+      const FloatType g = std::uniform_real_distribution<FloatType>(0.01, 0.5)(prng);
+      auto weights = std::make_shared<std::vector<FloatType>>(generate_weights(g, ds.get_header().get_maxl(), v));
+      const FloatType dw = std::uniform_real_distribution<FloatType>(0.01, 1)(prng);
+      // Create the splitter
+      auto* nn1splitter = new NN1Splitter(th, exemplars, distfun_cutoff_sed<FloatType, LabelType>(weights, dw));
+      // Embed in a unique ptr
+      return std::unique_ptr<Splitter<FloatType, LabelType>>(nn1splitter);
+    }
+
   };
 
 

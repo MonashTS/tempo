@@ -427,5 +427,34 @@ namespace tempo {
     return s.get_stddev_p();
   }
 
+/** Compute the avergare ampltiude of a selection of a dataset, over a transform that is serie-like */
+template<typename FloatType, typename LabelType>
+FloatType avg_amp(
+    const IndexSet& is,
+    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t) {
+  double amp=0;
+  double count=0;
+  for (const auto& ts: t.get()) {
+    for (size_t i{0}; i<ts.length(); ++i) {
+      amp+=ts(0, i);
+    }
+    count += ts.length();
+  }
+  return amp/count;
+}
+
+/** Compute the avergare ampltiude of a selection of a dataset, over a transform that is serie-like */
+template<typename FloatType, typename LabelType>
+FloatType max_v(
+    const IndexSet& is,
+    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t)
+    {
+  double mv=0;
+  for (const auto& ts: t.get()) {
+    for (size_t i{0}; i<ts.length(); ++i) { mv=std::max(mv, std::fabs(ts(0, i)));}
+  }
+  return mv;
+}
+
 
 } // End of namespace tempo
