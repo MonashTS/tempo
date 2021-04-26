@@ -62,6 +62,8 @@ set(TEMPO_SRC
         include/tempo/univariate/distances/lcss/lcss.hpp
         include/tempo/univariate/distances/msm/msm.hpp
         include/tempo/univariate/distances/msm/wmsm.hpp
+        include/tempo/univariate/distances/sed/sed.hpp
+        include/tempo/univariate/distances/twe/twe.hpp
         # --- --- --- --- Distances - FastEE
         include/tempo/univariate/distances/dtw/fastee/cdtw.hpp
         # --- --- --- --- Transforms

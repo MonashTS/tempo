@@ -307,7 +307,12 @@ namespace PArg {
         return [](const std::string &s) { return tempo::reader::as_int(s); };
     }
 
-    /// Read a floating point number. Do the validation in the 'update' function.
+    /// Read a size_t. Do the validation in the 'update' function.
+    [[nodiscard]] inline fnBaseReader<size_t> read_size_t() {
+      return [](const std::string &s) { return tempo::reader::as_size_t(s); };
+    }
+
+  /// Read a floating point number. Do the validation in the 'update' function.
     [[nodiscard]] inline fnBaseReader<double> number() {
         return [](const std::string &s) { return tempo::reader::as_double(s); };
     }
