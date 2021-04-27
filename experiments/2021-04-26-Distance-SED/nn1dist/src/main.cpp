@@ -2,6 +2,7 @@
 #include <unordered_map>
 
 #include <tempo/utils/utils.hpp>
+#include <tempo/utils/partasks.hpp>
 #include <tempo/utils/utils/timing.hpp>
 #include <tempo/utils/jsonvalue.hpp>
 #include <tempo/univariate/distances/sed/sed.hpp>
@@ -9,10 +10,6 @@
 #include <tempo/tseries/dataset.hpp>
 #include <filesystem>
 #include <fstream>
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-#include <queue>
 
 // --- --- --- Namespaces
 using namespace std;
@@ -28,58 +25,6 @@ using TS = tempo::TSeries<FloatType, LabelType>;
 using DS = tempo::Dataset<FloatType, LabelType>;
 using TH = tempo::TransformHandle<vector<TS>, FloatType, LabelType>;
 using distfun_t = function<FloatType(size_t query_idx, size_t candidate_idx, FloatType bsf)>;
-
-class ThreadPool {
-public:
-
-  ThreadPool(int threads)
-    :shutdown_(false) {
-    // Create the specified number of threads
-    threads_.reserve(threads);
-    for (int i = 0; i<threads; ++i) { threads_.emplace_back([this, i]() { threadEntry(i); }); }
-  }
-
-  ~ThreadPool() {
-    {
-      // Unblock any threads and tell them to stop
-      std::unique_lock<std::mutex> l(lock_);
-      shutdown_ = true;
-      condVar_.notify_all();
-    }
-    // Wait for all threads to stop
-    for (auto& thread : threads_) { thread.join(); }
-  }
-
-  void doJob(std::function<void(void)> func) {
-    // Place a job on the queue and unblock a thread
-    std::unique_lock<std::mutex> l(lock_);
-    jobs_.emplace(std::move(func));
-    condVar_.notify_one();
-  }
-
-protected:
-
-  void threadEntry(int i) {
-    std::function<void(void)> job;
-    while (1) {
-      {
-        std::unique_lock<std::mutex> l(lock_);
-        while (!shutdown_ && jobs_.empty()) { condVar_.wait(l); }
-        if (jobs_.empty()) { return; }
-        job = std::move(jobs_.front());
-        jobs_.pop();
-      }
-      // Do the job without holding any locks
-      job();
-    }
-  }
-
-  std::mutex lock_;
-  std::condition_variable condVar_;
-  bool shutdown_;
-  std::queue<std::function<void(void)>> jobs_;
-  std::vector<std::thread> threads_;
-};
 
 variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostream& log, fs::path& dataset_path) {
   log << "Loading " << dataset_path << "... ";
@@ -196,11 +141,11 @@ int main(int argc, char** argv) {
 
   // --- --- --- LVOO loop in parallal
   if (nbp!=1) { cout << "Using " << nbp << " threads" << endl; }
-  auto p = new ThreadPool(nbp);
+  tempo::ParTasks p;
   for (size_t pindex = 0; pindex<params.size(); ++pindex) {
-    p->doJob(std::bind(loocv_task, pindex));
+    p.push_task(std::bind(loocv_task, pindex));
   }
-  delete p; // Wait for threads...
+  p.execute(nbp);
 
 
 
