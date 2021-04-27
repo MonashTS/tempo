@@ -40,23 +40,23 @@ namespace tempo {
 
     /// Non thread safe! Add all the task before calling "execute"
     void push_task(const task_t& func) {
-      jobs_.emplace(std::move(func));
+      tasklist.emplace(std::move(func));
     }
 
     /// Blocking call
     void execute(int nbthreads) {
-      if (nbthread<=1) {
+      if (nbthreads<=1) {
         while (!tasklist.empty()) {
           auto task = std::move(tasklist.front());
           tasklist.pop();
           task();
-        } else {
-          threads.reserve(nbthreads);
-          for (int i = 0; i<nbthreads; ++i) { threads_.emplace_back([this]() { run_thread(); }); }
-          // Wait for all threads to stop
-          for (auto& thread : threads) { thread.join(); }
-          threads.clear();
         }
+      } else {
+        threads.reserve(nbthreads);
+        for (int i = 0; i<nbthreads; ++i) { threads.emplace_back([this]() { run_thread(); }); }
+        // Wait for all threads to stop
+        for (auto& thread : threads) { thread.join(); }
+        threads.clear();
       }
     }
   };
