@@ -395,12 +395,12 @@ namespace tempo::univariate::pf {
         PRNG prng(base_seed + id);
         auto tree = PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
         // Start lock: protecting the forest and out printing
-        std::unique_lock lock(mutex);
+        std::lock_guard lock(mutex);
         // --- Printing
         auto& out = *out_ptr;
         auto cf = out.fill();
         out << setfill('0');
-        out << setw(3) << id << " / " << nbtrees << "   ";
+        out << setw(3) << id+1 << " / " << nbtrees << "   ";
         out.fill(cf);
         out << "    Depth: " << setw(3) << tree->depth();
         out << "    NB nodes: " << setw(4) << tree->node_number();
@@ -434,59 +434,34 @@ namespace tempo::univariate::pf {
       size_t base_seed;
       size_t nb_threads;
 
-      int majority;
-
     public:
 
-      Classifier(const PForest& pf, size_t base_seed, size_t nb_threads)
-        :
-        pf(pf), base_seed(base_seed), nb_threads(nb_threads) {
-        majority = pf.forest.size()/2+1;
-      }
+      Classifier(const PForest& pf, size_t base_seed, size_t nb_threads) :
+        pf(pf), base_seed(base_seed), nb_threads(nb_threads) { }
 
       [[nodiscard]] std::vector<std::string> classify(const DS& qset, size_t query_index) {
-        std::map<std::string, int> score;
+        std::map<std::string, int> score; // track the number of vote per label
         std::mutex mutex;
-        //std::atomic<bool> go_on(true);
-        //int max_score{0};
 
-        // --- --- --- Lambda: classify several trees
-        auto multi_classif = [&qset, query_index, &mutex, &score, /*&max_score, &go_on,*/ this](size_t starti,
-          size_t nb) {
-          PRNG prng(this->base_seed+starti);
-          auto top = starti+nb;
-          for (size_t i{starti}; i<top /*&& go_on.load()*/; ++i) {
-            const auto& tree = this->pf.forest[i];
-            auto ctree = tree->get_classifier(prng);
-            auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
-            {
-              const std::lock_guard lock(mutex);
-              score[cl] += 1;
-              //max_score = std::max(max_score, score[cl]);
-              //if (max_score>=majority) { go_on.store(false); }
-            }
-          }
+        // --- --- --- Lambda: predict with one tree
+        auto predict = [&qset, query_index, &mutex, &score, this](size_t tree_index) {
+          // PRNG per tree
+          PRNG prng(this->base_seed+tree_index);
+          const auto& tree = this->pf.forest[tree_index];
+          // Classify
+          auto ctree = tree->get_classifier(prng);
+          auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
+          // Update score - note score[cl] init to 0 by default on first access
+          const std::lock_guard lock(mutex);
+          score[cl] += 1;
         };
 
         // --- --- --- Launch the tasks
-        std::vector<std::future<void>> tasks;
-        const size_t slice = pf.forest.size()/nb_threads;
-        size_t extra = pf.forest.size()%nb_threads;
-        size_t next_start = 0;
-        for (size_t workerid = 1; workerid<=nb_threads; ++workerid) {
-          // Distribute remaining trees
-          size_t nbt = slice;
-          if (extra>0) {
-            ++nbt;
-            extra--;
-          }
-          // Launch
-          tasks.push_back(std::async(std::launch::async, multi_classif, next_start, nbt));
-          next_start += nbt;
+        ParTasks p;
+        for(size_t i=0; i<this->pf.forest.size(); ++i){
+          p.template push_task(predict, i);
         }
-
-        // --- --- --- Collect the results
-        for (auto& f:tasks) { f.get(); }
+        p.execute(nb_threads);
 
 
         // --- --- --- Create a vector of results
@@ -685,3 +660,29 @@ namespace tempo::univariate::pf {
   };
 
 } // End of namespace tempo::univariate::pf
+
+
+// int majority;
+
+// majority = pf.forest.size()/2+1;
+
+// //std::atomic<bool> go_on(true);
+// //int max_score{0};
+
+// // --- --- --- Lambda: classify several trees
+//auto multi_classif = [&qset, query_index, &mutex, &score, /*&max_score, &go_on,*/ this](size_t starti,
+//  size_t nb) {
+//  PRNG prng(this->base_seed+starti);
+//  auto top = starti+nb;
+//  for (size_t i{starti}; i<top /*&& go_on.load()*/; ++i) {
+//    const auto& tree = this->pf.forest[i];
+//    auto ctree = tree->get_classifier(prng);
+//    auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
+//    {
+//      const std::lock_guard lock(mutex);
+//      score[cl] += 1;
+//      //max_score = std::max(max_score, score[cl]);
+//      //if (max_score>=majority) { go_on.store(false); }
+//    }
+//  }
+//};
