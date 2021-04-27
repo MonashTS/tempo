@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
   if (nbp!=1) { cout << "Using " << nbp << " threads" << endl; }
   tempo::ParTasks p;
   for (size_t pindex = 0; pindex<params.size(); ++pindex) {
-    p.push_task(std::bind(loocv_task, pindex));
+    p.push_task(loocv_task, pindex);
   }
   p.execute(nbp);
 

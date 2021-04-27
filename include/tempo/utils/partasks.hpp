@@ -39,8 +39,14 @@ namespace tempo {
     ParTasks() = default;
 
     /// Non thread safe! Add all the task before calling "execute"
-    void push_task(const task_t& func) {
+    void push_task(task_t func) {
       tasklist.emplace(std::move(func));
+    }
+
+    /// Template version
+    template< class F, class... Args >
+    void push_task( F&& f, Args&&... args ){
+      tasklist.emplace(std::move(std::bind(f, args...)));
     }
 
     /// Blocking call
