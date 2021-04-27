@@ -3,6 +3,7 @@
 #include "splitters/splitters.hpp"
 
 #include <tempo/utils/utils.hpp>
+#include <tempo/utils/partasks.hpp>
 #include <tempo/tseries/indexSet.hpp>
 #include <tempo/tseries/dataset.hpp>
 #include <tempo/utils/utils/timing.hpp>
@@ -345,8 +346,10 @@ namespace tempo::univariate::pf {
   class PForest {
     /// Dataset type
     using DS = Dataset<FloatType, LabelType>;
-    /// Collection of trees - use per thread
-    using TreeVec = std::vector<std::unique_ptr<PTree<FloatType, LabelType>>>;
+    /// Type of a PTree
+    using PTree_t = PTree<FloatType, LabelType>;
+    /// Collection of trees
+    using TreeVec = std::vector<std::unique_ptr<PTree_t>>;
     /// Unique pointer type for splitter
     using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
     /// Type of a split
@@ -358,8 +361,7 @@ namespace tempo::univariate::pf {
     TreeVec forest;
 
     /** Take ownership of a vector of trees */
-    explicit PForest(TreeVec&& forest)
-      :forest(std::move(forest)) { }
+    explicit PForest(TreeVec&& forest) :forest(std::move(forest)) { }
 
   public:
 
@@ -378,88 +380,43 @@ namespace tempo::univariate::pf {
       std::ostream* out_ptr = nullptr
     ) {
       using namespace std;
-      // Mutex for critical section protecting shared variables
+      // Mutex for critical section protecting shared variables (output and forest)
       std::mutex mutex;
-      size_t nbdone{0};
+      TreeVec forest;
+      forest.reserve(nbtrees);
 
+      // Shared by the roots:
       auto is = IndexSet(ds);
       auto bcm = get_by_class(ds, is);
 
-      // --- --- --- Function: info printing
-      auto print_training_info = [nbtrees, &nbdone](ostream& out, size_t workerid, size_t i, size_t nbtodo,
-        const TreeVec& local_forest) {
+      // --- --- --- Task to create one tree
+      auto mk_tree = [&ds, &bcm, nb_candidates, &sg, &base_seed, &nbtrees, &mutex, &forest, out_ptr](size_t id){
+        // Compute trees
+        PRNG prng(base_seed + id);
+        auto tree = PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
+        // Start lock: protecting the forest and out printing
+        std::unique_lock lock(mutex);
+        // --- Printing
+        auto& out = *out_ptr;
         auto cf = out.fill();
         out << setfill('0');
-        out << setw(3) << nbdone << " / " << nbtrees << "   ";
-        out << "Worker " << setw(2) << workerid << ": ";
-        out << "Tree " << setw(3) << i;
-        out << " / " << setw(3) << nbtodo;
+        out << setw(3) << id << " / " << nbtrees << "   ";
         out.fill(cf);
-        out << "    Depth: " << setw(3) << local_forest.back()->depth();
-        out << "    NB nodes: " << setw(4) << local_forest.back()->node_number() << endl;
+        out << "    Depth: " << setw(3) << tree->depth();
+        out << "    NB nodes: " << setw(4) << tree->node_number();
+        out << "    NB leaves: " << setw(4) << tree->leaf_number() << endl;
+        // --- Add in the forest
+        forest.push_back(std::move(tree));
       };
 
-      // --- --- --- Function: Training task for one tree
-      auto one_train_task = [&ds, &bcm, nb_candidates, &sg](PRNG& prng) {
-        return PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
-      };
-
-      // --- --- --- Function: Training task for several trees
-      auto multi_train_task = [nbtrees, base_seed, &nbdone, &one_train_task, &mutex, out_ptr, &print_training_info](
-        size_t workerid,
-        size_t nbtodo) {
-        // Create a thread local random number generator, ensuring that each thread gets a different seed.
-        static thread_local PRNG prng(base_seed+workerid);
-        // Also create a training instrumentation map (will only be used if doInstrumentation=true) for all the trees in this task
-        TreeVec local_forest;
-        for (size_t i{1}; i<=nbtodo; ++i) { // start at one == nicer printing
-          local_forest.push_back(one_train_task(prng));
-          if (out_ptr!=nullptr) {
-            const lock_guard lock(mutex);
-            nbdone++;
-            print_training_info(*out_ptr, workerid, i, nbtodo, local_forest);
-          }
-        }
-        return local_forest;
-      };
-
-      // --- --- --- Train a forest
-      TreeVec forest;
-      if (nb_thread==1) {
-        // If only one thread, just call the training task
-        forest = move(multi_train_task(1, nbtrees));
-
-      } else {
-        // Multiple thread: share the work
-        size_t trees_per_task = nbtrees/nb_thread;
-        size_t extra_trees = nbtrees%nb_thread; // Distributed one by one
-        // --- --- --- Launch the tasks.
-        // Take the lock as we do some printing (and super fast job may finish quickly!)
-        // Collect the (future) results of the task
-        vector<future<TreeVec>> tasks;
-        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
-          size_t nbt = trees_per_task;
-          // Distribute remaining trees
-          if (extra_trees>0) {
-            ++nbt;
-            extra_trees--;
-          }
-          if (out_ptr!=nullptr) {
-            const lock_guard lock(mutex);
-            auto& out = *out_ptr;
-            auto cf = out.fill();
-            out << "Launch worker " << setw(2) << setfill('0') << workerid << " / " << setw(2) << nb_thread;
-            out << " with " << setw(3) << nbt << " tasks." << endl;
-            out.fill(cf);
-          }
-          tasks.push_back(async(launch::async, multi_train_task, workerid, nbt));
-        }
-        // --- --- --- Collecting the task
-        for (auto& f:tasks) {
-          auto res = f.get();
-          forest.insert(forest.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
-        }
+      // --- --- --- Prepare tasks and execute them
+      ParTasks p;
+      for(size_t id=0; id<nbtrees; id++){
+        p.template push_task(mk_tree, id);
       }
+      p.execute(nb_thread);
+
+      // --- --- --- Return the forest
       return unique_ptr<PForest<FloatType, LabelType>>(new PForest<FloatType, LabelType>(std::move(forest)));
     }
 
@@ -559,167 +516,170 @@ namespace tempo::univariate::pf {
       );
     }
 
-    /** */
-    template<typename PRNG, bool doInstrumentation = false>
-    [[nodiscard]] static std::unique_ptr<PForest<FloatType, LabelType>> make_poolroot(
-      const DS& ds,
-      size_t nbtrees,
-      size_t nb_candidates,
-      SplitterGenerator<FloatType, LabelType, PRNG>& sg,
-      size_t base_seed,
-      size_t nb_thread = 1,
-      std::ostream* out_ptr = nullptr
-    ) {
-      using namespace std;
-      // Mutex for critical section protecting shared variables
-      std::mutex mutex;
-      size_t nbdone{0};
-
-      auto is = IndexSet(ds);
-      auto bcm = get_by_class(ds, is);
-
-      // --- --- --- Create nb trees * nb candidates root splitters, and sort them by gini impurity
-      std::cout << "Starting root pooling..." << std::endl;
-      auto start = tempo::timing::now();
-      // ---
-      using RootSplit = std::tuple<Splitter_ptr, Split, double>;
-      // --- Workload
-      const size_t nbroots = nbtrees*nb_candidates;
-      // --- Per thread worker
-      auto multi_root = [&ds, &is, &bcm, &sg, base_seed](size_t workerid, size_t nb_todo) {
-        // Create a thread local random number generator, ensuring that each thread gets a different seed.
-        static thread_local PRNG prng(base_seed+workerid);
-        vector<RootSplit> result;
-        for (size_t i{0}; i<nb_todo; ++i) { result.template emplace_back(mk_split(ds, is, bcm, sg, prng)); }
-        return result;
-      };
-      // --- Launch thread & collect work
-      vector<RootSplit> roots;
-      if (nb_thread==1) { roots = move(multi_root(1, nbroots)); }
-      else {
-        // Multiple thread: share the work
-        size_t roots_per_task = nbroots/nb_thread;
-        size_t extra_roots = nbroots%nb_thread; // Distributed one by one
-        // --- --- --- Launch the tasks.
-        // Take the lock as we do some printing (and super fast job may finish quickly!)
-        // Collect the (future) results of the task
-        vector<future<vector<RootSplit>>> tasks;
-        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
-          // Spread tasks, distributing "extra roots"
-          size_t nbt = roots_per_task;
-          if (extra_roots>0) {
-            ++nbt;
-            extra_roots--;
-          }
-          // Launch
-          tasks.push_back(async(launch::async, multi_root, workerid, nbt));
-        }
-        // --- --- --- Collecting the task
-        for (auto& f:tasks) {
-          auto res = f.get();
-          roots.insert(roots.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
-        }
-        // --- --- --- Sort by impurity (small first)
-        sort(roots.begin(), roots.end(), [](const auto& a, const auto& b) -> bool {
-          return std::get<2>(a)<std::get<2>(b);
-        });
-        /*
-        for (const auto&[a, b, c]: roots) { std::cout << " impurity = " << c << std::endl; }
-        std::cout << roots.size() << std::endl;
-         */
-      }
-      auto stop = tempo::timing::now();
-      std::cout << "Root pooling done in" << std::endl;
-      tempo::timing::printDuration(std::cout, stop-start);
-      std::cout << std::endl;
-
-      // -- --- --- Other random number
-      base_seed += nb_thread+7;
-
-      // --- --- --- Create trees using the pool of roots
-      size_t root_index = 0;
-      auto one_train_task = [&root_index, &ds, &is, &bcm, &roots, nb_candidates, &sg, &mutex](PRNG& prng) mutable {
-        mutex.lock();
-        auto root = move(roots[root_index]);
-        ++root_index;
-        mutex.unlock();
-        return PTree<FloatType, LabelType>::template make_from_root<PRNG>(ds, is, bcm, root, nb_candidates, sg, prng);
-      };
 
 
-      // --- --- --- Function: info printing
-      auto print_training_info = [nbtrees, &nbdone](ostream& out, size_t workerid, size_t i, size_t nbtodo,
-        const TreeVec& local_forest) {
-        auto cf = out.fill();
-        out << setfill('0');
-        out << setw(3) << nbdone << " / " << nbtrees << "   ";
-        out << "Worker " << setw(2) << workerid << ": ";
-        out << "Tree " << setw(3) << i;
-        out << " / " << setw(3) << nbtodo;
-        out.fill(cf);
-        out << "    Depth: " << setw(3) << local_forest.back()->depth();
-        out << "    NB nodes: " << setw(4) << local_forest.back()->node_number() << endl;
-      };
 
-
-      // --- --- --- Function: Training task for several trees
-      auto multi_train_task = [nbtrees, base_seed, &nbdone, &one_train_task, &mutex, out_ptr, &print_training_info](
-        size_t workerid,
-        size_t nbtodo) {
-        // Create a thread local random number generator, ensuring that each thread gets a different seed.
-        static thread_local PRNG prng(base_seed+workerid);
-        // Also create a training instrumentation map (will only be used if doInstrumentation=true) for all the trees in this task
-        TreeVec local_forest;
-        for (size_t i{1}; i<=nbtodo; ++i) { // start at one == nicer printing
-          local_forest.push_back(one_train_task(prng));
-          if (out_ptr!=nullptr) {
-            const lock_guard lock(mutex);
-            nbdone++;
-            print_training_info(*out_ptr, workerid, i, nbtodo, local_forest);
-          }
-        }
-        return local_forest;
-      };
-
-      // --- --- --- Train a forest
-      TreeVec forest;
-      if (nb_thread==1) {
-        // If only one thread, just call the training task
-        forest = move(multi_train_task(1, nbtrees));
-
-      } else {
-        // Multiple thread: share the work
-        size_t trees_per_task = nbtrees/nb_thread;
-        size_t extra_trees = nbtrees%nb_thread; // Distributed one by one
-        // --- --- --- Launch the tasks.
-        // Take the lock as we do some printing (and super fast job may finish quickly!)
-        // Collect the (future) results of the task
-        vector<future<TreeVec>> tasks;
-        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
-          size_t nbt = trees_per_task;
-          // Distribute remaining trees
-          if (extra_trees>0) {
-            ++nbt;
-            extra_trees--;
-          }
-          if (out_ptr!=nullptr) {
-            const lock_guard lock(mutex);
-            auto& out = *out_ptr;
-            auto cf = out.fill();
-            out << "Launch worker " << setw(2) << setfill('0') << workerid << " / " << setw(2) << nb_thread;
-            out << " with " << setw(3) << nbt << " tasks." << endl;
-            out.fill(cf);
-          }
-          tasks.push_back(async(launch::async, multi_train_task, workerid, nbt));
-        }
-        // --- --- --- Collecting the task
-        for (auto& f:tasks) {
-          auto res = f.get();
-          forest.insert(forest.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
-        }
-      }
-      return unique_ptr<PForest<FloatType, LabelType>>(new PForest<FloatType, LabelType>(std::move(forest)));
-    }
+//    /** */
+//    template<typename PRNG, bool doInstrumentation = false>
+//    [[nodiscard]] static std::unique_ptr<PForest<FloatType, LabelType>> make_poolroot(
+//      const DS& ds,
+//      size_t nbtrees,
+//      size_t nb_candidates,
+//      SplitterGenerator<FloatType, LabelType, PRNG>& sg,
+//      size_t base_seed,
+//      size_t nb_thread = 1,
+//      std::ostream* out_ptr = nullptr
+//    ) {
+//      using namespace std;
+//      // Mutex for critical section protecting shared variables
+//      std::mutex mutex;
+//      size_t nbdone{0};
+//
+//      auto is = IndexSet(ds);
+//      auto bcm = get_by_class(ds, is);
+//
+//      // --- --- --- Create nb trees * nb candidates root splitters, and sort them by gini impurity
+//      std::cout << "Starting root pooling..." << std::endl;
+//      auto start = tempo::timing::now();
+//      // ---
+//      using RootSplit = std::tuple<Splitter_ptr, Split, double>;
+//      // --- Workload
+//      const size_t nbroots = nbtrees*nb_candidates;
+//      // --- Per thread worker
+//      auto multi_root = [&ds, &is, &bcm, &sg, base_seed](size_t workerid, size_t nb_todo) {
+//        // Create a thread local random number generator, ensuring that each thread gets a different seed.
+//        static thread_local PRNG prng(base_seed+workerid);
+//        vector<RootSplit> result;
+//        for (size_t i{0}; i<nb_todo; ++i) { result.template emplace_back(mk_split(ds, is, bcm, sg, prng)); }
+//        return result;
+//      };
+//      // --- Launch thread & collect work
+//      vector<RootSplit> roots;
+//      if (nb_thread==1) { roots = move(multi_root(1, nbroots)); }
+//      else {
+//        // Multiple thread: share the work
+//        size_t roots_per_task = nbroots/nb_thread;
+//        size_t extra_roots = nbroots%nb_thread; // Distributed one by one
+//        // --- --- --- Launch the tasks.
+//        // Take the lock as we do some printing (and super fast job may finish quickly!)
+//        // Collect the (future) results of the task
+//        vector<future<vector<RootSplit>>> tasks;
+//        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
+//          // Spread tasks, distributing "extra roots"
+//          size_t nbt = roots_per_task;
+//          if (extra_roots>0) {
+//            ++nbt;
+//            extra_roots--;
+//          }
+//          // Launch
+//          tasks.push_back(async(launch::async, multi_root, workerid, nbt));
+//        }
+//        // --- --- --- Collecting the task
+//        for (auto& f:tasks) {
+//          auto res = f.get();
+//          roots.insert(roots.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
+//        }
+//        // --- --- --- Sort by impurity (small first)
+//        sort(roots.begin(), roots.end(), [](const auto& a, const auto& b) -> bool {
+//          return std::get<2>(a)<std::get<2>(b);
+//        });
+//        /*
+//        for (const auto&[a, b, c]: roots) { std::cout << " impurity = " << c << std::endl; }
+//        std::cout << roots.size() << std::endl;
+//         */
+//      }
+//      auto stop = tempo::timing::now();
+//      std::cout << "Root pooling done in" << std::endl;
+//      tempo::timing::printDuration(std::cout, stop-start);
+//      std::cout << std::endl;
+//
+//      // -- --- --- Other random number
+//      base_seed += nb_thread+7;
+//
+//      // --- --- --- Create trees using the pool of roots
+//      size_t root_index = 0;
+//      auto one_train_task = [&root_index, &ds, &is, &bcm, &roots, nb_candidates, &sg, &mutex](PRNG& prng) mutable {
+//        mutex.lock();
+//        auto root = move(roots[root_index]);
+//        ++root_index;
+//        mutex.unlock();
+//        return PTree<FloatType, LabelType>::template make_from_root<PRNG>(ds, is, bcm, root, nb_candidates, sg, prng);
+//      };
+//
+//
+//      // --- --- --- Function: info printing
+//      auto print_training_info = [nbtrees, &nbdone](ostream& out, size_t workerid, size_t i, size_t nbtodo,
+//        const TreeVec& local_forest) {
+//        auto cf = out.fill();
+//        out << setfill('0');
+//        out << setw(3) << nbdone << " / " << nbtrees << "   ";
+//        out << "Worker " << setw(2) << workerid << ": ";
+//        out << "Tree " << setw(3) << i;
+//        out << " / " << setw(3) << nbtodo;
+//        out.fill(cf);
+//        out << "    Depth: " << setw(3) << local_forest.back()->depth();
+//        out << "    NB nodes: " << setw(4) << local_forest.back()->node_number() << endl;
+//      };
+//
+//
+//      // --- --- --- Function: Training task for several trees
+//      auto multi_train_task = [nbtrees, base_seed, &nbdone, &one_train_task, &mutex, out_ptr, &print_training_info](
+//        size_t workerid,
+//        size_t nbtodo) {
+//        // Create a thread local random number generator, ensuring that each thread gets a different seed.
+//        static thread_local PRNG prng(base_seed+workerid);
+//        // Also create a training instrumentation map (will only be used if doInstrumentation=true) for all the trees in this task
+//        TreeVec local_forest;
+//        for (size_t i{1}; i<=nbtodo; ++i) { // start at one == nicer printing
+//          local_forest.push_back(one_train_task(prng));
+//          if (out_ptr!=nullptr) {
+//            const lock_guard lock(mutex);
+//            nbdone++;
+//            print_training_info(*out_ptr, workerid, i, nbtodo, local_forest);
+//          }
+//        }
+//        return local_forest;
+//      };
+//
+//      // --- --- --- Train a forest
+//      TreeVec forest;
+//      if (nb_thread==1) {
+//        // If only one thread, just call the training task
+//        forest = move(multi_train_task(1, nbtrees));
+//
+//      } else {
+//        // Multiple thread: share the work
+//        size_t trees_per_task = nbtrees/nb_thread;
+//        size_t extra_trees = nbtrees%nb_thread; // Distributed one by one
+//        // --- --- --- Launch the tasks.
+//        // Take the lock as we do some printing (and super fast job may finish quickly!)
+//        // Collect the (future) results of the task
+//        vector<future<TreeVec>> tasks;
+//        for (size_t workerid{1}; workerid<=nb_thread; ++workerid) {
+//          size_t nbt = trees_per_task;
+//          // Distribute remaining trees
+//          if (extra_trees>0) {
+//            ++nbt;
+//            extra_trees--;
+//          }
+//          if (out_ptr!=nullptr) {
+//            const lock_guard lock(mutex);
+//            auto& out = *out_ptr;
+//            auto cf = out.fill();
+//            out << "Launch worker " << setw(2) << setfill('0') << workerid << " / " << setw(2) << nb_thread;
+//            out << " with " << setw(3) << nbt << " tasks." << endl;
+//            out.fill(cf);
+//          }
+//          tasks.push_back(async(launch::async, multi_train_task, workerid, nbt));
+//        }
+//        // --- --- --- Collecting the task
+//        for (auto& f:tasks) {
+//          auto res = f.get();
+//          forest.insert(forest.end(), make_move_iterator(res.begin()), make_move_iterator(res.end()));
+//        }
+//      }
+//      return unique_ptr<PForest<FloatType, LabelType>>(new PForest<FloatType, LabelType>(std::move(forest)));
+//    }
 
 
   };

@@ -22,6 +22,7 @@ struct CMDArgs{
   size_t nb_candidates{5};
   size_t nb_trees{100};
   size_t random_seed{0};
+  size_t nb_thread{1};
 };
 
 

@@ -33,6 +33,7 @@ void print_usage(const string& execname, ostream& out) {
       -c <n>                Number of candidates to evaluate per node (default=5)
       -t <n>                Number of trees in the forest (default=100)
       -s <n>                Random seed. Use 0 to generate a random seed (default=0)
+      -p <n>                Number of threads
 
     Create an output file: '-out <outfile>'
     )";
@@ -92,6 +93,18 @@ CMDArgs read_args(int argc, char** argv) {
       )
     );
 
+  // Read -p
+  auto read_p = pa_switch<CMDArgs>("-p")
+    && mandatory<CMDArgs>("Number of threads", "<n>",
+      read_value_check<CMDArgs, int>(integer(),
+        [](CMDArgs& a, int v) {
+          if (v<1) { return optional<string>{"Number of thread must be >= 0"}; }
+          a.nb_thread = v;
+          return optional<string>{};
+        }
+      )
+    );
+
   // Build the parser
   auto parser = PS{
     .name = std::string(argv[0]),
@@ -101,6 +114,7 @@ CMDArgs read_args(int argc, char** argv) {
       read_c,
       read_t,
       read_s,
+      read_p,
       PArg::get_ucr<CMDArgs>(),
       PArg::get_tt<CMDArgs>(),
       PArg::get_out<CMDArgs>()

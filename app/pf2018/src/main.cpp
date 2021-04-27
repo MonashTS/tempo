@@ -174,10 +174,13 @@ int main(int argc, char** argv) {
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
   // --- --- --- Test a Forest
-  std::cout << "seed = " << config.random_seed << std::endl;
+  std::cout << "Base Seed = " << config.random_seed << std::endl;
+  std::cout << "Using " << config.nb_thread << " thread(s)" << std::endl;
   std::cout << "Starting training..." << std::endl;
+
+  // --- --- --- Check number of thread
   auto start = tempo::timing::now();
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, config.nb_trees, config.nb_candidates, sg, config.random_seed, 1, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, config.nb_trees, config.nb_candidates, sg, config.random_seed, config.nb_thread, &std::cout);
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   auto train_time_ns = stop-start;
@@ -185,7 +188,7 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "Starting testing..." << std::endl;
   start = tempo::timing::now();
-  auto classifier = pforest->get_classifier(config.random_seed, 1);
+  auto classifier = pforest->get_classifier(config.random_seed, config.nb_thread);
   size_t nbcorrect{0};
   for (const auto& idx:test_is) {
     auto resvec = classifier->classify(*test, idx);
