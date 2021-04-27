@@ -15,28 +15,36 @@
 
 namespace tempo::univariate::pf {
 
-  /// Unique pointer type for splitter
+  /** Unique pointer type for splitter */
   template<typename FloatType, typename LabelType>
   using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
 
-  /// Type of a split
+  /** Type of a split.
+   *  A mapping    predicted label (i.e. the branch) ->  (map true label-> series index, series index)
+   *  Keeping the map true label -> series index allows for easier computation of the gini impurity.
+   */
   template<typename FloatType, typename LabelType>
   using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
 
-  /** Compute the weighted gini impurity of a split. */
+  /** Compute the weighted (ratio of series per branch) gini impurity of a split. */
   template<typename FloatType, typename LabelType>
   [[nodiscard]] static double weighted_gini_impurity(const Split<FloatType, LabelType>& split) {
     double wgini{0};
-    double item_number{0};
+    double split_size{0};  // Accumulator, total number of series received at this node.
+    // For each branch (i.e. assigned class c), get the actual mapping class->series (bcm)
+    // and compute the gini impurity of the branch
     for (const auto&[c, bcm_vec]: split) {
-      const auto[bcm, _] = bcm_vec;
+      const auto[bcm, vec] = bcm_vec;
       double g = gini_impurity(bcm);
-      size_t bcm_size = 0;
-      for (const auto&[_, v]: bcm) { bcm_size += v.size(); }
-      item_number += bcm_size;
+      // Weighted part: the total number of item in this branch is the lenght of the vector of index
+      // Accumulate the total number of item in the split (sum the branches),
+      // and weight current impurity by size of the branch
+      const double bcm_size = vec.size();
+      split_size += bcm_size;
       wgini += bcm_size*g;
     }
-    return wgini/item_number;
+    // Finish weighted computation by scaling to [0, 1]
+    return wgini / split_size;
   }
 
   /** Make one split */
