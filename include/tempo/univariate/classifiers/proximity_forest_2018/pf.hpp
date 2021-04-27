@@ -44,10 +44,17 @@ namespace tempo::univariate::pf {
       wgini += bcm_size*g;
     }
     // Finish weighted computation by scaling to [0, 1]
-    return wgini / split_size;
+    return wgini/split_size;
   }
 
-  /** Make one split */
+  /** Make a split, evaluate it, return it with its gini impurity
+   * @param ds Dataset with transforms
+   * @param is Indexset, indexing into ds, i.e. represents a subset of ds
+   * @param bcm By Class mapping of the "is subset", i.e. bcm == get_by_class(ds, is)
+   * @param sg Splitter generator
+   * @param prng Random number generator
+   * @return
+   */
   template<typename FloatType, typename LabelType, typename PRNG>
   static std::tuple<Splitter_ptr<FloatType, LabelType>, Split<FloatType, LabelType>, double> mk_split(
     const Dataset<FloatType, LabelType>& ds,
@@ -56,21 +63,24 @@ namespace tempo::univariate::pf {
     SplitterGenerator<FloatType, LabelType, PRNG>& sg,
     PRNG& prng
   ) {
-    // Get the set of series exemplars, one per class
+    assert(bcm==get_by_class(ds, is));
+    // Get the set of series exemplars, one per class, and generate a splitter
     auto exemplars = pick_one_by_class(bcm, prng);
     auto splitter = sg.get_splitter(ds, is, exemplars, prng);
     Split<FloatType, LabelType> split;
-    // Compute the split
+    // For each index in the 'is' subset (including selected exemplars - will eventually form pure leaves)
     for (const auto& query_idx: is) {
-      auto query_label = ds.get_original()[query_idx].get_label().value();
+      // Predict the branch
       const std::vector<LabelType> results = splitter->classify_train(ds, query_idx);
-      assert(results.size()>0);
+      assert(!results.empty());
       LabelType predicted_label = rand::pick_one(results, prng);
-      auto&[bcm, vec] = split[predicted_label];
-      bcm[query_label].push_back(query_idx);
-      vec.push_back(query_idx);
+      // Update the info in the predicted branch (by class map, with the actual class, and the index)
+      auto&[branch_bcm, branch_vec] = split[predicted_label];
+      auto query_label = ds.get_original()[query_idx].get_label().value();
+      branch_bcm[query_label].push_back(query_idx);
+      branch_vec.push_back(query_idx);
     }
-    // Compute the weighted gini, save the best split
+    // Compute the weighted gini of the splitter
     double wg = weighted_gini_impurity<FloatType, LabelType>(split);
     return {std::move(splitter), std::move(split), wg};
   }
@@ -78,28 +88,33 @@ namespace tempo::univariate::pf {
   /** A Proximity Tree */
   template<typename FloatType, typename LabelType>
   class PTree {
-    // --- --- --- Types
+    // --- --- --- Private yypes
+
     /// Dataset type
     using DS = Dataset<FloatType, LabelType>;
+
     /// Mapping class->subnode
     using BranchMap_t = std::unordered_map<LabelType, std::unique_ptr<PTree>>;
+
     /// Record ratio of subtree
     using SplitRatios = std::vector<std::tuple<LabelType, double>>;
+
     /// Internal node (not pure) type: a splitter and a mapping class->subnode. Also record the splitratio.
     using INode_t = std::tuple<Splitter_ptr<FloatType, LabelType>, BranchMap_t, SplitRatios>;
+
     /// Leaf node (pure) type: the class.
     using LNode_t = LabelType;
 
-    // --- --- --- Fields
+    // --- --- --- Private fields
 
     /// The current node is either a leaf (pure) or an internal node (give access to children)
     std::variant<LNode_t, INode_t> node{};
 
-    // --- --- --- Constructors
+    // --- --- --- Private constructors
 
-    /// Leaf constructor
-    explicit PTree(const std::string& cname)
-      :node{cname} { }
+    /// Leaf constructor. The leaf is pure, and will always result in the 'label' class.
+    explicit PTree(const LabelType& label)
+      :node{label} { }
 
     /// INode constructor
     PTree(Splitter_ptr<FloatType, LabelType> splitter, BranchMap_t mapping, SplitRatios&& sr)
@@ -284,7 +299,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes, __] = std::get<1>(node);
+          const auto&[_1, sub_nodes, _2] = std::get<1>(node);
           size_t max = 0;
           for (const auto&[k, v]: sub_nodes) {
             size_t d = v->depth();
@@ -301,7 +316,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes, __] = std::get<1>(node);
+          const auto&[_1, sub_nodes, _2] = std::get<1>(node);
           size_t nb = 1; // include this
           for (const auto&[k, v]: sub_nodes) { nb += v->node_number(); }
           return nb;
@@ -315,7 +330,7 @@ namespace tempo::univariate::pf {
       switch (node.index()) {
         case 0: return 1; // Leaf
         case 1: { // Children
-          const auto&[_, sub_nodes, __] = std::get<1>(node);
+          const auto&[_1, sub_nodes, _2] = std::get<1>(node);
           size_t nb = 0; // Exclude this
           for (const auto&[k, v]: sub_nodes) { nb += v->leaf_number(); }
           return nb;
@@ -323,8 +338,7 @@ namespace tempo::univariate::pf {
         default: throw std::runtime_error("Should not happen");
       }
     }
-
-  };
+  }; // End of class PTree
 
   /** A Proximity Forest, made of trees */
   template<typename FloatType, typename LabelType>
@@ -480,7 +494,8 @@ namespace tempo::univariate::pf {
         //int max_score{0};
 
         // --- --- --- Lambda: classify several trees
-        auto multi_classif = [&qset, query_index, &mutex, &score, /*&max_score, &go_on,*/ this](size_t starti, size_t nb) {
+        auto multi_classif = [&qset, query_index, &mutex, &score, /*&max_score, &go_on,*/ this](size_t starti,
+          size_t nb) {
           PRNG prng(this->base_seed+starti);
           auto top = starti+nb;
           for (size_t i{starti}; i<top /*&& go_on.load()*/; ++i) {
@@ -606,7 +621,7 @@ namespace tempo::univariate::pf {
         }
         // --- --- --- Sort by impurity (small first)
         sort(roots.begin(), roots.end(), [](const auto& a, const auto& b) -> bool {
-          return std::get<2>(a) < std::get<2>(b);
+          return std::get<2>(a)<std::get<2>(b);
         });
         /*
         for (const auto&[a, b, c]: roots) { std::cout << " impurity = " << c << std::endl; }
