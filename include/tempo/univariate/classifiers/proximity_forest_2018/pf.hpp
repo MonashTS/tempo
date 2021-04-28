@@ -121,7 +121,13 @@ namespace tempo::univariate::pf {
     PTree(Splitter_ptr<FloatType, LabelType> splitter, BranchMap_t mapping, SplitRatios&& sr)
       :node{INode_t{std::move(splitter), std::move(mapping), std::move(sr)}} { }
 
-    /** Recursively build a tree */
+    /** Recursively build a tree
+     *  At each node, select an exemplar per class and generate 'nbcandidates' random splitters
+     *  based on theses candidates.
+     *  Classify all the data reaching the node using each splitters, and select the best (less impure result) one.
+     *  The resulting split gives us a branches per class in the split
+     *  * If a branch is "pure", we have a leaf
+     *  * Else, repeat the process. */
     template<typename PRNG>
     static std::unique_ptr<PTree> make_tree(const DS& ds, const IndexSet& is, const ByClassMap<LabelType>& bcm,
       size_t nbcandidates, SplitterGenerator<FloatType, LabelType, PRNG>& sg, PRNG& prng
@@ -138,26 +144,9 @@ namespace tempo::univariate::pf {
       Splitter_ptr<FloatType, LabelType> best_splitter;
       Split<FloatType, LabelType> best_split;
 
-      // Generate and evaluate the candidate splitters
+      // Generate and evaluate the candidate splitters by computing their weighted gini. Save the best (less impure).
       for (auto n = 0; n<nbcandidates; ++n) {
         auto[splitter, split, gini] = mk_split(ds, is, bcm, sg, prng);
-        /*
-        // Get the set of series exemplars, one per class
-        auto exemplars = pick_one_by_class(bcm, prng);
-        auto splitter = sg.get_splitter(ds, is, exemplars, prng);
-        Split split;
-        // Compute the split
-        for (const auto& query_idx: is) {
-          auto query_label = ds.get_original()[query_idx].get_label().value();
-          const vector<LabelType> results = splitter->classify_train(ds, query_idx);
-          assert(results.size()>0);
-          LabelType predicted_label = rand::pick_one(results, prng);
-          auto&[bcm, vec] = split[predicted_label];
-          bcm[query_label].push_back(query_idx);
-          vec.push_back(query_idx);
-        }
-         */
-        // Compute the weighted gini, save the best split
         double wg = weighted_gini_impurity<FloatType, LabelType>(split);
         if (wg<best_gini) {
           best_gini = wg;
@@ -238,11 +227,7 @@ namespace tempo::univariate::pf {
       });
 
       return unique_ptr<PTree>(new PTree(std::move(splitter), std::move(sub_trees), std::move(split_ratios)));
-
-
     }
-
-
 
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- ---
@@ -390,7 +375,7 @@ namespace tempo::univariate::pf {
       auto bcm = get_by_class(ds, is);
 
       // --- --- --- Task to create one tree
-      auto mk_tree = [&ds, &bcm, nb_candidates, &sg, &base_seed, &nbtrees, &mutex, &forest, out_ptr](size_t id){
+      auto mk_tree_task = [&ds, &bcm, nb_candidates, &sg, &base_seed, &nbtrees, &mutex, &forest, out_ptr](size_t id){
         // Compute trees
         PRNG prng(base_seed + id);
         auto tree = PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
@@ -411,9 +396,7 @@ namespace tempo::univariate::pf {
 
       // --- --- --- Prepare tasks and execute them
       ParTasks p;
-      for(size_t id=0; id<nbtrees; id++){
-        p.template push_task(mk_tree, id);
-      }
+      for(size_t id=0; id<nbtrees; id++){ p.template push_task(mk_tree_task, id); }
       p.execute(nb_thread);
 
       // --- --- --- Return the forest
@@ -430,24 +413,24 @@ namespace tempo::univariate::pf {
     class Classifier {
 
       // Fields
-      const PForest& pf;
-      size_t base_seed;
-      size_t nb_threads;
+      const PForest& pf_;
+      size_t base_seed_;
+      size_t nb_threads_;
 
     public:
 
       Classifier(const PForest& pf, size_t base_seed, size_t nb_threads) :
-        pf(pf), base_seed(base_seed), nb_threads(nb_threads) { }
+        pf_(pf), base_seed_(base_seed), nb_threads_(nb_threads) { }
 
       [[nodiscard]] std::vector<std::string> classify(const DS& qset, size_t query_index) {
         std::map<std::string, int> score; // track the number of vote per label
         std::mutex mutex;
 
-        // --- --- --- Lambda: predict with one tree
-        auto predict = [&qset, query_index, &mutex, &score, this](size_t tree_index) {
+        // --- --- --- task: predict with the tree at tree_index
+        auto predict_task = [&qset, query_index, &mutex, &score, this](size_t tree_index) {
           // PRNG per tree
-          PRNG prng(this->base_seed+tree_index);
-          const auto& tree = this->pf.forest[tree_index];
+          PRNG prng(this->base_seed_+tree_index);
+          const auto& tree = this->pf_.forest[tree_index];
           // Classify
           auto ctree = tree->get_classifier(prng);
           auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
@@ -458,10 +441,8 @@ namespace tempo::univariate::pf {
 
         // --- --- --- Launch the tasks
         ParTasks p;
-        for(size_t i=0; i<this->pf.forest.size(); ++i){
-          p.template push_task(predict, i);
-        }
-        p.execute(nb_threads);
+        for(size_t i=0; i<this->pf_.forest.size(); ++i){ p.template push_task(predict_task, i); }
+        p.execute(nb_threads_);
 
 
         // --- --- --- Create a vector of results
