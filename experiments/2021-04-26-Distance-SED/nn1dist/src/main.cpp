@@ -87,19 +87,16 @@ int main(int argc, char** argv) {
   const auto test_source = test->get_original_handle();
 
   const size_t tsize = train->size();
-  const size_t tlvoo = tsize-1;
 
   // Parameters
   vector<double> params;
   for (int i = 0; i<100; ++i) { params.push_back(0.01*(double) (i+1)); }
   vector<size_t> best_param;
   size_t best_nbcorrect = 0;
-  size_t next_param = 0;
 
   // Manage tasks
   std::mutex mutex;
-  auto loocv_task = [&mutex, &params, &best_param, &best_nbcorrect, &tsize, &tlvoo, &train_source](
-    size_t pindex) mutable {
+  auto loocv_task = [&mutex, &params, &best_param, &best_nbcorrect, &tsize,  &train_source]( size_t pindex) {
     auto diagw = params[pindex];
     size_t nbcorrect = 0;
     // 'i' is the item left out - being classified
@@ -112,7 +109,7 @@ int main(int argc, char** argv) {
         // Skip self
         if (i==j) { continue; }
         auto candidate = (*train_source.data)[j];
-        double dist = tu::sed(query, candidate, (double*) nullptr, diagw, bsf);
+        double dist = tu::sed(query, candidate, diagw, bsf);
         if (dist<bsf) {
           bsf = dist;
           bid = j;
@@ -134,8 +131,8 @@ int main(int argc, char** argv) {
     }
     lock_guard g(mutex);
     cout << "Param " << pindex << " = " << diagw << ": nb corrects = "
-         << nbcorrect << "/" << tlvoo << " accuracy = "
-         << (double) (nbcorrect)/tlvoo << endl;
+         << nbcorrect << "/" << tsize << " accuracy = "
+         << (double) (nbcorrect)/tsize << endl;
   };
 
 
@@ -151,7 +148,7 @@ int main(int argc, char** argv) {
 
 
   // Report result
-  cout << "Best parameter(s): " << best_nbcorrect << "/" << tlvoo << " = " << (double) best_nbcorrect/tlvoo << endl;
+  cout << "Best parameter(s): " << best_nbcorrect << "/" << tsize << " = " << (double) best_nbcorrect/tsize << endl;
   for (auto pi: best_param) {
     cout << "  " << params[pi] << endl;
   }
@@ -174,7 +171,7 @@ int main(int argc, char** argv) {
       double bsf = tempo::POSITIVE_INFINITY<double>;
       const TS* bcandidates = nullptr;
       for (const auto& c: *train_source.data) {
-        double res = tu::sed(q, c, (double*) (nullptr), params[best_param.front()], bsf);
+        double res = tu::sed(q, c,  params[best_param.front()], bsf);
         if (res==tempo::POSITIVE_INFINITY<double>) {
           nb_ea++;
         } else if (res<bsf) { // update BSF
@@ -220,7 +217,7 @@ int main(int argc, char** argv) {
     double bsf = tempo::POSITIVE_INFINITY<double>;
     const TS* bcandidates = nullptr;
     for (const auto& c: *train_source.data) {
-      double res = tu::sed(q, c, (double*) (nullptr), params[best_param.back()], bsf);
+      double res = tu::sed(q, c, params[best_param.back()], bsf);
       if (res==tempo::POSITIVE_INFINITY<double>) {
         nb_ea++;
       } else if (res<bsf) { // update BSF
