@@ -436,7 +436,7 @@ FloatType avg_amp(
   double count=0;
   for (const auto& ts: t.get()) {
     for (size_t i{0}; i<ts.length(); ++i) {
-      amp+=ts(0, i);
+      amp+=abs(ts(0, i));
     }
     count += ts.length();
   }
