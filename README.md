@@ -6,7 +6,12 @@ Tempo is not only a project fo researchers!
 Our aim is to deliver a user-friendly library,
 allowing anyone to enjoy our last work in the domain of time series classification.
 
-**Tempo is young and in active development. Do not hesitate to report issues!**
+**Note:** Tempo is young and in active development. Do not hesitate to report issues!**
+
+**Note:** We experiment using the UCR archive, mostly in its 85 datasets version.
+The archive can be found at [timeseriesclassification.com](http://timeseriesclassification.com/dataset.php).
+It now contains more datasets.
+The 85 datasets are listed [here](./experiments/eeOutputFold0.csv).
 
 # Features
 
@@ -40,10 +45,10 @@ before calling the version with cut-off.
 This allows to prune computation even when no cut-off point is provided
 (no early abandoning can occur under these conditions).
 
-### Benckmarks
+### Benchmarks
 The early abandoning and pruning algorithm is submitted in a paper under review.
-The paper ([pre-print pdf](https://arxiv.org/abs/2102.05221))
-contains benchmarks that can be found here https://github.com/HerrmannM/paper-2021-EAPElasticDist.
+The paper ([arxiv pre-print](https://arxiv.org/abs/2102.05221))
+contains benchmarks that can be found [here](https://github.com/HerrmannM/paper-2021-EAPElasticDist).
 
 
 ## Generic approach to "transforms" (C++)
@@ -57,7 +62,13 @@ Hence, you can easily set up a derivative (or nth derivative) of any distance.
 
 
 ## Proximity Forest library (C++)
+[Proximity forest](https://link.springer.com/article/10.1007/s10618-019-00617-3)
+([arxiv pre-print](https://arxiv.org/abs/1808.10594))
+is an ensemble classifier based on elastic distances developed at Monash University.
+It's [original version](https://github.com/fpetitjean/ProximityForest) was developed in Java.
 
+We provide the building blocks to rewrite Proximity Forest in C++.
+See the [Proximity Forest 2018 application](#proximity-forest-2018apppf2018).
 
 
 # Using Tempo in your project
@@ -125,9 +136,16 @@ So
 ```bash
 ./nn1dist -dist msm 0.05 -ucr ~/Univariate_ts/ Crop -tr derivative 1
 ```
-will compute a "Derivative MSM".
+will perform a NN1 "Derivative MSM" classification.
 
 ## [Proximity Forest 2018](./app/pf2018)
+C++ Proximity Forest implementation, using the building blocks from the [library](#proximity-forest-library-c).
+It has the same features as the [original Java version](https://github.com/fpetitjean/ProximityForest), 
+using our early abandoned and pruned distances.
+
+As a result, this version is 3.8 times faster than our Java version
+when tested on the UCR archive in its 85 datasets version.
+You can check our claim [here](./experiments/2021-04-19-PF2018-comparison).
 
 
 # About
