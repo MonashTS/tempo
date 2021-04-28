@@ -218,8 +218,6 @@ namespace tempo::univariate {
       const FloatType* weights,
       const FloatType cutoff
     ) {
-      constexpr double penalty = 0.0;
-      const double diagweight = 1;
       // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
       // In debug mode, check preconditions
       assert(lines!=nullptr && nblines!=0 && nblines<MAX_SERIES_LENGTH);
@@ -263,7 +261,7 @@ namespace tempo::univariate {
         // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
         size_t curr_pp = 1;
         for (j = 1; j==curr_pp && j<nbcols; ++j) {
-          cost = cost+dist(l0, cols[j])+penalty*weights[absdiff(i, j)]; // Left: penalty
+          cost = cost+dist(l0, cols[j])+weights[absdiff(i, j)]; // Left: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { ++curr_pp; }
         }
@@ -281,7 +279,7 @@ namespace tempo::univariate {
         j = next_start;
         // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
         {
-          cost = buffers[p+j]+dist(li, cols[j])+penalty*weights[absdiff(i, j)]; // Top: penalty
+          cost = buffers[p+j]+dist(li, cols[j])+weights[absdiff(i, j)]; // Top: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; } else { ++next_start; }
           ++j;
@@ -290,8 +288,8 @@ namespace tempo::univariate {
         for (; j==next_start && j<prev_pp; ++j) {
           const auto d = dist(li, cols[j]);
           cost = std::min(
-            d*diagweight+buffers[p+j-1],               // Diag: no penalty
-            d+buffers[p+j]+penalty*weights[absdiff(i, j)]  // Top: penalty
+            d+buffers[p+j-1],                       // Diag: no penalty
+            d+buffers[p+j]+weights[absdiff(i, j)]   // Top: penalty
           );
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; } else { ++next_start; }
@@ -299,9 +297,9 @@ namespace tempo::univariate {
         // --- --- --- Stage 2: Up to the previous pruning point without advancing next_start: left, diag and top
         for (; j<prev_pp; ++j) {
           const auto d = dist(li, cols[j]);
-          cost = min(d+cost+penalty*weights[absdiff(i, j)],              // Left: penalty
-            d*diagweight+buffers[p+j-1],          // Diag: no penalty
-            d+buffers[p+j]+penalty*weights[absdiff(i, j)]);   // Top: penalty
+          cost = min(d+cost+weights[absdiff(i, j)],   // Left: penalty
+            d+buffers[p+j-1],                         // Diag: no penalty
+            d+buffers[p+j]+weights[absdiff(i, j)]);   // Top: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; }
         }
@@ -309,7 +307,7 @@ namespace tempo::univariate {
         if (j<nbcols) { // If so, two cases.
           const auto d = dist(li, cols[j]);
           if (j==next_start) { // Case 1: Advancing next start: only diag (no penalty)
-            cost = buffers[p+j-1]+d*diagweight;
+            cost = buffers[p+j-1]+d;
             buffers[c+j] = cost;
             if (cost<=ub) { curr_pp = j+1; }
             else {
@@ -318,8 +316,7 @@ namespace tempo::univariate {
               else { return POSITIVE_INFINITY; }
             }
           } else { // Case 2: Not advancing next start: possible path in previous cells: left (penalty) and diag.
-            cost = std::min(d+cost+penalty*weights[absdiff(i, j)],
-              d*diagweight+buffers[p+j-1]);
+            cost = std::min(d+cost+weights[absdiff(i, j)], d+buffers[p+j-1]);
             buffers[c+j] = cost;
             if (cost<=ub) { curr_pp = j+1; }
           }
@@ -336,7 +333,7 @@ namespace tempo::univariate {
         // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
         for (; j==curr_pp && j<nbcols; ++j) {
           const auto d = dist(li, cols[j]);
-          cost = cost+d+penalty*weights[absdiff(i, j)]; // Left: penalty
+          cost = cost+d+weights[absdiff(i, j)]; // Left: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { ++curr_pp; }
         }
