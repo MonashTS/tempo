@@ -1,4 +1,4 @@
-# Tempo ![logo](./doc/logo/tempo100.png)
+# Tempo ![logo](./doc/logos/tempo100.png)
 Monash Time Series Classification Library.
 Monash University, Melbourne, Australia.
 
