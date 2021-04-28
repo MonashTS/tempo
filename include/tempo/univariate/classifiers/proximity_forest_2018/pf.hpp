@@ -335,10 +335,6 @@ namespace tempo::univariate::pf {
     using PTree_t = PTree<FloatType, LabelType>;
     /// Collection of trees
     using TreeVec = std::vector<std::unique_ptr<PTree_t>>;
-    /// Unique pointer type for splitter
-    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
-    /// Type of a split
-    using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- --- --- -- --- --- --- --- ---
     // Private fields
@@ -346,7 +342,8 @@ namespace tempo::univariate::pf {
     TreeVec forest;
 
     /** Take ownership of a vector of trees */
-    explicit PForest(TreeVec&& forest) :forest(std::move(forest)) { }
+    explicit PForest(TreeVec&& forest)
+      :forest(std::move(forest)) { }
 
   public:
 
@@ -375,9 +372,9 @@ namespace tempo::univariate::pf {
       auto bcm = get_by_class(ds, is);
 
       // --- --- --- Task to create one tree
-      auto mk_tree_task = [&ds, &bcm, nb_candidates, &sg, &base_seed, &nbtrees, &mutex, &forest, out_ptr](size_t id){
+      auto mk_tree_task = [&ds, &bcm, nb_candidates, &sg, &base_seed, &nbtrees, &mutex, &forest, out_ptr](size_t id) {
         // Compute trees
-        PRNG prng(base_seed + id);
+        PRNG prng(base_seed+id);
         auto tree = PTree<FloatType, LabelType>::template make<PRNG>(ds, bcm, nb_candidates, sg, prng);
         // Start lock: protecting the forest and out printing
         std::lock_guard lock(mutex);
@@ -396,7 +393,7 @@ namespace tempo::univariate::pf {
 
       // --- --- --- Prepare tasks and execute them
       ParTasks p;
-      for(size_t id=0; id<nbtrees; id++){ p.template push_task(mk_tree_task, id); }
+      for (size_t id = 0; id<nbtrees; id++) { p.template push_task(mk_tree_task, id); }
       p.execute(nb_thread);
 
       // --- --- --- Return the forest
@@ -411,39 +408,36 @@ namespace tempo::univariate::pf {
 
     template<typename PRNG>
     class Classifier {
-
-      // Fields
       const PForest& pf_;
       size_t base_seed_;
       size_t nb_threads_;
 
     public:
 
-      Classifier(const PForest& pf, size_t base_seed, size_t nb_threads) :
-        pf_(pf), base_seed_(base_seed), nb_threads_(nb_threads) { }
+      Classifier(const PForest& pf, size_t base_seed, size_t nb_threads)
+        :pf_(pf), base_seed_(base_seed), nb_threads_(nb_threads) { }
 
       [[nodiscard]] std::vector<std::string> classify(const DS& qset, size_t query_index) {
         std::map<std::string, int> score; // track the number of vote per label
         std::mutex mutex;
 
-        // --- --- --- task: predict with the tree at tree_index
+        // --- --- --- task: predict with one tree (the one at 'tree_index' in the forest)
         auto predict_task = [&qset, query_index, &mutex, &score, this](size_t tree_index) {
-          // PRNG per tree
+          // Different PRNG per tree, based on the seed and the tree index.
           PRNG prng(this->base_seed_+tree_index);
           const auto& tree = this->pf_.forest[tree_index];
           // Classify
           auto ctree = tree->get_classifier(prng);
           auto cl = rand::pick_one(ctree.classify(qset, query_index), prng);
-          // Update score - note score[cl] init to 0 by default on first access
+          // Update score. Note: score[cl] init to 0 by default on first access
           const std::lock_guard lock(mutex);
           score[cl] += 1;
         };
 
         // --- --- --- Launch the tasks
         ParTasks p;
-        for(size_t i=0; i<this->pf_.forest.size(); ++i){ p.template push_task(predict_task, i); }
+        for (size_t i = 0; i<this->pf_.forest.size(); ++i) { p.template push_task(predict_task, i); }
         p.execute(nb_threads_);
-
 
         // --- --- --- Create a vector of results
         std::vector<std::string> results;
@@ -471,10 +465,19 @@ namespace tempo::univariate::pf {
         new PForest::Classifier<PRNG>(*this, base_seed, nb_threads)
       );
     }
+  };
+
+} // End of namespace tempo::univariate::pf
 
 
 
 
+
+//    /// Unique pointer type for splitter
+//    using Splitter_ptr = std::unique_ptr<Splitter<FloatType, LabelType>>;
+//    /// Type of a split
+//    using Split = std::unordered_map<LabelType, std::tuple<ByClassMap<LabelType>, std::vector<size_t>>>;
+//
 //    /** */
 //    template<typename PRNG, bool doInstrumentation = false>
 //    [[nodiscard]] static std::unique_ptr<PForest<FloatType, LabelType>> make_poolroot(
@@ -638,9 +641,6 @@ namespace tempo::univariate::pf {
 //    }
 
 
-  };
-
-} // End of namespace tempo::univariate::pf
 
 
 // int majority;
