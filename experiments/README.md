@@ -20,6 +20,8 @@ For now, we only have its results for the first 85 datasets, hence the mention.
 
 ## Description of the files
 * [CONFIGURE_ME.py](./CONFIGURE_ME.py) Tell us where is you UCR archive (in TS format) is located. 
-* [eeOutputFold0.csv](./eeOutputFold0.csv) Best parameters found by EE for several elastic distances.
-  We are only interest in the window for CDTW. For now (March 2021), in its 85 dataset version.
+* [eeOutputFold0.csv](./eeOutputFold0.csv) Best parameters found by EE for 11 elastic distances. 
+  For now (March 2021), in its 85 datasets version (UCR archive).
+* [ee_fold0_accuracies.json](./ee_fold0_accuracies.json) and [ee_fold0_accuracires.csv](./ee_fold0_accuracies.csv)
+  Accuracies of the 11 EE elastic distances using the EE best parameters.
 * [parlauncher.py](./parlauncher.py) Pyhton script reading commands from a file and starting them in parallel.
