@@ -184,7 +184,7 @@ CMDArgs read_args(int argc, char** argv) {
     switch (a.distance) {
       case DISTANCE::CDTW: return a.distargs.cdtw.wint;
       case DISTANCE::ERP: return a.distargs.erp.wint;
-      case DISTANCE::LCSS: return a.distargs.erp.wint;
+      case DISTANCE::LCSS: return a.distargs.lcss.wint;
       default:tempo::should_not_happen();
     }
   };
@@ -194,7 +194,7 @@ CMDArgs read_args(int argc, char** argv) {
     switch (a.distance) {
       case DISTANCE::CDTW: return a.distargs.cdtw.wratio;
       case DISTANCE::ERP: return a.distargs.erp.wratio;
-      case DISTANCE::LCSS: return a.distargs.erp.wratio;
+      case DISTANCE::LCSS: return a.distargs.lcss.wratio;
       default:tempo::should_not_happen();
     }
   };
@@ -208,7 +208,7 @@ CMDArgs read_args(int argc, char** argv) {
       PA{
         .name = "<wr>",
         .head = read_value_check<CMDArgs, double>(number(),
-          [refWInt, refWVal](CMDArgs& a, const int& v) -> optional<string> {
+          [refWInt, refWVal](CMDArgs& a, const double& v) -> optional<string> {
             if (!(0<=v && v<=1)) { return {"Windows ratio must be between 0 and 1"}; }
             refWInt(a) = false;
             refWVal(a) = v;
