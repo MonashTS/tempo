@@ -1,8 +1,8 @@
 # Tempo ![logo](./doc/logos/tempo100.png)
-Monash Time Series Classification Library.
+Monash Time Series Analytics Library.
 Monash University, Melbourne, Australia.
 
-Tempo is not only a project fo researchers!
+Tempo is not only a project for researchers!
 Our aim is to deliver a user-friendly library,
 allowing anyone to enjoy our last work in the domain of time series classification.
 
