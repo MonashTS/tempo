@@ -100,7 +100,7 @@ pip uninstall pytempo.distances
 Python bindings are made with [pybind11](https://github.com/pybind/pybind11).
 
 ## As a Java library
-Simply copy/past the file from the [java directory](./bindings/java).
+Simply copy/past the files from the [java directory](./bindings/java).
 
 
 # Applications
