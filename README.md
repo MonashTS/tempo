@@ -6,7 +6,7 @@ Tempo is not only a project fo researchers!
 Our aim is to deliver a user-friendly library,
 allowing anyone to enjoy our last work in the domain of time series classification.
 
-**Note:** Tempo is young and in active development. Do not hesitate to report issues!**
+**Note:** Tempo is young and in active development. Do not hesitate to report issues!
 
 **Note:** We experiment using the UCR archive, mostly in its 85 datasets version.
 The archive can be found at [timeseriesclassification.com](http://timeseriesclassification.com/dataset.php).
