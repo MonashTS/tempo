@@ -9,7 +9,7 @@ namespace tempo::univariate {
   namespace internal {
 
     template<typename FloatType, auto dist = square_dist<FloatType>>
-    [[nodiscard]] inline FloatType sed(
+    [[nodiscard]] inline FloatType adtw(
       const FloatType* lines, size_t nblines,
       const FloatType* cols, size_t nbcols,
       const double diagweight_,
@@ -25,7 +25,7 @@ namespace tempo::univariate {
       constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
       // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-      // Create a new tighter upper bounds (most commonly used in the code).
+      // Create a new tighter upper bounds (most commonly uadtw in the code).
       // First, take the "next float" after "cutoff" to deal with numerical instability.
       // Then, subtract the cost of the last alignment.
       const FloatType ub = nextafter(cutoff, POSITIVE_INFINITY)-dist(lines[nblines-1], cols[nbcols-1]);
@@ -39,7 +39,7 @@ namespace tempo::univariate {
       // Line & column counters
       size_t i{0}, j{0};
 
-      // Cost accumulator. Also used as the "left neighbour".
+      // Cost accumulator. Also uadtw as the "left neighbour".
       FloatType cost;
 
       // EAP variables: track where to start the next line, and the position of the previous pruning point.
@@ -152,7 +152,7 @@ namespace tempo::univariate {
 
 
   template<typename FloatType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] FloatType sed(
+  [[nodiscard]] FloatType adtw(
     const FloatType* series1, size_t length1,
     const FloatType* series2, size_t length2,
     const double diagweight,
@@ -165,7 +165,7 @@ namespace tempo::univariate {
       }
       case 1: {
         const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
-        return internal::sed<FloatType, dist>(lines, nblines, cols, nbcols, diagweight, cutoff);
+        return internal::adtw<FloatType, dist>(lines, nblines, cols, nbcols, diagweight, cutoff);
       }
       default:should_not_happen();
     }
@@ -173,27 +173,27 @@ namespace tempo::univariate {
 
   /// Helper for the above, using vectors
   template<typename FloatType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline FloatType sed(
+  [[nodiscard]] inline FloatType adtw(
     const std::vector<FloatType>& series1,
     const std::vector<FloatType>& series2,
     const double diagweight,
     FloatType cutoff) {
-    return sed<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), diagweight, cutoff);
+    return adtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), diagweight, cutoff);
   }
 
   /// Helper for the above, using TSeries
   template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline FloatType sed(
+  [[nodiscard]] inline FloatType adtw(
     const TSeries<FloatType, LabelType>& series1,
     const TSeries<FloatType, LabelType>& series2,
     const FloatType diagweight,
     FloatType cutoff) {
-    return sed<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), diagweight, cutoff);
+    return adtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), diagweight, cutoff);
   }
 
   /// Build a distfun_cutoff_t for the above
   template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_sed(
+  [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_adtw(
     const double diagweight
   ) {
     return distfun_cutoff_t<FloatType, LabelType>{
@@ -202,7 +202,7 @@ namespace tempo::univariate {
         const TSeries<FloatType, LabelType>& series2,
         FloatType co
       ) {
-        return sed<FloatType, LabelType, dist>(series1, series2, diagweight, co);
+        return adtw<FloatType, LabelType, dist>(series1, series2, diagweight, co);
       }
     };
   }
@@ -212,7 +212,7 @@ namespace tempo::univariate {
   namespace internal {
 
     template<typename FloatType, auto dist = square_dist<FloatType>>
-    [[nodiscard]] inline FloatType sedw(
+    [[nodiscard]] inline FloatType adtww(
       const FloatType* lines, size_t nblines,
       const FloatType* cols, size_t nbcols,
       const FloatType* weights,
@@ -227,7 +227,7 @@ namespace tempo::univariate {
       constexpr auto POSITIVE_INFINITY = tempo::POSITIVE_INFINITY<FloatType>;
 
       // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-      // Create a new tighter upper bounds (most commonly used in the code).
+      // Create a new tighter upper bounds (most commonly uadtw in the code).
       // First, take the "next float" after "cutoff" to deal with numerical instability.
       // Then, subtract the cost of the last alignment.
       const FloatType ub = nextafter(cutoff, POSITIVE_INFINITY)-dist(lines[nblines-1], cols[nbcols-1]);
@@ -241,7 +241,7 @@ namespace tempo::univariate {
       // Line & column counters
       size_t i{0}, j{0};
 
-      // Cost accumulator. Also used as the "left neighbour".
+      // Cost accumulator. Also uadtw as the "left neighbour".
       FloatType cost;
 
       // EAP variables: track where to start the next line, and the position of the previous pruning point.
@@ -351,7 +351,7 @@ namespace tempo::univariate {
 
 
   template<typename FloatType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] FloatType sedw(
+  [[nodiscard]] FloatType adtww(
     const FloatType* series1, size_t length1,
     const FloatType* series2, size_t length2,
     const FloatType* weights,
@@ -364,7 +364,7 @@ namespace tempo::univariate {
       }
       case 1: {
         const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
-        return internal::sedw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+        return internal::adtww<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
       }
       default:should_not_happen();
     }
@@ -372,27 +372,27 @@ namespace tempo::univariate {
 
   /// Helper for the above, using vectors
   template<typename FloatType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline FloatType sedw(
+  [[nodiscard]] inline FloatType adtww(
     const std::vector<FloatType>& series1,
     const std::vector<FloatType>& series2,
     const FloatType* weights,
     FloatType cutoff) {
-    return sedw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights, cutoff);
+    return adtww<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights, cutoff);
   }
 
   /// Helper for the above, using TSeries
   template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline FloatType sedw(
+  [[nodiscard]] inline FloatType adtww(
     const TSeries<FloatType, LabelType>& series1,
     const TSeries<FloatType, LabelType>& series2,
     const FloatType* weights,
     FloatType cutoff) {
-    return sedw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights, cutoff);
+    return adtww<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights, cutoff);
   }
 
   /// Build a distfun_cutoff_t for the above
   template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
-  [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_sedw(
+  [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_adtww(
     std::shared_ptr<std::vector<FloatType>> weights
   ) {
     return distfun_cutoff_t<FloatType, LabelType>{
@@ -401,7 +401,7 @@ namespace tempo::univariate {
         const TSeries<FloatType, LabelType>& series2,
         FloatType co
       ) {
-        return sedw<FloatType, LabelType, dist>(series1, series2, weights->data(), co);
+        return adtww<FloatType, LabelType, dist>(series1, series2, weights->data(), co);
       }
     };
   }

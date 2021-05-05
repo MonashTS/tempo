@@ -5,7 +5,7 @@
 #include <tempo/utils/partasks.hpp>
 #include <tempo/utils/utils/timing.hpp>
 #include <tempo/utils/jsonvalue.hpp>
-#include <tempo/univariate/distances/sed/sed.hpp>
+#include <tempo/univariate/distances/dtw/adtw.hpp>
 #include <tempo/univariate/distances/dtw/wdtw.hpp>
 #include <tempo/reader/ts/ts.hpp>
 #include <tempo/tseries/dataset.hpp>
@@ -45,15 +45,14 @@ variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostre
 
 int main(int argc, char** argv) {
   std::vector<std::string> argList(argv, argv+argc);
-  if (argc<3) {
-    cout << "<path to ucr> <dataset name> required" << endl;
+  if (argc<5) {
+    cout << "<path to ucr> <dataset name> <nbthreads> <output> required" << endl;
     exit(1);
   }
   fs::path path_ucr(argList[1]);
   string dataset_name(argList[2]);
-
-  size_t nbp = 1;
-  if (argc>=4) { nbp = stoi(argList[3]); }
+  size_t nbthreads = stoi(argList[3]);
+  string outpath = argList[4];
 
   // --- Dataset path
   fs::path path_train = path_ucr/dataset_name/(dataset_name+"_TRAIN.ts");
@@ -99,8 +98,8 @@ int main(int argc, char** argv) {
   // Create the penalty
   double avg_amp_ = avg_amp(is_train, train_source);
   double max_ = max_v(is_train, train_source);
-  //double v = avg_amp_; //(avg_amp_ + max_)/2;
-  double v = (avg_amp_ + max_)/2;
+  double v = avg_amp_; //(avg_amp_ + max_)/2;
+  //double v = (avg_amp_ + max_)/2;
 
   // Parameters
   vector<tuple<double, vector<double>>> params;
@@ -113,7 +112,7 @@ int main(int argc, char** argv) {
 
   // Manage tasks
   std::mutex mutex;
-  auto loocv_task = [&mutex, &params, &best_param, &best_nbcorrect, &tsize, &train_source, v](size_t pindex) {
+  auto loocv_task = [&mutex, &params, &best_param, &best_nbcorrect, &tsize, &train_source, &dataset_name](size_t pindex) {
     const auto* w = get<1>(params[pindex]).data();
     size_t nbcorrect = 0;
     // 'i' is the item left out - being classified
@@ -126,7 +125,7 @@ int main(int argc, char** argv) {
         // Skip self
         if (i==j) { continue; }
         auto candidate = (*train_source.data)[j];
-        double dist = tu::sedw(query, candidate, w, bsf);
+        double dist = tu::adtww(query, candidate, w, bsf);
         if (dist<bsf) {
           bsf = dist;
           bid = j;
@@ -147,26 +146,27 @@ int main(int argc, char** argv) {
       best_param.push_back(pindex);
     }
     lock_guard g(mutex);
-    cout << "Param " << pindex << " with g = " << get<0>(params[pindex]) << ": nb corrects = "
+    cout << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]) << ": nb corrects = "
          << nbcorrect << "/" << tsize << " accuracy = "
          << (double) (nbcorrect)/tsize << endl;
   };
 
 
-  // --- --- --- LVOO loop in parallal
-  if (nbp!=1) { cout << "Using " << nbp << " threads" << endl; }
+  // --- --- --- LOOCV loop in parallel
+  if (nbthreads!=1) { cout << dataset_name << " Using " << nbthreads << " threads" << endl; }
   tempo::ParTasks p;
   for (size_t pindex = 0; pindex<params.size(); ++pindex) { p.push_task(loocv_task, pindex); }
-  p.execute(nbp);
+  p.execute(nbthreads);
 
 
   // Report result
-  cout << "Best parameter(s): " << best_nbcorrect << "/" << tsize << " = " << (double) best_nbcorrect/tsize << endl;
+  cout << dataset_name << " Best parameter(s): " << best_nbcorrect << "/" << tsize << " = " << (double) best_nbcorrect/tsize << endl;
   for (auto pi: best_param) {
     cout << "  " << get<0>(params[pi]) << endl;
   }
+  double bestg = get<0>(params[best_param.front()]);
+  cout << dataset_name << " Pick smallest: " << bestg << endl;
 
-  {
     // Do NN1 with a parameter
     // --- NN1 classification
     size_t nb_ea{0};
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
       double bsf = tempo::POSITIVE_INFINITY<double>;
       const TS* bcandidates = nullptr;
       for (const auto& c: *train_source.data) {
-        double res = tu::sedw(q, c, w, bsf);
+        double res = tu::adtww(q, c, w, bsf);
         if (res==tempo::POSITIVE_INFINITY<double>) {
           nb_ea++;
         } else if (res<bsf) { // update BSF
@@ -209,12 +209,12 @@ int main(int argc, char** argv) {
         nb_correct++;
       }
     }
+    double accuracy = nb_correct/test->size();
     cout << endl;
-    cout << "NN1 test result: " << nb_correct << "/" << test->size() << " = " << (double) nb_correct/test->size()
-         << endl;
-  }
+    cout << dataset_name << " NN1 test result: " << nb_correct << "/" << test->size() << " = " <<  accuracy << endl;
 
 
+  /*
   // Do NN1 with a parameter
   // --- NN1 classification
   size_t nb_ea{0};
@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
     double bsf = tempo::POSITIVE_INFINITY<double>;
     const TS* bcandidates = nullptr;
     for (const auto& c: *train_source.data) {
-      double res = tu::sedw(q, c, w, bsf);
+      double res = tu::adtww(q, c, w, bsf);
       if (res==tempo::POSITIVE_INFINITY<double>) {
         nb_ea++;
       } else if (res<bsf) { // update BSF
@@ -259,8 +259,21 @@ int main(int argc, char** argv) {
   }
   cout << endl;
   cout << "NN1 test result: " << nb_correct << "/" << test->size() << " = " << (double) nb_correct/test->size() << endl;
+  */
 
 
+  stringstream ss;
+  ss << "{" << endl;
+  ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
+  ss << R"(  "accuracy":)" << accuracy << "," << endl;
+  ss << R"(  "distance":{"name":"sed", "g":)" << bestg << "}" << endl;
+  ss << "}" << endl;
+  string str = ss.str();
+
+  std::cout << dataset_name << " output to " << outpath << endl;
+  std::ofstream outfile(outpath);
+  outfile << str;
+  cout << str;
 
 
 

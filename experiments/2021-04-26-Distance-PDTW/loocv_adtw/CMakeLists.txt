@@ -10,12 +10,12 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Read version from file
 set(CMAKE_CXX_STANDARD 17)
-project(exp_sed LANGUAGES CXX)
+project(loocv_adtw LANGUAGES CXX)
 
 add_subdirectory(../../../ cpp EXCLUDE_FROM_ALL)
 
 
-add_executable(exp_sed src/main.cpp)
+add_executable(loocv_adtw src/main.cpp)
 
-target_link_libraries(exp_sed PRIVATE tempo)
-target_include_directories(exp_sed PRIVATE src)
+target_link_libraries(loocv_adtw PRIVATE tempo)
+target_include_directories(loocv_adtw PRIVATE src)
