@@ -21,7 +21,7 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
     twe_nu, twe_lambda, \
     erp_g, erp_w = record
 
-    cmd = str(EXEC_PATH)+f" {UCR_PATH} {name} 6 {RESULT_DIR}/{name}_adtw.json"
+    cmd = str(EXEC_PATH)+f" {UCR_PATH} {name} 6 {RESULT_DIR}/{name}_adtw_fix_ratiomaxdist.json"
     print(cmd, file=output)
 
 

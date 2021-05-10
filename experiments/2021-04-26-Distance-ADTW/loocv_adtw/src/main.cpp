@@ -98,14 +98,28 @@ int main(int argc, char** argv) {
   // Create the penalty
   double avg_amp_ = avg_amp(is_train, train_source);
   double max_ = max_v(is_train, train_source);
-  double v = avg_amp_; //(avg_amp_ + max_)/2;
+  double min_ = min_v(is_train, train_source);
+  //double v = avg_amp_; //(avg_amp_ + max_)/2;
   //double v = (avg_amp_ + max_)/2;
+  double v = tempo::univariate::square_dist(max_, min_);
+  std::cout << " --------- v = " << v << std::endl;
 
-  // Parameters
+  //  // Parameters
+  //  vector<tuple<double, vector<double>>> params;
+  //  for (int i = 0; i<100; ++i) {
+  //    double g=exp(0.0025*(double)(i+1))-1;
+  //    params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
+  //  }
+  //  vector<size_t> best_param;
+  //  size_t best_nbcorrect = 0;
+
+
+
+  // Parameters: ratio of v
   vector<tuple<double, vector<double>>> params;
-  for (int i = 0; i<100; ++i) {
-    double g=exp(0.0025*(double)(i+1))-1;
-    params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
+  for (int i = 0; i<101; ++i) {
+    double r = (double)i/100;
+    params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
   }
   vector<size_t> best_param;
   size_t best_nbcorrect = 0;
@@ -266,7 +280,7 @@ int main(int argc, char** argv) {
   ss << "{" << endl;
   ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
   ss << R"(  "accuracy":)" << accuracy << "," << endl;
-  ss << R"(  "distance":{"name":"sed", "g":)" << bestg << "}" << endl;
+  ss << R"(  "distance":{"name":"adtw", "g":)" << bestg << "}" << endl;
   ss << "}" << endl;
   string str = ss.str();
 

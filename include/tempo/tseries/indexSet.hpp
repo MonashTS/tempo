@@ -427,7 +427,7 @@ namespace tempo {
     return s.get_stddev_p();
   }
 
-/** Compute the avergare ampltiude of a selection of a dataset, over a transform that is serie-like */
+/** Compute the average amplitude of a selection of a dataset, over a transform that is serie-like */
 template<typename FloatType, typename LabelType>
 FloatType avg_amp(
     const IndexSet& is,
@@ -443,15 +443,26 @@ FloatType avg_amp(
   return amp/count;
 }
 
-/** Compute the avergare ampltiude of a selection of a dataset, over a transform that is serie-like */
+/** Compute the maximum value present a selection of a dataset, over a transform that is serie-like */
 template<typename FloatType, typename LabelType>
 FloatType max_v(
     const IndexSet& is,
-    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t)
-    {
+    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t) {
+  double mv=0;
+    for (const auto& ts: t.get()) {
+      for (size_t i{0}; i<ts.length(); ++i) { mv=std::max(mv, ts(0, i));}
+    }
+    return mv;
+}
+
+/** Compute the minimum value present a selection of a dataset, over a transform that is serie-like */
+template<typename FloatType, typename LabelType>
+FloatType min_v(
+    const IndexSet& is,
+    const TransformHandle<std::vector<TSeries<FloatType, LabelType>>, FloatType, LabelType>& t) {
   double mv=0;
   for (const auto& ts: t.get()) {
-    for (size_t i{0}; i<ts.length(); ++i) { mv=std::max(mv, std::fabs(ts(0, i)));}
+    for (size_t i{0}; i<ts.length(); ++i) { mv=std::min(mv, ts(0, i));}
   }
   return mv;
 }
