@@ -106,9 +106,12 @@ int main(int argc, char** argv) {
 
   // Parameters
   vector<tuple<double, vector<double>>> params;
-  for (int i = 0; i<100; ++i) {
-    double g=exp(0.001*(double)(i+1))-1;
-    params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
+  for (int i = 0; i<101; ++i) {
+    for (int gindex = 0; gindex<101; ++gindex) {
+      double g=exp(0.001*(double)(gindex))-1;
+      double vv = v * ((double)i / 100.0);
+      params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, vv)));
+    }
   }
   vector<size_t> best_param;
   size_t best_nbcorrect = 0;
@@ -139,7 +142,7 @@ int main(int argc, char** argv) {
         // Skip self
         if (i==j) { continue; }
         auto candidate = (*train_source.data)[j];
-        double dist = tu::adtww(query, candidate, w, bsf);
+        double dist = tu::adtw(query, candidate, w, bsf);
         if (dist<bsf) {
           bsf = dist;
           bid = j;
@@ -200,7 +203,7 @@ int main(int argc, char** argv) {
       double bsf = tempo::POSITIVE_INFINITY<double>;
       const TS* bcandidates = nullptr;
       for (const auto& c: *train_source.data) {
-        double res = tu::adtww(q, c, w, bsf);
+        double res = tu::adtw(q, c, w, bsf);
         if (res==tempo::POSITIVE_INFINITY<double>) {
           nb_ea++;
         } else if (res<bsf) { // update BSF

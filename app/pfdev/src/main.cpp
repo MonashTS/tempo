@@ -159,18 +159,30 @@ int main(int argc, char** argv) {
   namespace pf = tempo::univariate::pf;
   using splitgen_ptr = std::unique_ptr<pf::SplitterGenerator<FloatType, LabelType, PRNG>>;
   std::vector<splitgen_ptr> gens;
-  //gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
-  gens.emplace_back(splitgen_ptr(new pf::SG_SED<FloatType, LabelType, PRNG>(transform_provider)));
-  //gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_ADTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_ADTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_DTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_CDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider)));
+  gens.emplace_back(splitgen_ptr(new pf::SG_WDTW<FloatType, LabelType, PRNG>(transform_provider_d1)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_Eucl<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_ERP<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_LCSS<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_MSM<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_ADTW<FloatType, LabelType, PRNG>(transform_provider)));
+
+  gens.emplace_back(splitgen_ptr(new pf::SG_TWE<FloatType, LabelType, PRNG>(transform_provider)));
 
   pf::SplitterChooser<FloatType, LabelType, PRNG> sg(std::move(gens));
 
@@ -178,7 +190,9 @@ int main(int argc, char** argv) {
   std::cout << "seed = " << config.random_seed << std::endl;
   std::cout << "Starting training..." << std::endl;
   auto start = tempo::timing::now();
-  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(*train, config.nb_trees, config.nb_candidates, sg, config.random_seed, 7, &std::cout);
+  auto pforest = tempo::univariate::pf::PForest<FloatType, LabelType>::make(
+    *train, config.nb_trees, config.nb_candidates, sg, config.random_seed, config.nb_thread, &std::cout
+  );
   auto stop = tempo::timing::now();
   std::cout << "Training done in" << std::endl;
   auto train_time_ns = stop-start;
@@ -186,7 +200,7 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "Starting testing..." << std::endl;
   start = tempo::timing::now();
-  auto classifier = pforest->get_classifier(config.random_seed, 7);
+  auto classifier = pforest->get_classifier(config.random_seed, config.nb_thread);
   size_t nbcorrect{0};
   for (const auto& idx:test_is) {
     auto resvec = classifier->classify(*test, idx);
@@ -199,23 +213,23 @@ int main(int argc, char** argv) {
   tempo::timing::printDuration(std::cout, test_time_ns);
   double accuracy = double(nbcorrect)/test_is.size();
   std::cout << std::endl;
-  std::cout << "Correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
-  std::cout << "Accuracy: " <<  accuracy*100 << "%" << std::endl;
-  std::cout << "Error:    " << 100.0-(accuracy*100.0) << "%" << std::endl;
+  std::cout << "correct:  " << nbcorrect << "/" << test_is.size() << std::endl;
+  std::cout << "accuracy: " <<  accuracy*100 << "%" << std::endl;
+  std::cout << "error:    " << 100.0-(accuracy*100.0) << "%" << std::endl;
 
   if(config.outpath) {
     using json::JSONValue;
     auto jsv = JSONValue({
-      {"task",          "Tempo.pf2018"},
+      {"task",          "Tempo.pfdev"},
       {"train_set",     train->get_header().to_json()},
       {"test_set",      test->get_header().to_json()},
       {"train_time_ns", train_time_ns.count()},
       {"train_time",    tempo::timing::as_string(train_time_ns)},
       {"test_time_ns",  test_time_ns.count()},
       {"test_time",     tempo::timing::as_string(test_time_ns)},
-      {"Correct",       nbcorrect},
-      {"Accuracy",      accuracy},
-      {"Error",         1.0-accuracy}
+      {"correct",       nbcorrect},
+      {"accuracy",      accuracy},
+      {"error",         1.0-accuracy}
     });
     ofstream out(config.outpath.value());
     out << to_string(jsv) << std::endl;
