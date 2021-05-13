@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <tuple>
+#include <tempo/univariate/transforms/derivative.hpp>
 
 // --- --- --- Namespaces
 using namespace std;
@@ -24,10 +25,17 @@ using namespace tempo::json;
 // --- --- --- Types
 using FloatType = double;
 using LabelType = string;
+using PRNG = std::mt19937_64;
 using TS = tempo::TSeries<FloatType, LabelType>;
 using DS = tempo::Dataset<FloatType, LabelType>;
 using TH = tempo::TransformHandle<vector<TS>, FloatType, LabelType>;
 using distfun_t = function<FloatType(size_t query_idx, size_t candidate_idx, FloatType bsf)>;
+
+FloatType pickvalue(const TH& th, PRNG& prng){
+  const auto& s = tempo::rand::pick_one(*th.data, prng);
+  auto distribution = std::uniform_int_distribution<int>(0, s.length() - 1);
+  return s(0, distribution(prng));
+}
 
 variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostream& log, fs::path& dataset_path) {
   log << "Loading " << dataset_path << "... ";
@@ -53,6 +61,9 @@ int main(int argc, char** argv) {
   string dataset_name(argList[2]);
   size_t nbthreads = stoi(argList[3]);
   string outpath = argList[4];
+
+  std::random_device rd;
+  PRNG prng(rd());
 
   // --- Dataset path
   fs::path path_train = path_ucr/dataset_name/(dataset_name+"_TRAIN.ts");
@@ -85,11 +96,46 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  const auto train_source = train->get_original_handle();
+  // --- --- --- --- Original
+  const auto train_source_o = train->get_original_handle();
+  const auto test_source_o = test->get_original_handle();
+
+  // --- --- --- --- Derivative
+  tu::DerivativeTransformer<FloatType, LabelType> deriver1(1);
+  const auto train_source_d1 = deriver1.transform_and_add(train->get_original_handle());
+  const auto test_source_d1 = deriver1.transform_and_add(test->get_original_handle());
+
+  // --- --- --- --- Select source
   const auto is_train = tempo::IndexSet(*train);
-  const auto test_source = test->get_original_handle();
+  auto train_source = train_source_o;
+  auto test_source = test_source_o;
+  train_source = train_source_d1;
+  test_source = test_source_d1;
+
 
   const size_t tsize = train->size();
+
+  enum howtodist {
+    SAMPLING_100k
+  };
+
+  howtodist htd = SAMPLING_100k;
+  double v=0;
+
+  switch(htd){
+    case SAMPLING_100k:{
+      tempo::stats::StddevWelford welford;
+      for(int i=0; i<1000000; ++i){
+        // Pick two values from the train set
+        FloatType a = pickvalue(train_source, prng);
+        FloatType b = pickvalue(train_source, prng);
+        welford.update(tempo::univariate::square_dist(a, b));
+      }
+      v = welford.get_mean();
+      std::cout << "welford mean = " << welford.get_mean() << " stddev = " << welford.get_stddev_s() << " variance " << welford.get_variance_s() << std::endl;
+      break;
+    }
+  }
 
 
 
@@ -98,19 +144,42 @@ int main(int argc, char** argv) {
   // Create the penalty
   double avg_amp_ = avg_amp(is_train, train_source);
   double max_ = max_v(is_train, train_source);
-  double min_ = min_v(is_train, train_source);
-  //double v = avg_amp_; //(avg_amp_ + max_)/2;
+  //double min_ = min_v(is_train, train_source);
+  double vother = (avg_amp_ + max_)/2;
   //double v = (avg_amp_ + max_)/2;
-  double v = tempo::univariate::square_dist(max_, min_);
-  std::cout << " --------- v = " << v << std::endl;
+  //double v = tempo::univariate::square_dist(max_, min_);
+  std::cout << " --------- v = " << v << "  -- other  = " << vother << std::endl;
+  //v=vother;
+
+//  // Parameters
+//  vector<tuple<double, vector<double>>> params;
+//  for (int gindex = 0; gindex < 100; ++gindex) {
+//    double g = exp(0.002 * (double) (gindex)) - 1;
+//    params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
+//  }
+//  vector<size_t> best_param;
+//  size_t best_nbcorrect = 0;
+
+
+
+//   // Parameters: ratio of v
+//   vector<tuple<double, vector<double>>> params;
+//   for (int i = 0; i<151; ++i) {
+//     double r = (double)i/100;
+//     params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
+//   }
+//   vector<size_t> best_param;
+//   size_t best_nbcorrect = 0;
+
+
 
   // Parameters
-  vector<tuple<double, vector<double>>> params;
-  for (int i = 0; i<101; ++i) {
-    for (int gindex = 0; gindex<101; ++gindex) {
-      double g=exp(0.001*(double)(gindex))-1;
-      double vv = v * ((double)i / 100.0);
-      params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, vv)));
+  vector<tuple<double, double, vector<double>>> params;
+  for(double vratio=0; vratio<=1.1; vratio+=0.1) {
+    for (int gindex = 0; gindex < 100; ++gindex) {
+      double g = exp(0.002 * (double) (gindex)) - 1;
+      double vv = v*vratio;
+      params.emplace_back(make_tuple(g, vv, tu::generate_weights<double>(g, maxl, vv)));
     }
   }
   vector<size_t> best_param;
@@ -118,19 +187,10 @@ int main(int argc, char** argv) {
 
 
 
-  // // Parameters: ratio of v
-  // vector<tuple<double, vector<double>>> params;
-  // for (int i = 0; i<101; ++i) {
-  //   double r = (double)i/100;
-  //   params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
-  // }
-  // vector<size_t> best_param;
-  // size_t best_nbcorrect = 0;
-
   // Manage tasks
   std::mutex mutex;
   auto loocv_task = [&mutex, &params, &best_param, &best_nbcorrect, &tsize, &train_source, &dataset_name](size_t pindex) {
-    const auto* w = get<1>(params[pindex]).data();
+    const auto* w = get<2>(params[pindex]).data();
     size_t nbcorrect = 0;
     // 'i' is the item left out - being classified
     for (size_t i = 0; i<tsize; ++i) {
@@ -163,7 +223,8 @@ int main(int argc, char** argv) {
       best_param.push_back(pindex);
     }
     lock_guard g(mutex);
-    cout << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]) << ": nb corrects = "
+    cout << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]) << " v=" << get<1>(params[pindex])
+         << ": nb corrects = "
          << nbcorrect << "/" << tsize << " accuracy = "
          << (double) (nbcorrect)/tsize << endl;
   };
@@ -178,11 +239,35 @@ int main(int argc, char** argv) {
 
   // Report result
   cout << dataset_name << " Best parameter(s): " << best_nbcorrect << "/" << tsize << " = " << (double) best_nbcorrect/tsize << endl;
+  // Sort required: multithread does not guarantee order on insertion in the vector.
+  std::sort(best_param.begin(), best_param.end());
   for (auto pi: best_param) {
     cout << "  " << get<0>(params[pi]) << endl;
   }
-  double bestg = get<0>(params[best_param.front()]);
-  cout << dataset_name << " Pick smallest: " << bestg << endl;
+
+  double bestg;
+  double bestvv;
+
+//  bestg = get<0>(params[best_param.front()]);
+//  cout << dataset_name << " Pick smallest: " << bestg << endl;
+
+//  bestg = get<0>(params[best_param.back()]);
+//  cout << dataset_name << " Pick largest: " << bestg << endl;
+
+  {
+    auto size = best_param.size();
+    if (size % 2 == 0) {
+      bestg = (get<0>(params[best_param[size/2-1]]) + get<0>(params[best_param[size/2]]))/2;
+      bestvv = (get<1>(params[best_param[size/2-1]]) + get<1>(params[best_param[size/2]]))/2;
+
+    } else {
+      bestg = get<0>(params[best_param[size / 2]]);
+      bestvv = get<1>(params[best_param[size / 2]]);
+    }
+    cout << dataset_name << " Pick median: g=" << bestg << "   v=" << bestvv << endl;
+  }
+
+
 
     // Do NN1 with a parameter
     // --- NN1 classification
@@ -193,9 +278,11 @@ int main(int argc, char** argv) {
     size_t tenth = centh*10;
     size_t nbtenth = 0;
 
-    const auto* w = get<1>(params[best_param.front()]).data();
 
-    // --- --- --- NN1 loop
+    const auto wv = tu::generate_weights<double>(bestg, maxl, bestvv);
+    const auto* w = wv.data();
+
+  // --- --- --- NN1 loop
     double nb_correct{0};
     tt::duration_t duration{0};
     auto start = tt::now();

@@ -77,7 +77,7 @@ namespace tempo::univariate {
 
 
     /// Create the transform and add it to the src's dataset. Return the corresponding handle.
-    [[nodiscard]] TransformHandle<std::vector<TS>, FloatType, LabelType> transform_and_add(SRC& src){
+    [[nodiscard]] TransformHandle<std::vector<TS>, FloatType, LabelType> transform_and_add(const SRC& src){
       auto tr = transform(src);
       return src.dataset->template add_transform<std::vector<TS>>(std::move(tr));
     }
