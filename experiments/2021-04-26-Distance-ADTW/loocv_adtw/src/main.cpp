@@ -327,7 +327,7 @@ int main(int argc, char** argv) {
   ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
   ss << R"(  "accuracy":)" << accuracy << "," << endl;
   ss << R"(  "error_rate":)" << (1-accuracy) << "," << endl;
-  ss << R"(  "distance":{"name":")" << distname << R"(", "g":)" << bestg << "}" << endl;
+  ss << R"(  "distance":{"name":")" << distname << R"(", "g":)" << bestg << "}," << endl;
   ss << R"(  "threads":)" << nbthreads << "," << endl;
   ss << R"(  "time_loocv":")" << tt::as_string(loocv_duration) << "\"," << endl;
   ss << R"(  "time_ns_loocv":)" << loocv_duration.count() << "," << endl;
