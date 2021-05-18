@@ -21,8 +21,13 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
     twe_nu, twe_lambda, \
     erp_g, erp_w = record
 
-    cmd = str(EXEC_PATH)+f" {UCR_PATH} {name} 6 {RESULT_DIR}/{name}_adtw_fix_ratiomaxdist.json"
-    print(cmd, file=output)
+    def do_cmd(transform, kind):
+        return str(EXEC_PATH)+f" {UCR_PATH} {name} {transform} {kind} 6 {RESULT_DIR}/{name}_adtw-{transform}-{kind}.json"
+
+    print(do_cmd("original", "fixed"), file=output)
+    print(do_cmd("original", "weighted"), file=output)
+    print(do_cmd("derivative", "fixed"), file=output)
+    print(do_cmd("derivative", "weighted"), file=output)
 
 
 # --- --- --- --- Main
