@@ -79,6 +79,7 @@ set(TEMPO_SRC
         include/tempo/utils/version.hpp
         include/tempo/utils/jsonvalue.hpp
         include/tempo/utils/partasks.hpp
+        include/tempo/utils/progressmonitor.hpp
         )
 
 add_library(tempo SHARED ${TEMPO_SRC})

@@ -17,24 +17,10 @@ namespace tempo {
    *  Else, the requested number of threads are spawned, and the current thread waits for their completion.
    */
   class ParTasks {
-    using task_t = std::function<void()>;
-    std::mutex mtx;
-    std::vector<std::thread> threads;
-    std::queue<task_t> tasklist;
-
-    void run_thread() {
-      mtx.lock();
-      while (!tasklist.empty()) {
-        auto task = std::move(tasklist.front());
-        tasklist.pop();
-        mtx.unlock();
-        task();
-        mtx.lock();
-      }
-      mtx.unlock();
-    }
-
   public:
+
+    using task_t = std::function<void()>;
+    using taskgen_t = std::function<std::optional<task_t>()>;
 
     ParTasks() = default;
 
@@ -65,6 +51,59 @@ namespace tempo {
         threads.clear();
       }
     }
+
+    /// Blocking call using a task generator
+    void execute(int nbthread, taskgen_t tgenerator){
+      // --- --- --- 1 thread
+      if(nbthread<=1){
+        auto ntask = tgenerator();
+        while(ntask.has_value()){
+          auto task = ntask.value();
+          task();
+          ntask = tgenerator();
+        }
+      }
+      // --- --- --- Multi thread
+      else {
+        threads.reserve(nbthread);
+        for (int i = 0; i<nbthread; ++i) {
+          threads.emplace_back([this, &tgenerator]() { run_thread_generator(tgenerator); });
+        }
+        // Wait for all threads to stop
+        for (auto& thread : threads) { thread.join(); }
+        threads.clear();
+      }
+    }
+
+  private:
+
+    std::mutex mtx;
+    std::vector<std::thread> threads;
+    std::queue<task_t> tasklist;
+
+    void run_thread() {
+      mtx.lock();
+      while (!tasklist.empty()) {
+        auto task = std::move(tasklist.front());
+        tasklist.pop();
+        mtx.unlock();
+        task();
+        mtx.lock();
+      }
+      mtx.unlock();
+    }
+
+    void run_thread_generator(taskgen_t& tgenerator) {
+      mtx.lock();
+      auto ntask = tgenerator();
+      mtx.unlock();
+      while(ntask.has_value()){
+        auto task = ntask.value();
+        task();
+        { std::lock_guard lg(mtx); ntask = tgenerator(); }
+      }
+    }
+
   };
 
 } // End of namespace tempo
