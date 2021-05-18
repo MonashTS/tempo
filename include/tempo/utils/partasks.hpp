@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <optional>
 #include <functional>
 
 namespace tempo {
