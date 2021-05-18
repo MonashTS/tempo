@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
       params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
     }
   } else if (variant=="fixed") {
-    for (int i = 0; i<151; ++i) {
+    for (int i = 0; i<100; ++i) {
       double r = (double) i/100;
       params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
     }
