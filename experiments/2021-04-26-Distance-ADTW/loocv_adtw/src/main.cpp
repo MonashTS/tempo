@@ -322,13 +322,17 @@ int main(int argc, char** argv) {
 
   stringstream ss;
   ss << "{" << endl;
+  ss << R"(  "dataset":")" << dataset_name << "\"," << endl;
+  ss << R"(  "nb_test":)" << test->size() << "," << endl;
   ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
   ss << R"(  "accuracy":)" << accuracy << "," << endl;
+  ss << R"(  "error_rate":)" << (1-accuracy) << "," << endl;
   ss << R"(  "distance":{"name":")" << distname << R"(", "g":)" << bestg << "}" << endl;
+  ss << R"(  "threads":)" << nbthreads << "," << endl;
   ss << R"(  "time_loocv":")" << tt::as_string(loocv_duration) << "\"," << endl;
-  ss << R"(  "time_ns_loocv":")" << loocv_duration.count() << "\"," << endl;
+  ss << R"(  "time_ns_loocv":)" << loocv_duration.count() << "," << endl;
   ss << R"(  "time_testnn1":")" << tt::as_string(testnn1_duration) << "\"," << endl;
-  ss << R"(  "time_ns_testnn1":")" << testnn1_duration.count() << "\"," << endl;
+  ss << R"(  "time_ns_testnn1":)" << testnn1_duration.count() << "," << endl;
   ss << "}" << endl;
   string str = ss.str();
 
