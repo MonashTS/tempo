@@ -40,7 +40,12 @@ if __name__ == '__main__':
     OUT_CMD = (OUT_DIR/"commands").absolute()
     OUT = open(OUT_CMD, "w")
 
+    RES_DIR = OUT_DIR/"results"
+    RES_DIR.mkdir(parents=True, exist_ok=True)
+
     UCR_TS_PATH = str(CONFIGURE_ME.get_ucr_folder())
+    print("UCR FOLDER = ", UCR_TS_PATH)
+
     EXEC_PATH = pathlib.Path("./loocv_adtw/cmake-build-release/loocv_adtw").absolute()
 
     # --- --- --- --- Commands
@@ -49,7 +54,7 @@ if __name__ == '__main__':
         header = next(records)          # Skip header
         print(header)
         for r in records:
-            generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, OUT_DIR, r, OUT)
+            generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, RES_DIR, r, OUT)
 
     # --- --- --- --- CPU INFO
     # CPU_INFO file
