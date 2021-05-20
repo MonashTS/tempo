@@ -120,40 +120,31 @@ int main(int argc, char** argv) {
 
   const size_t train_size = train->size();
 
-  enum howtodist {
-    SAMPLING_100k
-  };
+  const size_t NB_SAMPLES = 1000000;
+  double sampled_mean_dist = 0;
 
-  howtodist htd = SAMPLING_100k;
-  double v = 0;
-
-  switch (htd) {
-    case SAMPLING_100k: {
-      tempo::stats::StddevWelford welford;
-      for (int i = 0; i<1000000; ++i) {
-        // Pick two values from the train set
-        FloatType a = pickvalue(train_source, prng);
-        FloatType b = pickvalue(train_source, prng);
-        welford.update(tempo::univariate::square_dist(a, b));
-      }
-      v = welford.get_mean();
-      std::cout << "welford mean = " << welford.get_mean() << " stddev = " << welford.get_stddev_s() << " variance "
-                << welford.get_variance_s() << std::endl;
-      break;
-    }
+  tempo::stats::StddevWelford welford;
+  for (int i = 0; i<NB_SAMPLES; ++i) {
+    // Pick two values from the train set
+    FloatType a = pickvalue(train_source, prng);
+    FloatType b = pickvalue(train_source, prng);
+    welford.update(tempo::univariate::square_dist(a, b));
   }
+  sampled_mean_dist = welford.get_mean();
+  std::cout << "welford mean = " << welford.get_mean() << " stddev = " << welford.get_stddev_s() << " variance "
+            << welford.get_variance_s() << std::endl;
 
   // Parameters
   vector<tuple<double, vector<double>>> params;
   if (variant=="weighted") {
     for (int gindex = 0; gindex<100; ++gindex) {
       double g = exp(0.002*(double) (gindex))-1;
-      params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
+      params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, sampled_mean_dist)));
     }
   } else if (variant=="fixed") {
     for (int i = 0; i<100; ++i) {
       double r = (double) i/100;
-      params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
+      params.emplace_back(make_tuple(r, std::vector<double>(maxl, r * sampled_mean_dist)));
     }
   } else {
     cout << "<path to ucr> <dataset name> <derivative|original> <fixed|weighted> <nbthreads> <output> required" << endl;
@@ -269,15 +260,15 @@ int main(int argc, char** argv) {
 
   vector<FloatType > wv;
   if (variant=="weighted") {
-    wv = tu::generate_weights<double>(bestg, maxl, bestg);
+    wv = tu::generate_weights<double>(bestg, maxl, sampled_mean_dist);
   } else if (variant=="fixed") {
-    wv = std::vector<double>(maxl, bestg*v);
+    wv = std::vector<double>(maxl, bestg * sampled_mean_dist);
   } else {
     std::cout << "ERROR!!!" << std::endl;
     exit(1);
   }
-  std::cout << "selected weights based on " << bestg << std::endl;
-  for(auto d : wv){std::cout << d << " ";} std::cout << std::endl;
+  //std::cout << "selected weights based on " << bestg << std::endl;
+  //for(auto d : wv){std::cout << d << " ";} std::cout << std::endl;
   const auto* weight = wv.data();
 
   // --- --- --- NN1 loop
@@ -337,7 +328,11 @@ int main(int argc, char** argv) {
   ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
   ss << R"(  "accuracy":)" << accuracy << "," << endl;
   ss << R"(  "error_rate":)" << (1-accuracy) << "," << endl;
-  ss << R"(  "distance":{"name":")" << distname << R"(", "g":)" << bestg << "}," << endl;
+  ss << R"(  "distance":{"name":")" << distname << '"'
+     << R"(, "g":)" << bestg
+     << R"(, "sampled_mean_dist":)" << sampled_mean_dist
+     << R"(, "samples_number":)" << NB_SAMPLES
+    <<  "}," << endl;
   ss << R"(  "threads":)" << nbthreads << "," << endl;
   ss << R"(  "time_loocv":")" << tt::as_string(loocv_duration) << "\"," << endl;
   ss << R"(  "time_ns_loocv":)" << loocv_duration.count() << "," << endl;
