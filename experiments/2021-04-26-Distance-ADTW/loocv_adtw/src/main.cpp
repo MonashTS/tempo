@@ -169,7 +169,8 @@ int main(int argc, char** argv) {
     size_t param_index, size_t leftout_index, size_t* nbcorrect,
     tempo::ProgressMonitor& pm,
     size_t* nb_done) {
-    const auto* weights = get<1>(params[param_index]).data();
+    const auto& weights_v = get<1>(params[param_index]);
+    const auto* weights = weights_v.data();
     auto query = (*train_source.data)[leftout_index];
     double bsf = tempo::POSITIVE_INFINITY<double>;
     size_t bid = leftout_index;
@@ -237,7 +238,6 @@ int main(int argc, char** argv) {
   for (auto pi: best_param) { cout << "  " << get<0>(params[pi]) << endl; }
 
   double bestg;
-  double bestvv;
 
   //  bestg = get<0>(params[best_param.front()]);
   //  cout << dataset_name << " Pick smallest: " << bestg << endl;
@@ -267,7 +267,17 @@ int main(int argc, char** argv) {
   size_t nbtenth = 0;
    */
 
-  const auto wv = tu::generate_weights<double>(bestg, maxl, bestvv);
+  vector<FloatType > wv;
+  if (variant=="weighted") {
+    wv = tu::generate_weights<double>(bestg, maxl, bestg);
+  } else if (variant=="fixed") {
+    wv = std::vector<double>(maxl, bestg*v);
+  } else {
+    std::cout << "ERROR!!!" << std::endl;
+    exit(1);
+  }
+  std::cout << "selected weights based on " << bestg << std::endl;
+  for(auto d : wv){std::cout << d << " ";} std::cout << std::endl;
   const auto* weight = wv.data();
 
   // --- --- --- NN1 loop
@@ -332,7 +342,7 @@ int main(int argc, char** argv) {
   ss << R"(  "time_loocv":")" << tt::as_string(loocv_duration) << "\"," << endl;
   ss << R"(  "time_ns_loocv":)" << loocv_duration.count() << "," << endl;
   ss << R"(  "time_testnn1":")" << tt::as_string(testnn1_duration) << "\"," << endl;
-  ss << R"(  "time_ns_testnn1":)" << testnn1_duration.count() << "," << endl;
+  ss << R"(  "time_ns_testnn1":)" << testnn1_duration.count()  << endl;
   ss << "}" << endl;
   string str = ss.str();
 
