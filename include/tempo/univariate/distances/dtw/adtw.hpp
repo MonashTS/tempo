@@ -12,7 +12,7 @@ namespace tempo::univariate {
     [[nodiscard]] inline FloatType adtw(
       const FloatType* lines, size_t nblines,
       const FloatType* cols, size_t nbcols,
-      const FloatType* weights,
+      const FloatType weight,
       const FloatType cutoff
     ) {
       // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -58,7 +58,7 @@ namespace tempo::univariate {
         // last alignment is taken are just above (1==nblines==nbcols, and we have nblines >= nbcols).
         size_t curr_pp = 1;
         for (j = 1; j==curr_pp && j<nbcols; ++j) {
-          cost = cost+dist(l0, cols[j])+weights[absdiff(i, j)]; // Left: penalty
+          cost = cost+dist(l0, cols[j])+weight; // Left: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { ++curr_pp; }
         }
@@ -76,7 +76,7 @@ namespace tempo::univariate {
         j = next_start;
         // --- --- --- Stage 0: Special case for the first column. Can only look up (border on the left)
         {
-          cost = buffers[p+j]+dist(li, cols[j])+weights[absdiff(i, j)]; // Top: penalty
+          cost = buffers[p+j]+dist(li, cols[j])+weight; // Top: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; } else { ++next_start; }
           ++j;
@@ -85,8 +85,8 @@ namespace tempo::univariate {
         for (; j==next_start && j<prev_pp; ++j) {
           const auto d = dist(li, cols[j]);
           cost = std::min(
-            d+buffers[p+j-1],                       // Diag: no penalty
-            d+buffers[p+j]+weights[absdiff(i, j)]   // Top: penalty
+            d+buffers[p+j-1],         // Diag: no penalty
+            d+buffers[p+j]+weight     // Top: penalty
           );
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; } else { ++next_start; }
@@ -94,9 +94,9 @@ namespace tempo::univariate {
         // --- --- --- Stage 2: Up to the previous pruning point without advancing next_start: left, diag and top
         for (; j<prev_pp; ++j) {
           const auto d = dist(li, cols[j]);
-          cost = min(d+cost+weights[absdiff(i, j)],   // Left: penalty
-            d+buffers[p+j-1],                         // Diag: no penalty
-            d+buffers[p+j]+weights[absdiff(i, j)]);   // Top: penalty
+          cost = min(d+cost+weight,   // Left: penalty
+            d+buffers[p+j-1],         // Diag: no penalty
+            d+buffers[p+j]+weight);   // Top: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { curr_pp = j+1; }
         }
@@ -113,7 +113,7 @@ namespace tempo::univariate {
               else { return POSITIVE_INFINITY; }
             }
           } else { // Case 2: Not advancing next start: possible path in previous cells: left (penalty) and diag.
-            cost = std::min(d+cost+weights[absdiff(i, j)], d+buffers[p+j-1]);
+            cost = std::min(d+cost+weight, d+buffers[p+j-1]);
             buffers[c+j] = cost;
             if (cost<=ub) { curr_pp = j+1; }
           }
@@ -130,7 +130,7 @@ namespace tempo::univariate {
         // Go on while we advance the curr_pp; if it did not advance, the rest of the line is guaranteed to be > ub.
         for (; j==curr_pp && j<nbcols; ++j) {
           const auto d = dist(li, cols[j]);
-          cost = cost+d+weights[absdiff(i, j)]; // Left: penalty
+          cost = cost+d+weight; // Left: penalty
           buffers[c+j] = cost;
           if (cost<=ub) { ++curr_pp; }
         }
@@ -146,12 +146,11 @@ namespace tempo::univariate {
     }
   } // End of namespace internal
 
-
   template<typename FloatType, auto dist = square_dist<FloatType>>
   [[nodiscard]] FloatType adtw(
     const FloatType* series1, size_t length1,
     const FloatType* series2, size_t length2,
-    const FloatType* weights,
+    const FloatType weight,
     FloatType cutoff
   ) {
     const auto check_result = check_order_series(series1, length1, series2, length2);
@@ -161,7 +160,7 @@ namespace tempo::univariate {
       }
       case 1: {
         const auto[lines, nblines, cols, nbcols] = std::get<1>(check_result);
-        return internal::adtw<FloatType, dist>(lines, nblines, cols, nbcols, weights, cutoff);
+        return internal::adtw<FloatType, dist>(lines, nblines, cols, nbcols, weight, cutoff);
       }
       default:should_not_happen();
     }
@@ -172,9 +171,9 @@ namespace tempo::univariate {
   [[nodiscard]] inline FloatType adtw(
     const std::vector<FloatType>& series1,
     const std::vector<FloatType>& series2,
-    const FloatType* weights,
+    const FloatType weight,
     FloatType cutoff) {
-    return adtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weights, cutoff);
+    return adtw<FloatType, dist>(series1.data(), series1.size(), series2.data(), series2.size(), weight, cutoff);
   }
 
   /// Helper for the above, using TSeries
@@ -182,26 +181,25 @@ namespace tempo::univariate {
   [[nodiscard]] inline FloatType adtw(
     const TSeries<FloatType, LabelType>& series1,
     const TSeries<FloatType, LabelType>& series2,
-    const FloatType* weights,
+    const FloatType weight,
     FloatType cutoff) {
-    return adtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weights, cutoff);
+    return adtw<FloatType, dist>(series1.data(), series1.length(), series2.data(), series2.length(), weight, cutoff);
   }
 
   /// Build a distfun_cutoff_t for the above
   template<typename FloatType, typename LabelType, auto dist = square_dist<FloatType>>
   [[nodiscard]] inline distfun_cutoff_t<FloatType, LabelType> distfun_cutoff_adtw(
-    std::shared_ptr<std::vector<FloatType>> weights
+    FloatType weight
   ) {
     return distfun_cutoff_t<FloatType, LabelType>{
-      [weights](
+      [weight](
         const TSeries<FloatType, LabelType>& series1,
         const TSeries<FloatType, LabelType>& series2,
         FloatType co
       ) {
-        return adtw<FloatType, LabelType, dist>(series1, series2, weights->data(), co);
+        return adtw<FloatType, LabelType, dist>(series1, series2, weight, co);
       }
     };
   }
-
 
 } // End of namespace tempo::univariate

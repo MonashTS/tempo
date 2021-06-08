@@ -6,7 +6,6 @@
 #include <tempo/utils/utils/timing.hpp>
 #include <tempo/utils/jsonvalue.hpp>
 #include <tempo/univariate/distances/dtw/adtw.hpp>
-#include <tempo/univariate/distances/dtw/wdtw.hpp>
 #include <tempo/reader/ts/ts.hpp>
 #include <tempo/tseries/dataset.hpp>
 #include <tempo/tseries/indexSet.hpp>
@@ -52,17 +51,18 @@ variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostre
 }
 
 int main(int argc, char** argv) {
+  const size_t SAMPLE_SIZE = 100000;
+
   std::vector<std::string> argList(argv, argv+argc);
   if (argc<6) {
-    cout << "<path to ucr> <dataset name> <derivative|original> <fixed|weighted> <nbthreads> <output> required" << endl;
+    cout << "<path to ucr> <dataset name> <derivative|original> <nbthreads> <output> required" << endl;
     exit(1);
   }
   fs::path path_ucr(argList[1]);
   string dataset_name(argList[2]);
   string transform(argList[3]);
-  string variant(argList[4]);
-  size_t nbthreads = stoi(argList[5]);
-  string outpath = argList[6];
+  size_t nbthreads = stoi(argList[4]);
+  string outpath = argList[5];
 
   std::random_device rd;
   PRNG prng(rd());
@@ -120,47 +120,27 @@ int main(int argc, char** argv) {
 
   const size_t train_size = train->size();
 
-  enum howtodist {
-    SAMPLING_100k
-  };
-
-  howtodist htd = SAMPLING_100k;
-  double v = 0;
-
-  switch (htd) {
-    case SAMPLING_100k: {
-      tempo::stats::StddevWelford welford;
-      for (int i = 0; i<1000000; ++i) {
-        // Pick two values from the train set
-        FloatType a = pickvalue(train_source, prng);
-        FloatType b = pickvalue(train_source, prng);
-        welford.update(tempo::univariate::square_dist(a, b));
-      }
-      v = welford.get_mean();
-      std::cout << "welford mean = " << welford.get_mean() << " stddev = " << welford.get_stddev_s() << " variance "
-                << welford.get_variance_s() << std::endl;
-      break;
+  double sampled_mean_dist = 0;
+  tempo::stats::StddevWelford welford;
+  {
+    auto start = tt::now();
+    // --- --- --- Distance sampling
+    for (int i = 0; i<SAMPLE_SIZE; ++i) {
+      // Pick two random values from the train set (random series, random point) and compute the distance
+      FloatType a = pickvalue(train_source, prng);
+      FloatType b = pickvalue(train_source, prng);
+      welford.update(tempo::univariate::square_dist(a, b));
     }
+    sampled_mean_dist = welford.get_mean();
   }
 
-  // Parameters
-  vector<tuple<double, vector<double>>> params;
-  if (variant=="weighted") {
-    for (int gindex = 0; gindex<100; ++gindex) {
-      double g = exp(0.002*(double) (gindex))-1;
-      params.emplace_back(make_tuple(g, tu::generate_weights<double>(g, maxl, v)));
-    }
-  } else if (variant=="fixed") {
-    for (int i = 0; i<100; ++i) {
-      double r = (double) i/100;
-      params.emplace_back(make_tuple(r, std::vector<double>(maxl, r*v)));
-    }
-  } else {
-    cout << "<path to ucr> <dataset name> <derivative|original> <fixed|weighted> <nbthreads> <output> required" << endl;
-    cout << "variant found: " << transform << endl;
-    exit(1);
-  }
 
+  // --- --- --- Create parameters
+  vector<tuple<double, double>> params;
+  for (int i = -100; i<=100; ++i) {
+    double r = (double) i/100;
+    params.emplace_back(make_tuple(r, r*sampled_mean_dist));
+  }
 
   // --- --- --- LOOCV task per left out
   std::mutex mutex;
@@ -169,7 +149,7 @@ int main(int argc, char** argv) {
     size_t param_index, size_t leftout_index, size_t* nbcorrect,
     tempo::ProgressMonitor& pm,
     size_t* nb_done) {
-    const auto* weights = get<1>(params[param_index]).data();
+    const double weight = get<1>(params[param_index]);
     auto query = (*train_source.data)[leftout_index];
     double bsf = tempo::POSITIVE_INFINITY<double>;
     size_t bid = leftout_index;
@@ -178,7 +158,7 @@ int main(int argc, char** argv) {
       // Skip self
       if (j==leftout_index) { continue; }
       const auto candidate = (*train_source.data)[j];
-      double dist = tu::adtw(query, candidate, weights, bsf);
+      double dist = tu::adtw(query, candidate, weight, bsf);
       if (dist<bsf) {
         bsf = dist;
         bid = j;
@@ -210,7 +190,8 @@ int main(int argc, char** argv) {
     for (size_t i = 0; i<train_size; ++i) {
       p.push_task(loocv_task_i, pindex, i, &nbcorrect, pm, &nbdone);
     }
-    cout << endl << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]) << ":" << endl;
+    cout << endl << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]);
+    cout << " with penalty = " << get<1>(params[pindex]) << ":" << endl;
     auto start = tt::now();
     p.execute(nbthreads);
     auto duration = tt::now()-start;
@@ -237,13 +218,6 @@ int main(int argc, char** argv) {
   for (auto pi: best_param) { cout << "  " << get<0>(params[pi]) << endl; }
 
   double bestg;
-  double bestvv;
-
-  //  bestg = get<0>(params[best_param.front()]);
-  //  cout << dataset_name << " Pick smallest: " << bestg << endl;
-
-  //  bestg = get<0>(params[best_param.back()]);
-  //  cout << dataset_name << " Pick largest: " << bestg << endl;
 
   {
     auto size = best_param.size();
@@ -257,21 +231,13 @@ int main(int argc, char** argv) {
   }
 
 
-
   // Do NN1 with a parameter
   // --- NN1 classification
-  /*
-  size_t total = test->size()*train->size();
-  size_t centh = total/100;
-  size_t tenth = centh*10;
-  size_t nbtenth = 0;
-   */
 
-  const auto wv = tu::generate_weights<double>(bestg, maxl, bestvv);
-  const auto* weight = wv.data();
+  const double weight = bestg*sampled_mean_dist;
 
   // --- --- --- NN1 loop
-  double nb_correct{0};
+  size_t nb_correct{0};
   size_t nb_done{0};
   tempo::ProgressMonitor pm(train->size()*test->size());
   // --- --- --- Task generator
@@ -310,35 +276,42 @@ int main(int argc, char** argv) {
   p.execute(nbthreads, tgen);
   auto testnn1_duration = tt::now()-testnn1_start;
 
-  double accuracy = nb_correct/test->size();
+  double accuracy = ((double) nb_correct)/test->size();
   cout << endl;
   cout << dataset_name << " NN1 test result: " << nb_correct << "/" << test->size() << " = " << accuracy
        << "  (" << tt::as_string(testnn1_duration) << ")" << endl;
 
   string distname{"adtw"};
-  if (transform=="derivative") { distname = distname + "-d1"; }
-  if (variant=="fixed"){distname = distname+"-fixed";}
-  else{distname = distname+"-weighted";}
+  if (transform=="derivative") { distname = distname+"-d1"; }
 
-  stringstream ss;
-  ss << "{" << endl;
-  ss << R"(  "dataset":")" << dataset_name << "\"," << endl;
-  ss << R"(  "nb_test":)" << test->size() << "," << endl;
-  ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
-  ss << R"(  "accuracy":)" << accuracy << "," << endl;
-  ss << R"(  "error_rate":)" << (1-accuracy) << "," << endl;
-  ss << R"(  "distance":{"name":")" << distname << R"(", "g":)" << bestg << "}," << endl;
-  ss << R"(  "threads":)" << nbthreads << "," << endl;
-  ss << R"(  "time_loocv":")" << tt::as_string(loocv_duration) << "\"," << endl;
-  ss << R"(  "time_ns_loocv":)" << loocv_duration.count() << "," << endl;
-  ss << R"(  "time_testnn1":")" << tt::as_string(testnn1_duration) << "\"," << endl;
-  ss << R"(  "time_ns_testnn1":)" << testnn1_duration.count() << "," << endl;
-  ss << "}" << endl;
-  string str = ss.str();
+  JSONValue json_sample({
+      {"mean",   welford.get_mean()},
+      {"stddev", welford.get_stddev_s()},
+      {"size",   SAMPLE_SIZE},
+    }
+  );
+
+  JSONValue json_results(JSONValue::JSONObject({
+    // Dataset info
+    tempo::json_entry_dataset(dataset_name, *train, *test),
+    // Result info
+    tempo::json_entry_accuracy(test->size(), nb_correct),
+    // Distance info
+    {"distance", JSONValue::JSONObject({
+      {"name",           distname},
+      {"penalty_factor", bestg},
+      {"sample",         json_sample},
+      {"penalty",        bestg*sampled_mean_dist}
+    })},
+    // Timings
+    {"threads", nbthreads},
+    {"duration_loocv", tempo::to_json(loocv_duration)},
+    {"duration_nn1test", tempo::to_json(testnn1_duration)}
+  }));
 
   std::cout << dataset_name << " output to " << outpath << endl;
   std::ofstream outfile(outpath);
-  outfile << str;
-  cout << str;
-
+  print(json_results, outfile);
+  print(json_results, cout);
+  cout << std::endl;
 }
