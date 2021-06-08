@@ -209,4 +209,27 @@ namespace tempo {
   };
 
 
+  /** To json for a train and test set */
+  template<typename FloatType_, typename LabelType_>
+  [[nodiscard]] inline std::pair<std::string, json::JSONValue> json_entry_dataset(
+    const std::string& name,
+    const Dataset<FloatType_, LabelType_>& train,
+    const Dataset<FloatType_, LabelType_>& test){
+    const auto& train_header = train.get_header();
+    const auto& test_header = test.get_header();
+
+    return {"dataset", json::JSONValue({
+      {"name", name},
+      {"class_nb", train_header.get_labels().size()},
+      {"class_labels", json::JSONValue(train_header.get_labels().begin(), train_header.get_labels().end())},
+      {"dimension", train_header.get_ndim()},
+      {"train_size", train_header.get_size()},
+      {"test_size", test_header.get_size()},
+      {"has_missing", train_header.has_missing_values() || test_header.has_missing_values()},
+      {"length_min", std::min(train_header.get_minl(), test_header.get_minl())},
+      {"length_max", std::min(train_header.get_maxl(), test_header.get_maxl())}
+    })};
+
+  }
+
 } // End of namespace tempo

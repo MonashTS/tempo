@@ -13,6 +13,8 @@
 #include "utils/rand.hpp"
 #include "utils/stats.hpp"
 #include "utils/unsignedutils.hpp"
+#include "utils/timing.hpp"
+#include "jsonvalue.hpp"
 
 namespace tempo {
 
@@ -115,6 +117,37 @@ namespace tempo {
     }
 
 #define initBlock initBlock_detail::tag{} + [&]() -> decltype(auto)
+
+
+    // --- --- --- --- --- ---
+    // --- JSON helpers
+    // --- --- --- --- --- ---
+
+    [[nodiscard]] inline json::JSONValue to_json(timing::duration_t duration){
+      return json::JSONValue({
+        {"ns", duration.count()},
+        {"human", timing::as_string(duration)}
+      });
+    }
+
+    [[nodiscard]] inline std::pair<std::string, json::JSONValue> json_entry_duration(timing::duration_t duration){
+      return {"duration", to_json(duration)};
+    }
+
+    [[nodiscard]] inline std::pair<std::string, json::JSONValue> json_entry_accuracy(
+        size_t test_size,
+        size_t nb_correct
+    ){
+      double rate = double(nb_correct)/double(test_size);
+      double erate = 1.0 - rate;
+      return {"accuracy", json::JSONValue({
+          {"test_size",  test_size},
+          {"correct_nb", nb_correct},
+          {"rate", rate},
+          {"error_rate", erate}
+        })
+      };
+    }
 
 } // end of namespace tempo
 
