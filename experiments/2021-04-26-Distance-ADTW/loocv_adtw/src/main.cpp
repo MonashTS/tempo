@@ -13,6 +13,7 @@
 #include <fstream>
 #include <tuple>
 #include <tempo/univariate/transforms/derivative.hpp>
+#include <tempo/univariate/distances/loocv.hpp>
 
 // --- --- --- Namespaces
 using namespace std;
@@ -113,7 +114,7 @@ int main(int argc, char** argv) {
     train_source = train_source_d1;
     test_source = test_source_d1;
   } else if (transform!="original") {
-    cout << "<path to ucr> <dataset name> <derivative|original> <fixed|weighted> <nbthreads> <output> required" << endl;
+    cout << "<path to ucr> <dataset name> <derivative|original> <nbthreads> <output> required" << endl;
     cout << "transform found: " << transform << endl;
     exit(1);
   }
@@ -135,13 +136,59 @@ int main(int argc, char** argv) {
   }
 
 
+  JSONValue json_sample({
+      {"mean",   welford.get_mean()},
+      {"stddev", welford.get_stddev_s()},
+      {"size",   SAMPLE_SIZE},
+    }
+  );
+  print(json_sample, cout);
+  cout << endl;
+
+
   // --- --- --- Create parameters
   vector<tuple<double, double>> params;
-  for (int i = -100; i<=100; ++i) {
+  for (int i = 0; i<=100; ++i) {
     double r = (double) i/100;
     params.emplace_back(make_tuple(r, r*sampled_mean_dist));
   }
 
+  // --- --- --- LOOCV
+
+  // --- Create the LOOCV task per left out item
+
+  tempo::univariate::LOOCVTask<tuple<double, double>> task = [&train_source](
+    size_t leftout,
+    const tuple<double, double>& param
+  )->bool {
+    const double penalty = get<1>(param);
+    const auto& vectrain = *train_source.data;
+    const auto train_size = vectrain.size();
+    const auto& query = vectrain[leftout];
+    double bsf = tempo::POSITIVE_INFINITY<double>;  // Best so far
+    size_t bid = leftout;                           // Best ID of the bsf
+    // NN1 loop on train, excluding leftout
+    for(size_t i=0; i<train_size; ++i){
+      if(i==leftout){continue;}   // Skip leftout
+      const auto candidate = vectrain[i];
+      const double dist = tu::adtw(query, candidate, penalty, bsf);
+      if(dist<bsf){
+        bsf = dist;
+        bid = i;
+      }
+    }
+    // Check result
+    const auto nn = vectrain[bid];
+    return query.get_label().value() == nn.get_label().value();
+  };
+
+  // --- Do the LOOCV process
+  auto loocv_start = tt::now();
+  auto [best_param, best_nbcorrect] = tempo::univariate::do_loocv<tuple<double, double>>(params, train_size, task, nbthreads, &cout);
+  auto loocv_duration = tt::now()-loocv_start;
+
+
+  /*
   // --- --- --- LOOCV task per left out
   std::mutex mutex;
   // --- --- --- Task to NN1 one series
@@ -207,6 +254,11 @@ int main(int argc, char** argv) {
          << (double) (nbcorrect)/train_size << "  (" << tt::as_string(duration) << ")" << endl;
   }
   auto loocv_duration = tt::now()-loocv_start;
+  */
+
+
+
+
 
 
 
@@ -235,6 +287,8 @@ int main(int argc, char** argv) {
   // --- NN1 classification
 
   const double weight = bestg*sampled_mean_dist;
+
+  std::mutex mutex;
 
   // --- --- --- NN1 loop
   size_t nb_correct{0};
@@ -272,6 +326,8 @@ int main(int argc, char** argv) {
     }
   };
 
+  tempo::ParTasks p;
+
   auto testnn1_start = tt::now();
   p.execute(nbthreads, tgen);
   auto testnn1_duration = tt::now()-testnn1_start;
@@ -284,12 +340,6 @@ int main(int argc, char** argv) {
   string distname{"adtw"};
   if (transform=="derivative") { distname = distname+"-d1"; }
 
-  JSONValue json_sample({
-      {"mean",   welford.get_mean()},
-      {"stddev", welford.get_stddev_s()},
-      {"size",   SAMPLE_SIZE},
-    }
-  );
 
   JSONValue json_results(JSONValue::JSONObject({
     // Dataset info

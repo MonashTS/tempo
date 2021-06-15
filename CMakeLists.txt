@@ -80,7 +80,7 @@ set(TEMPO_SRC
         include/tempo/utils/jsonvalue.hpp
         include/tempo/utils/partasks.hpp
         include/tempo/utils/progressmonitor.hpp
-        )
+        include/tempo/univariate/distances/loocv.hpp)
 
 add_library(tempo SHARED ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})
