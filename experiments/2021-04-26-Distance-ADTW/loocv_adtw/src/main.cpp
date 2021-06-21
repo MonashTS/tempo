@@ -1,19 +1,22 @@
-#include <iostream>
-
 #include <tempo/utils/utils.hpp>
 #include <tempo/utils/partasks.hpp>
 #include <tempo/utils/progressmonitor.hpp>
 #include <tempo/utils/utils/timing.hpp>
 #include <tempo/utils/jsonvalue.hpp>
 #include <tempo/univariate/distances/dtw/adtw.hpp>
+#include <tempo/univariate/distances/dtw/dtw.hpp>
+#include <tempo/univariate/distances/elementwise/elementwise.hpp>
 #include <tempo/reader/ts/ts.hpp>
 #include <tempo/tseries/dataset.hpp>
 #include <tempo/tseries/indexSet.hpp>
+#include <tempo/univariate/transforms/derivative.hpp>
+#include <tempo/univariate/distances/loocv.hpp>
+#include <tempo/univariate/classifiers/nn1/nn1.hpp>
+
 #include <filesystem>
 #include <fstream>
 #include <tuple>
-#include <tempo/univariate/transforms/derivative.hpp>
-#include <tempo/univariate/distances/loocv.hpp>
+#include <iostream>
 
 // --- --- --- Namespaces
 using namespace std;
@@ -52,18 +55,25 @@ variant<string, std::shared_ptr<tempo::Dataset<double, string>>> read_data(ostre
 }
 
 int main(int argc, char** argv) {
-  const size_t SAMPLE_SIZE = 100000;
 
   std::vector<std::string> argList(argv, argv+argc);
-  if (argc<6) {
-    cout << "<path to ucr> <dataset name> <derivative|original> <nbthreads> <output> required" << endl;
+  if (argc<9) {
+    cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <pstart:pend:pstep:pdiv> <nbthreads> <output> required" << endl;
     exit(1);
   }
   fs::path path_ucr(argList[1]);
   string dataset_name(argList[2]);
-  string transform(argList[3]);
-  size_t nbthreads = stoi(argList[4]);
-  string outpath = argList[5];
+  string sampling_method(argList[3]);
+  size_t sampling_number = std::stoi(argList[4]);
+  string transform(argList[5]);
+  std::string pargs_str = argList[6];
+  vector<std::string> pargs = tempo::split(pargs_str, ':');
+  int pstart = stoi(pargs[0]);
+  int pend = stoi(pargs[1]);
+  int pstep = stoi(pargs[2]);
+  int pdiv = stoi(pargs[3]);
+  size_t nbthreads = stoi(argList[7]);
+  string outpath = argList[8];
 
   std::random_device rd;
   PRNG prng(rd());
@@ -114,12 +124,23 @@ int main(int argc, char** argv) {
     train_source = train_source_d1;
     test_source = test_source_d1;
   } else if (transform!="original") {
-    cout << "<path to ucr> <dataset name> <derivative|original> <nbthreads> <output> required" << endl;
+    cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <nbthreads> <output> required" << endl;
     cout << "transform found: " << transform << endl;
     exit(1);
   }
 
   const size_t train_size = train->size();
+
+
+
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  // Train with LOOCV
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+  // --- --- --- Create parameters
+
+  // --- Sample mean
+  const size_t SAMPLE_SIZE = sampling_number;
 
   double sampled_mean_dist = 0;
   tempo::stats::StddevWelford welford;
@@ -128,15 +149,29 @@ int main(int argc, char** argv) {
     // --- --- --- Distance sampling
     for (int i = 0; i<SAMPLE_SIZE; ++i) {
       // Pick two random values from the train set (random series, random point) and compute the distance
-      FloatType a = pickvalue(train_source, prng);
-      FloatType b = pickvalue(train_source, prng);
-      welford.update(tempo::univariate::square_dist(a, b));
+      if(sampling_method=="points") {
+        FloatType a = pickvalue(train_source, prng);
+        FloatType b = pickvalue(train_source, prng);
+        welford.update(tempo::univariate::square_dist(a, b));
+      } else if(sampling_method=="sqed"){
+        const auto& q = tempo::rand::pick_one(*train_source.data, prng);
+        const auto& s = tempo::rand::pick_one(*train_source.data, prng);
+        welford.update(tempo::univariate::elementwise(q, s) / std::min<double>(q.length(), s.length()));
+      } else if (sampling_method=="dtw"){
+        const auto& q = tempo::rand::pick_one(*train_source.data, prng);
+        const auto& s = tempo::rand::pick_one(*train_source.data, prng);
+        welford.update(tempo::univariate::dtw(q, s) /std::min<double>(q.length(), s.length()));
+      } else {
+        cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <nbthreads> <output> required" << endl;
+        cout << "sampling method found: " << sampling_method << endl;
+        exit(1);
+      }
     }
     sampled_mean_dist = welford.get_mean();
   }
 
-
   JSONValue json_sample({
+      {"method", sampling_method},
       {"mean",   welford.get_mean()},
       {"stddev", welford.get_stddev_s()},
       {"size",   SAMPLE_SIZE},
@@ -146,192 +181,93 @@ int main(int argc, char** argv) {
   cout << endl;
 
 
-  // --- --- --- Create parameters
-  vector<tuple<double, double>> params;
-  for (int i = 0; i<=100; ++i) {
-    double r = (double) i/100;
+  // --- Generate parameters
+  using PType = tuple<double, double>;
+  vector<PType> params;
+  for (int i = pstart; i<=pend; i=i+pstep) {
+    double r = (double) i/ (double)(pdiv);
     params.emplace_back(make_tuple(r, r*sampled_mean_dist));
   }
+
+
+
+
+
 
   // --- --- --- LOOCV
 
   // --- Create the LOOCV task per left out item
-
-  tempo::univariate::LOOCVTask<tuple<double, double>> task = [&train_source](
-    size_t leftout,
-    const tuple<double, double>& param
-  )->bool {
-    const double penalty = get<1>(param);
-    const auto& vectrain = *train_source.data;
-    const auto train_size = vectrain.size();
-    const auto& query = vectrain[leftout];
-    double bsf = tempo::POSITIVE_INFINITY<double>;  // Best so far
-    size_t bid = leftout;                           // Best ID of the bsf
-    // NN1 loop on train, excluding leftout
-    for(size_t i=0; i<train_size; ++i){
-      if(i==leftout){continue;}   // Skip leftout
-      const auto candidate = vectrain[i];
-      const double dist = tu::adtw(query, candidate, penalty, bsf);
-      if(dist<bsf){
-        bsf = dist;
-        bid = i;
+  tempo::univariate::LOOCVTask<PType> task =
+    [&train_source](size_t leftout, const PType& param) -> bool {
+      const double penalty = get<1>(param);
+      const auto& vectrain = *train_source.data;
+      const auto train_size = vectrain.size();
+      const auto& query = vectrain[leftout];
+      double bsf = tempo::POSITIVE_INFINITY<double>;  // Best so far
+      size_t bid = leftout;                           // Best ID of the bsf
+      // NN1 loop on train, excluding leftout
+      for (size_t i = 0; i<train_size; ++i) {
+        if (i==leftout) { continue; }   // Skip leftout
+        const auto candidate = vectrain[i];
+        const double dist = tu::adtw(query, candidate, penalty, bsf);
+        if (dist<bsf) {
+          bsf = dist;
+          bid = i;
+        }
       }
-    }
-    // Check result
-    const auto nn = vectrain[bid];
-    return query.get_label().value() == nn.get_label().value();
-  };
+      // Check result
+      const auto nn = vectrain[bid];
+      return query.get_label().value()==nn.get_label().value();
+    };
 
   // --- Do the LOOCV process
   auto loocv_start = tt::now();
-  auto [best_param, best_nbcorrect] = tempo::univariate::do_loocv<tuple<double, double>>(params, train_size, task, nbthreads, &cout);
+  auto[best_param, best_nbcorrect] = tempo::univariate::do_loocv<PType>(params, train_size, task, nbthreads, &cout);
   auto loocv_duration = tt::now()-loocv_start;
 
-
-  /*
-  // --- --- --- LOOCV task per left out
-  std::mutex mutex;
-  // --- --- --- Task to NN1 one series
-  auto loocv_task_i = [&mutex, &params, &train_size, &train_source](
-    size_t param_index, size_t leftout_index, size_t* nbcorrect,
-    tempo::ProgressMonitor& pm,
-    size_t* nb_done) {
-    const double weight = get<1>(params[param_index]);
-    auto query = (*train_source.data)[leftout_index];
-    double bsf = tempo::POSITIVE_INFINITY<double>;
-    size_t bid = leftout_index;
-    // NN1 loop on the other train
-    for (size_t j = 0; j<train_size; ++j) {
-      // Skip self
-      if (j==leftout_index) { continue; }
-      const auto candidate = (*train_source.data)[j];
-      double dist = tu::adtw(query, candidate, weight, bsf);
-      if (dist<bsf) {
-        bsf = dist;
-        bid = j;
-      }
-    }
-    // Check result
-    auto nn = (*train_source.data)[bid];
-    if (query.get_label().value()==nn.get_label().value()) {
-      lock_guard g(mutex);
-      (*nbcorrect)++;
-    }
-    {
-      std::lock_guard lg(mutex);
-      (*nb_done)++;
-      pm.print_progress(std::cout, *nb_done);
-    }
-  };
-
-  // --- --- --- LOOCV
-  cout << dataset_name << " Using " << nbthreads << " threads" << endl;
-  vector<size_t> best_param;
-  size_t best_nbcorrect = 0;
-  tempo::ParTasks p;
-  auto loocv_start = tt::now();
-  for (size_t pindex = 0; pindex<params.size(); ++pindex) {
-    size_t nbcorrect = 0;
-    size_t nbdone = 0;
-    tempo::ProgressMonitor pm(train_size);
-    for (size_t i = 0; i<train_size; ++i) {
-      p.push_task(loocv_task_i, pindex, i, &nbcorrect, pm, &nbdone);
-    }
-    cout << endl << dataset_name << " Param " << pindex << " with g = " << get<0>(params[pindex]);
-    cout << " with penalty = " << get<1>(params[pindex]) << ":" << endl;
-    auto start = tt::now();
-    p.execute(nbthreads);
-    auto duration = tt::now()-start;
-    // --- Check best param
-    if (nbcorrect>best_nbcorrect) {
-      best_nbcorrect = nbcorrect;
-      best_param.clear();
-      best_param.push_back(pindex);
-    } else if (nbcorrect==best_nbcorrect) {
-      best_param.push_back(pindex);
-    }
-    cout << endl << "nb corrects = " << nbcorrect << "/" << train_size << " accuracy = "
-         << (double) (nbcorrect)/train_size << "  (" << tt::as_string(duration) << ")" << endl;
-  }
-  auto loocv_duration = tt::now()-loocv_start;
-  */
-
-
-
-
-
-
-
-  // Report result
-  cout << dataset_name << " Best parameter(s): " << best_nbcorrect << "/" << train_size << " = "
-       << (double) best_nbcorrect/train_size << "  (" << tt::as_string(loocv_duration) << ")" << endl;
-  // Sort required: multithread does not guarantee order on insertion in the vector.
-  std::sort(best_param.begin(), best_param.end());
-  for (auto pi: best_param) { cout << "  " << get<0>(params[pi]) << endl; }
-
+  // --- --- --- "Best parameter": Pick the median
+  // Sort required: multi-thread does not guarantee order on insertion in the vector.
   double bestg;
-
   {
-    auto size = best_param.size();
-    if (size%2==0) {
-      bestg = (get<0>(params[best_param[size/2-1]])+get<0>(params[best_param[size/2]]))/2;
-
-    } else {
-      bestg = get<0>(params[best_param[size/2]]);
+    // Report all the best
+    cout << dataset_name << " Best parameter(s): " << best_nbcorrect << "/" << train_size << " = "
+         << (double) best_nbcorrect/train_size << "  (" << tt::as_string(loocv_duration) << ")" << endl;
+    std::sort(best_param.begin(), best_param.end());
+    for (auto pi: best_param) { cout << "  " << get<0>(params[pi]) << endl; }
+    {
+      auto size = best_param.size();
+      if (size%2==0) { bestg = (get<0>(params[best_param[size/2-1]])+get<0>(params[best_param[size/2]]))/2; }
+      else { bestg = get<0>(params[best_param[size/2]]); }
     }
     cout << dataset_name << " Pick median: g=" << bestg << endl;
   }
 
 
-  // Do NN1 with a parameter
-  // --- NN1 classification
 
-  const double weight = bestg*sampled_mean_dist;
 
-  std::mutex mutex;
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+  // Test
+  // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
-  // --- --- --- NN1 loop
-  size_t nb_correct{0};
-  size_t nb_done{0};
-  tempo::ProgressMonitor pm(train->size()*test->size());
-  // --- --- --- Task generator
-  auto tgen = [&mutex, &pm, weight, &train_source, it = test_source.data->begin(), end = test_source.data->end(), &nb_done, &nb_correct]() mutable {
-    if (it!=end) {
-      tempo::ParTasks::task_t t = [&mutex, &pm, &nb_correct, &nb_done, it, &train_source, weight]() {
-        double bsf = tempo::POSITIVE_INFINITY<double>;
-        const TS* bcandidates = nullptr;
-        for (const auto& c: *train_source.data) {
-          double res = tu::adtw(*it, c, weight, bsf);
-          if (res<bsf) { // update BSF
-            bsf = res;
-            bcandidates = &c;
-          }
-          {
-            std::lock_guard lg(mutex);
-            nb_done++;
-            pm.print_progress(std::cout, nb_done);
-          }
-        } // End looping over candidates
-        if (bcandidates!=nullptr && bcandidates->get_label().value()==(*it).get_label().value()) {
-          std::lock_guard lg(mutex);
-          nb_correct++;
-        }
-      };
+  // --- --- --- NN1-ADTW classification
+  // --- Penalty
+  // double not_sampled_mean = 2.01298588537;
+  const double penalty = sampled_mean_dist*bestg;
 
-      ++it;
-      return std::optional<tempo::ParTasks::task_t>(t);
-
-    } else {
-      return std::optional<tempo::ParTasks::task_t>();
-    }
+  // --- Distance
+  tempo::univariate::nn1dist_t<FloatType> distance = [penalty, &train_source, &test_source](
+    size_t train_idx, size_t test_idx, FloatType bsf) -> FloatType {
+    const auto& t = (*train_source.data)[train_idx];
+    const auto& q = (*test_source.data)[test_idx];
+    return tu::adtw<FloatType, LabelType>(t, q, penalty, bsf);
   };
 
-  tempo::ParTasks p;
-
+  // --- Classification
   auto testnn1_start = tt::now();
-  p.execute(nbthreads, tgen);
+  size_t nb_correct = tempo::univariate::nn1<FloatType, LabelType>(*train, *test, distance, nbthreads, &std::cout);
   auto testnn1_duration = tt::now()-testnn1_start;
 
+  // --- Generate results
   double accuracy = ((double) nb_correct)/test->size();
   cout << endl;
   cout << dataset_name << " NN1 test result: " << nb_correct << "/" << test->size() << " = " << accuracy
@@ -339,7 +275,6 @@ int main(int argc, char** argv) {
 
   string distname{"adtw"};
   if (transform=="derivative") { distname = distname+"-d1"; }
-
 
   JSONValue json_results(JSONValue::JSONObject({
     // Dataset info
@@ -351,12 +286,13 @@ int main(int argc, char** argv) {
       {"name",           distname},
       {"penalty_factor", bestg},
       {"sample",         json_sample},
-      {"penalty",        bestg*sampled_mean_dist}
+      {"penalty",        penalty}
     })},
     // Timings
     {"threads", nbthreads},
-    {"duration_loocv", tempo::to_json(loocv_duration)},
-    {"duration_nn1test", tempo::to_json(testnn1_duration)}
+    //{"duration_loocv", tempo::to_json(loocv_duration)},
+    {"duration_nn1test", tempo::to_json(testnn1_duration)},
+    {"pargs", pargs_str}
   }));
 
   std::cout << dataset_name << " output to " << outpath << endl;
