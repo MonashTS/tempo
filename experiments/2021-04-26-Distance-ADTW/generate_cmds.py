@@ -2,6 +2,17 @@ import csv
 import pathlib
 import cpuinfo
 
+import argparse
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+# Manage command line
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+def get_cmd_args():
+    parser = argparse.ArgumentParser(description="Generate commands for parallel launch")
+    parser.add_argument("N", help="number of threads", type=int)
+    args = parser.parse_args()
+    return (parser, args)
+
 # --- --- --- --- Load configuration
 import importlib.util
 spec = importlib.util.spec_from_file_location("CONFIGURE_ME", "../CONFIGURE_ME.py")
@@ -9,7 +20,7 @@ CONFIGURE_ME = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(CONFIGURE_ME)
 
 # --- --- --- --- Generate command for one CSV record
-def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, sampling_kind, sampling_number, pargs, output):
+def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, sampling_kind, sampling_number, pargs, nbthreads, output):
     # Extract all components
     name, \
     cdtw_w, \
@@ -23,7 +34,7 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, sampling_kind, sam
 
     def do_cmd(transform):
         fname = f"{name}-adtw-{transform}-{sampling_kind}-{sampling_number}-{pargs}.json"
-        return str(EXEC_PATH)+f" {UCR_PATH} {name} {sampling_kind} {sampling_number} {transform} {pargs} 8 {RESULT_DIR}/{fname}"
+        return str(EXEC_PATH)+f" {UCR_PATH} {name} {sampling_kind} {sampling_number} {transform} {pargs} {nbthreads} {RESULT_DIR}/{fname}"
 
     print(do_cmd("original"), file=output)
     print(do_cmd("derivative"), file=output)
@@ -31,6 +42,9 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, sampling_kind, sam
 
 # --- --- --- --- Main
 if __name__ == '__main__':
+    (parser, args) = get_cmd_args()
+    nbthreads = args.N
+
     EE_PATH = pathlib.Path("../eeOutputFold0.csv").absolute()
     timestamp = CONFIGURE_ME.get_timestemp()
     OUT_DIR = pathlib.Path("generated-"+timestamp).absolute()
@@ -56,7 +70,7 @@ if __name__ == '__main__':
         print(header)
         for r in records:
             for (sampling_kind, sampling_nb, pargs) in sampling_conf:               # Sampling kind
-                generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, RES_DIR, r, sampling_kind, sampling_nb, pargs, OUT)
+                generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, RES_DIR, r, sampling_kind, sampling_nb, pargs, nbthreads, OUT)
 
     # --- --- --- --- CPU INFO
     # CPU_INFO file
