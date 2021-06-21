@@ -9,9 +9,6 @@
 
 namespace tempo {
 
-  /** Type gathering indexes by class */
-  template<typename LabelType>
-  using ByClassMap = std::unordered_map<LabelType, std::vector<size_t>>;
 
   /** Manage a set of indexes.
    * Used to create sub-dataset.

@@ -13,6 +13,10 @@
 
 namespace tempo {
 
+  /** Type gathering indexes by class */
+  template<typename LabelType>
+  using ByClassMap = std::unordered_map<LabelType, std::vector<size_t>>;
+
   /** Dataset header. Contains basic info about the dataset. */
   template<typename LabelType_>
   struct DatasetHeader {
@@ -122,6 +126,7 @@ namespace tempo {
     DH header{};
     std::vector<Transform> transforms{};
     TH<std::vector<TS>> original_handle;
+    ByClassMap<LabelType> bcm;
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Constructors
@@ -130,11 +135,24 @@ namespace tempo {
     Dataset(std::vector<TS>&& series, DatasetHeader<LabelType> h)
       :header(h) {
       original_handle = add_transform("original", {}, std::move(series));
+      compute_bcm();
     }
 
     Dataset(std::vector<TS>&& series, std::string&& identifier) {
       original_handle = add_transform("original", {}, std::move(series));
       header = DH::from(get_original(), std::move(identifier));
+      compute_bcm();
+    }
+
+    // --- BCM
+
+    void compute_bcm() {
+      const size_t s = size();
+      const auto& series = *(this->original_handle.data);
+      for(size_t idx=0; idx < s; ++idx){
+        const auto& label = series[idx].get_label().value();
+        bcm[label].push_back(idx); // Note: default construction of the vector of first access
+      }
     }
 
   public:
@@ -188,6 +206,10 @@ namespace tempo {
     }
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Get BCM
+    [[nodiscard]] const ByClassMap<LabelType>& get_by_class() const { return bcm; }
+
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     [[nodiscard]] const DH& get_header() const { return header; }
 
     [[nodiscard]] const std::vector<Transform>& get_transforms() const { return transforms; }
@@ -206,7 +228,7 @@ namespace tempo {
 
     [[nodiscard]] const TS& operator[](size_t index) const { return get(index); }
 
-  };
+  }; // End of Dataset
 
 
   /** To json for a train and test set */
