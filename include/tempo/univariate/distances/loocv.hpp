@@ -1,8 +1,9 @@
 #pragma once
 
-#include "tempo/tseries/dataset.hpp"
-#include "tempo/utils/progressmonitor.hpp"
+#include <tempo/tseries/dataset.hpp>
+#include <tempo/utils/progressmonitor.hpp>
 #include <tempo/utils/utils/timing.hpp>
+#include <tempo/utils/partasks.hpp>
 
 #include <functional>
 #include <vector>
