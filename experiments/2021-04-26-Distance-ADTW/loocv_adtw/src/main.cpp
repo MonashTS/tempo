@@ -1,5 +1,4 @@
 #include <tempo/utils/utils.hpp>
-#include <tempo/utils/partasks.hpp>
 #include <tempo/utils/progressmonitor.hpp>
 #include <tempo/utils/utils/timing.hpp>
 #include <tempo/utils/jsonvalue.hpp>
@@ -124,7 +123,7 @@ int main(int argc, char** argv) {
     train_source = train_source_d1;
     test_source = test_source_d1;
   } else if (transform!="original") {
-    cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <nbthreads> <output> required" << endl;
+    cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <pstart:pend:pstep:pdiv> <nbthreads> <output> required" << endl;
     cout << "transform found: " << transform << endl;
     exit(1);
   }
@@ -162,7 +161,7 @@ int main(int argc, char** argv) {
         const auto& s = tempo::rand::pick_one(*train_source.data, prng);
         welford.update(tempo::univariate::dtw(q, s) /std::min<double>(q.length(), s.length()));
       } else {
-        cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <nbthreads> <output> required" << endl;
+        cout << "<path to ucr> <dataset name> <points|sqed|dtw> <sampling_number> <derivative|original> <pstart:pend:pstep:pdiv> <nbthreads> <output> required" << endl;
         cout << "sampling method found: " << sampling_method << endl;
         exit(1);
       }
