@@ -1,7 +1,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # CMake configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.16)
 include(../../cmake/basis.cmake)
 include(../../cmake/read_version.cmake)
 set(CMAKE_VERBOSE_MAKEFILE ON)
