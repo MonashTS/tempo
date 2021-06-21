@@ -63,6 +63,8 @@ struct DTWLB {
 struct CMDArgs {
   std::variant<std::tuple<fs::path, std::string>, std::tuple<fs::path, fs::path>> ucr_traintest_path{};
   std::optional<fs::path> outpath{};
+  size_t nbthread{0};
+  bool verbose{false};
 
   TRANSFORM transforms{TRANSFORM::NONE};
   // Per transform argument

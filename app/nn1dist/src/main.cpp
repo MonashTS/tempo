@@ -1,5 +1,4 @@
-#include <iostream>
-#include <unordered_map>
+
 
 #include <tempo/utils/utils.hpp>
 #include <tempo/utils/jsonvalue.hpp>
@@ -17,10 +16,13 @@
 #include <tempo/univariate/distances/msm/wmsm.hpp>
 #include <tempo/univariate/distances/twe/twe.hpp>
 #include <tempo/univariate/transforms/derivative.hpp>
-
 #include <tempo/tseries/indexSet.hpp>
+#include <tempo/univariate/classifiers/nn1/nn1.hpp>
 
 #include "any.hpp"
+
+#include <iostream>
+#include <unordered_map>
 
 // --- --- --- Namespaces
 using namespace std;
@@ -34,7 +36,7 @@ using LabelType = string;
 using TS = tempo::TSeries<FloatType, LabelType>;
 using DS = tempo::Dataset<FloatType, LabelType>;
 using TH = tempo::TransformHandle<vector<TS>, FloatType, LabelType>;
-using distfun_t = function<FloatType(size_t query_idx, size_t candidate_idx, FloatType bsf)>;
+using distfun_t = tu::nn1dist_t<FloatType>;
 
 /** Helper to compute the window distance */
 template<typename P>
@@ -57,42 +59,42 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
       switch (lb.lb_param.keogh.kind) {
 
         case LB_KEOGH_Kind::BASE: {
-          return [df, train_env, test](size_t q, size_t c, FloatType bsf) -> FloatType {
-            const TS& tsq = test.get()[q];
-            const auto& candidate_env = train_env.get()[c];
+          return [df, train_env, test](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[idxTest];
+            const auto& candidate_env = train_env.get()[idxTrain];
             auto res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
-            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
         case LB_KEOGH_Kind::CASCADE2: {
           auto test_env = keogh_envelopes_transformer.transform_and_add(test, w);
-          return [df, test_env, train_env, test, train](size_t q, size_t c, FloatType bsf) -> FloatType {
+          return [df, test_env, train_env, test, train](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
             double res;
-            const TS& tsq = test.get()[q];
-            const auto& candidate_env = train_env.get()[c];
+            const TS& tsq = test.get()[idxTest];
+            const auto& candidate_env = train_env.get()[idxTrain];
             res = tu::lb_Keogh(tsq.data(), tsq.length(), candidate_env.up.data(), candidate_env.lo.data(), bsf);
             if (res<=bsf) {
-              const TS& tsc = train.get()[c];
-              const auto& query_env = test_env.get()[q];
+              const TS& tsc = train.get()[idxTrain];
+              const auto& query_env = test_env.get()[idxTest];
               res = tu::lb_Keogh(tsc.data(), tsc.length(), query_env.up.data(), query_env.lo.data(), bsf);
-              if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+              if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
             } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
         case LB_KEOGH_Kind::JOINED2: {
           auto test_env = keogh_envelopes_transformer.transform_and_add(test, w);
-          return [df, test_env, train_env, test, train](size_t q, size_t c, FloatType bsf) -> FloatType {
-            const TS& tsq = test.get()[q];
-            const auto& query_env = test_env.get()[q];
-            const TS& tsc = train.get()[c];
-            const auto& candidate_env = train_env.get()[c];
+          return [df, test_env, train_env, test, train](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[idxTest];
+            const auto& query_env = test_env.get()[idxTest];
+            const TS& tsc = train.get()[idxTrain];
+            const auto& candidate_env = train_env.get()[idxTrain];
             double res = tu::lb_Keogh2j(
               tsq.data(), tsq.length(), query_env.up.data(), query_env.lo.data(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(),
               bsf);
-            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
       } // End switch lb keogh kind
@@ -108,28 +110,28 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
       switch (lb.lb_param.enhanced.kind) {
 
         case LB_ENHANCED_Kind::BASE: {
-          return [df, test, train, train_env, v, w](size_t q, size_t c, FloatType bsf) -> FloatType {
-            const TS& tsq = test.get()[q];
-            const TS& tsc = train.get()[c];
-            const auto& candidate_env = train_env.get()[c];
+          return [df, test, train, train_env, v, w](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[idxTest];
+            const TS& tsc = train.get()[idxTrain];
+            const auto& candidate_env = train_env.get()[idxTrain];
             auto res = tu::lb_Enhanced(
               tsq.data(), tsq.length(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(), v, w, bsf);
-            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
         case LB_ENHANCED_Kind::JOINED2: {
           auto test_env = keogh_envelopes_transformer.transform_and_add(test, w);
-          return [df, test, test_env, train, train_env, v, w](size_t q, size_t c, FloatType bsf) -> FloatType {
-            const TS& tsq = test.get()[q];
-            const auto& query_env = test_env.get()[q];
-            const TS& tsc = train.get()[c];
-            const auto& candidate_env = train_env.get()[c];
+          return [df, test, test_env, train, train_env, v, w](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+            const TS& tsq = test.get()[idxTest];
+            const auto& query_env = test_env.get()[idxTest];
+            const TS& tsc = train.get()[idxTrain];
+            const auto& candidate_env = train_env.get()[idxTrain];
             auto res = tu::lb_Enhanced2j(
               tsq.data(), tsq.length(), query_env.up.data(), query_env.lo.data(),
               tsc.data(), tsc.length(), candidate_env.up.data(), candidate_env.lo.data(), v, w, bsf);
-            if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+            if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
           };
         }
 
@@ -143,18 +145,18 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
       tu::WebbEnvelopesTransformer<FloatType, LabelType> webb_envelopes_transformer{};
       auto test_env = webb_envelopes_transformer.transform_and_add(test, w);
       auto train_env = webb_envelopes_transformer.transform_and_add(train, w);
-      return [df, test, test_env, train, train_env, w](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test.get()[q];
-        const auto& query_env = test_env.get()[q];
-        const TS& tsc = train.get()[c];
-        const auto& candidate_env = train_env.get()[c];
+      return [df, test, test_env, train, train_env, w](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        const TS& tsq = test.get()[idxTest];
+        const auto& query_env = test_env.get()[idxTest];
+        const TS& tsc = train.get()[idxTrain];
+        const auto& candidate_env = train_env.get()[idxTrain];
         auto res = tu::lb_Webb(
           tsq.data(), tsq.length(),
           query_env.up.data(), query_env.lo.data(), query_env.lo_up.data(), query_env.up_lo.data(),
           tsc.data(), tsc.length(),
           candidate_env.up.data(), candidate_env.lo.data(), candidate_env.lo_up.data(), candidate_env.up_lo.data(),
           w, bsf);
-        if (res<=bsf) { return df(q, c, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
+        if (res<=bsf) { return df(idxTrain, idxTest, bsf); } else { return tempo::POSITIVE_INFINITY<double>; }
       };
     }
 
@@ -163,8 +165,9 @@ distfun_t dtw_lb(distfun_t&& df, DTWLB lb, TH& test, TH& train, size_t w) {
 
 }
 
-
 /** Determine the distance measure */
+#define TSTRAIN train_source.get()[idxTrain]
+#define TSTEST test_source.get()[idxTest]
 distfun_t mk_distance(const CMDArgs& config, TH& test_source, TH& train_source){
   size_t maxl = std::max(train_source.dataset->get_header().get_maxl(), test_source.dataset->get_header().get_maxl());
 
@@ -173,10 +176,8 @@ distfun_t mk_distance(const CMDArgs& config, TH& test_source, TH& train_source){
     case DISTANCE::DTW: {
       // DTW
       distfun_t distance =
-        [&test_source, &train_source](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::dtw(tsq, tsc, bsf);
+        [&test_source, &train_source](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::dtw(TSTRAIN, TSTEST, bsf);
       };
       // Embeds under lower bound
       return dtw_lb(std::move(distance), config.distargs.dtw.lb, test_source, train_source, maxl);
@@ -186,10 +187,8 @@ distfun_t mk_distance(const CMDArgs& config, TH& test_source, TH& train_source){
       auto param = config.distargs.cdtw;
       size_t w = get_w(param, maxl);
       distfun_t distance =
-        [&test_source, &train_source, w](size_t q, size_t c, FloatType bsf) -> FloatType {
-          const TS& tsq = test_source.get()[q];
-          const TS& tsc = train_source.get()[c];
-          return tu::cdtw(tsq, tsc, w, bsf);
+        [&test_source, &train_source, w](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+          return tu::cdtw(TSTRAIN, TSTEST, w, bsf);
         };
       // Embeds under lower bound
       return dtw_lb(std::move(distance), config.distargs.dtw.lb, test_source, train_source, maxl);
@@ -198,74 +197,60 @@ distfun_t mk_distance(const CMDArgs& config, TH& test_source, TH& train_source){
     case DISTANCE::WDTW: {
       auto param = config.distargs.wdtw;
       auto weights = std::make_shared<vector<FloatType>>(tu::generate_weights(param.weight_factor, maxl));
-      return [&test_source, &train_source, weights](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::wdtw(tsq, tsc, *weights, bsf);
+      return [&test_source, &train_source, weights](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::wdtw(TSTRAIN, TSTEST, *weights, bsf);
       };
     }
 
     case DISTANCE::ERP: {
       auto param = config.distargs.erp;
       size_t w = get_w(param, maxl);
-      return [&test_source, &train_source, w, gv = param.gv](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::erp(tsq, tsc, gv, w, bsf);
+      return [&test_source, &train_source, w, gv = param.gv](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::erp(TSTRAIN, TSTEST, gv, w, bsf);
       };
     }
 
     case DISTANCE::LCSS: {
       auto param = config.distargs.lcss;
       size_t w = get_w(param, maxl);
-      return [&test_source, &train_source, w, e = param.epsilon](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::lcss(tsq, tsc, e, w, bsf);
+      return [&test_source, &train_source, w, e = param.epsilon](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::lcss(TSTRAIN, TSTEST, e, w, bsf);
       };
     }
 
     case DISTANCE::MSM: {
       auto param = config.distargs.msm;
-      return [&test_source, &train_source, cost = param.cost](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::msm(tsq, tsc, cost, bsf);
+      return [&test_source, &train_source, cost = param.cost](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::msm(TSTRAIN, TSTEST, cost, bsf);
       };
     }
 
     case DISTANCE::WMSM: {
       auto param = config.distargs.wmsm;
       auto weights = std::make_shared<vector<FloatType>>(tu::generate_weights(param.cost_factor, maxl));
-      return [&test_source, &train_source, weights](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::wmsm(tsq, tsc, *weights, bsf);
+      return [&test_source, &train_source, weights](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::wmsm(TSTRAIN, TSTEST, *weights, bsf);
       };
     }
 
     case DISTANCE::SQED: {
-      return [&test_source, &train_source](size_t q, size_t c, FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::elementwise(tsq, tsc, bsf);
+      return [&test_source, &train_source](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::elementwise(TSTRAIN, TSTEST, bsf);
       };
     }
 
     case DISTANCE::TWE: {
       auto param = config.distargs.twe;
-      return [&test_source, &train_source, nu = param.nu, la = param.lambda](size_t q, size_t c,
-        FloatType bsf) -> FloatType {
-        const TS& tsq = test_source.get()[q];
-        const TS& tsc = train_source.get()[c];
-        return tu::twe(tsq, tsc, nu, la, bsf);
+      return [&test_source, &train_source, nu = param.nu, la = param.lambda](size_t idxTrain, size_t idxTest, FloatType bsf) -> FloatType {
+        return tu::twe(TSTRAIN, TSTEST, nu, la, bsf);
       };
     }
 
     default: tempo::should_not_happen();
   }
-
 }
+#undef TSTRAIN
+#undef TSTEST
 
 
 
@@ -300,6 +285,10 @@ int main(int argc, char** argv) {
     cout << "Configuration: distance: " << dist_to_JSON(config) << endl;
     cout << "Configuration: train path: " << path_train << endl;
     cout << "Configuration: test path: " << path_test << endl;
+  }
+
+  if(config.nbthread<1){
+    config.nbthread = std::thread::hardware_concurrency();
   }
 
   // --- Load the datasets
@@ -343,53 +332,19 @@ int main(int argc, char** argv) {
   // --- Get the distance
   distfun_t distance = mk_distance(config, test_source, train_source);
 
-
-  // --- NN1 classification
-  size_t nb_ea{0};
-  size_t nb_done{0};
-  size_t total = test->size()*train->size();
-  size_t centh = total/100;
-  size_t tenth = centh*10;
-  size_t nbtenth = 0;
-
-  // --- --- --- NN1 loop
-  double nb_correct{0};
-  tt::duration_t duration{0};
-  auto start = tt::now();
-  for (size_t q{0}; q<test->size(); ++q) {
-    double bsf = tempo::POSITIVE_INFINITY<double>;
-    const TS* bcandidates = nullptr;
-    for (size_t c{0}; c<train->size(); ++c) {
-      double res = distance(q, c, bsf);
-      if (res==tempo::POSITIVE_INFINITY<double>) {
-        nb_ea++;
-      } else if (res<bsf) { // update BSF
-        bsf = res;
-        bcandidates = &(train->get(c));
-      }
-      nb_done++;
-      if (nb_done%centh==0) {
-        if (nb_done%tenth==0) {
-          nbtenth++;
-          std::cout << nbtenth*10 << "% ";
-          std::flush(std::cout);
-        } else {
-          std::cout << ".";
-          std::flush(std::cout);
-        }
-      }
-    }
-    if (bcandidates!=nullptr && bcandidates->get_label().value()==test->get(q).get_label().value()) {
-      nb_correct++;
-    }
+  // --- NN1 Classifications
+  size_t nb_correct;
+  tempo::timing::duration_t duration;
+  double acc;
+  {
+    auto start = tt::now();
+    ostream* verbose_out = config.verbose ? &std::cout : nullptr;
+    nb_correct = tempo::univariate::nn1<FloatType, LabelType>(*train, *test, distance, config.nbthread, verbose_out);
+    duration = tt::now()-start;
+    acc = (double) nb_correct/((double) test->size());
   }
-  auto stop = tt::now();
-  std::cout << endl;
-  duration += (stop-start);
-  double acc = nb_correct/(test->size());
 
-  std::cout << "nb ea = " << nb_ea << std::endl;
-
+  std::cout << std::endl;
   std::cout << "Classification done" << std::endl;
   stringstream ss;
   ss << "{" << endl;
@@ -397,6 +352,7 @@ int main(int argc, char** argv) {
   ss << R"(  "nb_correct":)" << nb_correct << "," << endl;
   ss << R"(  "accuracy":)" << acc << "," << endl;
   ss << R"(  "distance":)" << dist_to_JSON(config) << ',' << endl;
+  ss << R"(  "threads":)" << config.nbthread << "," << endl;
   ss << R"(  "timing_ns":)" << duration.count() << "," << endl;
   ss << R"(  "timing":")";
   tt::printDuration(ss, duration);

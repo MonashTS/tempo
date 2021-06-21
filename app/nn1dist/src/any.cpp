@@ -149,9 +149,13 @@ void print_usage(const string& execname, ostream& out) {
 
     Apply a transform: -tr <transform>:
         none                No transform (default)
-        derivative <n>       Nth derivative, n must be an integer n>=1
+        derivative <n>      Nth derivative, n must be an integer n>=1
 
     Create an output file: '-out <outfile>'
+
+    Others:
+      -v                    Verbose mode (off by default)
+      -threads <n>          Number of threads -- values less than 1 trigger auto-detection (auto detect by default)
     )";
   out << "Examples:" << endl;
   out << "  " << execname << " -dist cdtw 0.2 lb-keogh2 -ucr /path/to/Univariate_ts Crop" << endl;
@@ -424,6 +428,12 @@ CMDArgs read_args(int argc, char** argv) {
           catch (std::exception& e) { return {e.what()}; }
           return {};
         })
+      )
+      // --- --- --- Verbose
+      , pa_switch<CMDArgs>("-v", [](CMDArgs& a) { a.verbose = true; })
+      // --- --- --- Threads
+      , pa_switch<CMDArgs>("-threads") && mandatory<CMDArgs>("number of threads", "<n>",
+        read_value<CMDArgs, int>(integer(), [](CMDArgs& a, int v) { a.nbthread = v; } )
       )
     }
   };
