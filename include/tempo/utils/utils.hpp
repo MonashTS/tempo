@@ -109,7 +109,7 @@ namespace tempo {
   // --- --- --- --- --- ---
 
   /// Mimic python split
-  std::vector<std::string> split(const std::string& s, char delimiter) {
+  [[nodiscard]] inline std::vector<std::string> split(const std::string& s, char delimiter) {
     std::vector<std::string> toks;
     std::string tok;
     std::istringstream stream(s);
