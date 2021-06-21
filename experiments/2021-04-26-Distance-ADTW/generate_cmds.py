@@ -9,7 +9,7 @@ CONFIGURE_ME = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(CONFIGURE_ME)
 
 # --- --- --- --- Generate command for one CSV record
-def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
+def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, sampling_kind, sampling_number, pargs, output):
     # Extract all components
     name, \
     cdtw_w, \
@@ -21,13 +21,12 @@ def generate_cpp_cmd(EXEC_PATH, UCR_PATH, RESULT_DIR, record, output):
     twe_nu, twe_lambda, \
     erp_g, erp_w = record
 
-    def do_cmd(transform, kind):
-        return str(EXEC_PATH)+f" {UCR_PATH} {name} {transform} {kind} 6 {RESULT_DIR}/{name}_adtw-{transform}-{kind}.json"
+    def do_cmd(transform):
+        fname = f"{name}-adtw-{transform}-{sampling_kind}-{sampling_number}-{pargs}.json"
+        return str(EXEC_PATH)+f" {UCR_PATH} {name} {sampling_kind} {sampling_number} {transform} {pargs} 8 {RESULT_DIR}/{fname}"
 
-    print(do_cmd("original", "fixed"), file=output)
-    print(do_cmd("original", "weighted"), file=output)
-    print(do_cmd("derivative", "fixed"), file=output)
-    print(do_cmd("derivative", "weighted"), file=output)
+    print(do_cmd("original"), file=output)
+    print(do_cmd("derivative"), file=output)
 
 
 # --- --- --- --- Main
@@ -49,12 +48,15 @@ if __name__ == '__main__':
     EXEC_PATH = pathlib.Path("./loocv_adtw/cmake-build-release/loocv_adtw").absolute()
 
     # --- --- --- --- Commands
+    # Sampling configuration
+    sampling_conf = [('points', 100000, "0:250:1:100"), ('dtw', 1000, "0:250:1:100"), ('sqed', 1000, "0:250:1:100")]
     with open(EE_PATH, newline='') as csvfile:
         records = csv.reader(csvfile)
         header = next(records)          # Skip header
         print(header)
         for r in records:
-            generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, RES_DIR, r, OUT)
+            for (sampling_kind, sampling_nb, pargs) in sampling_conf:               # Sampling kind
+                generate_cpp_cmd(EXEC_PATH, UCR_TS_PATH, RES_DIR, r, sampling_kind, sampling_nb, pargs, OUT)
 
     # --- --- --- --- CPU INFO
     # CPU_INFO file
