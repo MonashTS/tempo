@@ -102,6 +102,10 @@ Python bindings are made with [pybind11](https://github.com/pybind/pybind11).
 ## As a Java library
 Simply copy/past the files from the [java directory](./bindings/java).
 
+## Note:
+Warping windows w are commonly expressed as a ratio of the length of the series, e.g. `w=0.1`.
+In tempo, the window parameter is the actual window size, e.g. `w=14`.
+
 
 # Applications
 Our applications are not only demonstrators: you can use them for your work too!
