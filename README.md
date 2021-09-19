@@ -47,7 +47,7 @@ This allows to prune computation even when no cut-off point is provided
 
 ### Benchmarks
 The early abandoning and pruning algorithm is submitted in a paper under review.
-The paper ([arxiv pre-print](https://arxiv.org/abs/2102.05221))
+The [published paper](https://link.springer.com/article/10.1007/s10618-021-00782-4)
 contains benchmarks that can be found [here](https://github.com/HerrmannM/paper-2021-EAPElasticDist).
 
 
