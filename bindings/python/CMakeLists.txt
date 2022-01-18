@@ -23,7 +23,7 @@ add_compile_definitions($<$<CONFIG:DEBUG>:_GLIBCXX_ASSERTIONS>)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Note: variable to be configure before calling add_subdirectory
 set(PYBIND11_CPP_STANDARD -std=c++17)
-add_subdirectory(lib/pybind11-2.6.1)
+add_subdirectory(lib/pybind11-2.8.1)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ cpp EXCLUDE_FROM_ALL)
 
 set(PYTHON_BINDINGS
