@@ -1,7 +1,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # CMake configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.19)
 
 
 
@@ -9,21 +9,22 @@ cmake_minimum_required(VERSION 3.17)
 # Project configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 project(pytempo LANGUAGES CXX VERSION 0.0.1)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# Debug build: Activate GLIBC assertions
-add_compile_definitions($<$<CONFIG:DEBUG>:_GLIBCXX_ASSERTIONS>)
+if(MSVCV)
+    add_compile_options(/W4)
+else()
+    add_compile_options(-Wall -Wextra)
+endif()
 
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Python binding
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Note: variable to be configure before calling add_subdirectory
-set(PYBIND11_CPP_STANDARD -std=c++17)
-add_subdirectory(lib/pybind11-2.8.1)
+set(PYBIND11_CPP_STANDARD -std=c++20)
+add_subdirectory(lib/pybind11-2.9.0)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ cpp EXCLUDE_FROM_ALL)
 
 set(PYTHON_BINDINGS
