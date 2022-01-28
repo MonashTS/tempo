@@ -182,7 +182,7 @@ namespace tempo {
       Capsule c = make_capsule<T>(std::forward<T>(transform_data));
       void* ptr = (T*) capsule_ptr<T>(c);
       // Create the transform
-      transforms.template emplace_back(std::move(name), std::move(parents_name), std::move(c), ptr);
+      transforms.emplace_back(std::move(name), std::move(parents_name), std::move(c), ptr);
       // Create the handle
       return TH<T>(this, transforms.size()-1);
     }
