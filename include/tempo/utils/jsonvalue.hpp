@@ -60,7 +60,7 @@ namespace tempo::json {
     JSONValue(size_t n)
       :index{Index::number}, datum{.number = (double)n} { }
 
-    JSONValue(ssize_t n)
+    JSONValue(long n)
       :index{Index::number}, datum{.number = (double)n} { }
 
     JSONValue(JSONArray&& vec)
