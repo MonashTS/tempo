@@ -18,7 +18,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_20)
 
-if(MSVCV)
+if(MSVC)
     target_compile_options(project_options INTERFACE /W3)
 else()
     target_compile_options(project_options INTERFACE -Wall -Wextra)
