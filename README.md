@@ -13,6 +13,23 @@ The archive can be found at [timeseriesclassification.com](http://timeseriesclas
 It now contains more datasets.
 The 85 datasets are listed [here](./experiments/eeOutputFold0.csv).
 
+If you are using tempo in your research, pleace cite
+```
+@article{Herrmann2021,
+author={Herrmann, Matthieu and Webb, Geoffrey I.},
+title={Early abandoning and pruning for elastic distances including dynamic time warping},
+journal={Data Mining and Knowledge Discovery},
+year={2021},
+month={Nov},
+day={01},
+volume={35},
+number={6},
+pages={2577-2601},
+doi={10.1007/s10618-021-00782-4},
+url={https://doi.org/10.1007/s10618-021-00782-4}
+}
+```
+
 # Features
 
 ## Elastic distances (C++, Java, Python3)
