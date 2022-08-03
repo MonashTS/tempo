@@ -1,5 +1,6 @@
 // Standard
 #include <variant>
+#include <functional>
 
 // Tempo
 #include <tempo/reader/ts/ts.hpp>
