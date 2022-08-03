@@ -199,7 +199,7 @@ namespace tempo::reader {
                 return {};
             } else { // Else, read a word
                 buffer.clear();
-                buffer.push_back(c); // Keep the first letter of the word!
+                buffer.push_back((char)c); // Keep the first letter of the word!
                 read_word(input, buffer);
                 data.labels.insert(buffer);
             }

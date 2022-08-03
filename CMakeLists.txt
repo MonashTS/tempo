@@ -31,7 +31,7 @@ endif()
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Read version from file
 read_version(VERSION include/tempo/utils/version.hpp)
-project(tempo VERSION ${VERSION} LANGUAGES C CXX)
+project(tempo VERSION ${VERSION} LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
 
@@ -89,7 +89,7 @@ set(TEMPO_SRC
         include/tempo/utils/partasks.hpp
         )
 
-add_library(tempo SHARED ${TEMPO_SRC})
+add_library(tempo STATIC ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})
 target_include_directories(tempo PUBLIC "include")
 target_include_directories(tempo PRIVATE "src")
