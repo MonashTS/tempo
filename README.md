@@ -13,6 +13,23 @@ The archive can be found at [timeseriesclassification.com](http://timeseriesclas
 It now contains more datasets.
 The 85 datasets are listed [here](./experiments/eeOutputFold0.csv).
 
+If you are using tempo in your research, pleace cite
+```
+@article{Herrmann2021,
+author={Herrmann, Matthieu and Webb, Geoffrey I.},
+title={Early abandoning and pruning for elastic distances including dynamic time warping},
+journal={Data Mining and Knowledge Discovery},
+year={2021},
+month={Nov},
+day={01},
+volume={35},
+number={6},
+pages={2577-2601},
+doi={10.1007/s10618-021-00782-4},
+url={https://doi.org/10.1007/s10618-021-00782-4}
+}
+```
+
 # Features
 
 ## Elastic distances (C++, Java, Python3)
@@ -47,7 +64,7 @@ This allows to prune computation even when no cut-off point is provided
 
 ### Benchmarks
 The early abandoning and pruning algorithm is submitted in a paper under review.
-The paper ([arxiv pre-print](https://arxiv.org/abs/2102.05221))
+The [published paper](https://link.springer.com/article/10.1007/s10618-021-00782-4)
 contains benchmarks that can be found [here](https://github.com/HerrmannM/paper-2021-EAPElasticDist).
 
 
@@ -101,6 +118,10 @@ Python bindings are made with [pybind11](https://github.com/pybind/pybind11).
 
 ## As a Java library
 Simply copy/past the files from the [java directory](./bindings/java).
+
+## Note:
+Warping windows w are commonly expressed as a ratio of the length of the series, e.g. `w=0.1`.
+In tempo, the window parameter is the actual window size, e.g. `w=14`.
 
 
 # Applications

@@ -89,7 +89,7 @@ namespace tempo::univariate::pf {
   /** A Proximity Tree */
   template<typename FloatType, typename LabelType>
   class PTree {
-    // --- --- --- Private yypes
+    // --- --- --- Private types
 
     /// Dataset type
     using DS = Dataset<FloatType, LabelType>;

@@ -11,7 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Project configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Read version from file
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 read_version(VERSION ../../include/tempo/utils/version.hpp)
 project(pdev LANGUAGES CXX VERSION ${VERSION})
 

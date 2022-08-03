@@ -1,7 +1,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # CMake configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 include(cmake/basis.cmake)
 include(cmake/read_version.cmake)
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -9,21 +9,29 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # C++ and Interface target
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+#add_definitions("-fverbose-asm")
 
 # Use an INTERFACE library to add option to target.
 # To be used with target_link_library(target PRIVATE project_option)
 add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_17)
-target_compile_options(project_options INTERFACE -Wall -Wextra)
-target_compile_definitions(project_options INTERFACE $<$<CONFIG:DEBUG>:_GLIBCXX_ASSERTIONS>)
+target_compile_features(project_options INTERFACE cxx_std_20)
+
+if(MSVC)
+    target_compile_options(project_options INTERFACE /W3)
+else()
+    target_compile_options(project_options INTERFACE -Wall -Wextra)
+    target_compile_definitions(project_options INTERFACE $<$<CONFIG:DEBUG>:_GLIBCXX_ASSERTIONS>)
+endif()
+
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Project configuration
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # Read version from file
 read_version(VERSION include/tempo/utils/version.hpp)
-project(tempo VERSION ${VERSION} LANGUAGES C CXX)
+project(tempo VERSION ${VERSION} LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
 
@@ -82,7 +90,7 @@ set(TEMPO_SRC
         include/tempo/utils/progressmonitor.hpp
         include/tempo/univariate/distances/loocv.hpp)
 
-add_library(tempo SHARED ${TEMPO_SRC})
+add_library(tempo STATIC ${TEMPO_SRC})
 set_target_properties(tempo PROPERTIES VERSION ${VERSION})
 target_include_directories(tempo PUBLIC "include")
 target_include_directories(tempo PRIVATE "src")
