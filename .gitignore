@@ -17,9 +17,9 @@ _deps
 .idea
 
 # Python bindings
-bindings/python/build
-bindings/python/dist
-bindings/python/pytempo.egg-info
+extra/python/build
+extra/python/dist
+extra/python/pytempo.egg-info
 
 # Generated files
 generated*
