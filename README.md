@@ -97,7 +97,7 @@ but will always be in the `dist`
 directory.
 ```bash
 python3 setup.py bdist_wheel
-pip install --force-reinstall dist/pytempo-0.0.2-cp310-cp310-linux_x86_64.whl # See below!
+pip install dist/pytempo-0.0.2-cp310-cp310-linux_x86_64.whl # To adapt!
 pytest -s test 
 ```
 
