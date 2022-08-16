@@ -13,6 +13,7 @@ The archive can be found at [timeseriesclassification.com](http://timeseriesclas
 
 **Note:** The previous version `v0.0.1` can be found in the tags.
 The current version does not yet contain all the code and applications that use to be there.
+In particular, the Java implementations of the distances are in the v0.0.1.
 If you need them, check the tags!
 
 If you are using tempo in your research, please cite
@@ -36,7 +37,7 @@ url={https://doi.org/10.1007/s10618-021-00782-4}
 
 ## Elastic distances (C++, Python3)
 Starting point of our library, we provide implementations of the most commonly used elastic distances.
-Our implementations in C++ and Java are early abandoned and pruned, and we offer [Python3 bindings](#python3-bindings).
+Our implementations in C++ (and Java, available in v0.0.1) are early abandoned and pruned, and we offer [Python3 bindings](#python3-bindings).
 Available distances are
  * ADTW (see https://arxiv.org/abs/2111.13314)
  * DTW and CDTW, with lower bounds (Lb Keogh, Lb Enhanced, Lb Webb)
