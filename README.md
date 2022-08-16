@@ -33,7 +33,9 @@ url={https://doi.org/10.1007/s10618-021-00782-4}
 }
 ```
 
-# Elastic distances (C++, Python3)
+# Features
+
+## Elastic distances (C++, Python3)
 Starting point of our library, we provide implementations of the most commonly used elastic distances.
 Our implementations in C++ (and Java, available in v0.0.1) are early abandoned and pruned, and we offer [Python3 bindings](#python3-bindings).
 Available distances are
@@ -69,9 +71,21 @@ before calling the version with cut-off.
 This allows to prune computation even when no cut-off point is provided
 (no early abandoning can occur under these conditions).
 
-## Note:
+### Note:
 Warping windows w are commonly expressed as a ratio of the length of the series, e.g. `w=0.1`.
 In tempo, the window parameter is the actual window size, e.g. `w=14`.
+
+## DTW Lower Bounds
+We have the following, early abandoned, lower bound for DTW:
+* Lb Keogh and Keogh2j
+* Lb Enhanced and Enhanced2j
+* Lb Webb
+
+Our '2j' version performs a lower bound check in "both direction"
+(e.g. does Keogh(a, b) and Keogh(b, a)) jointly,
+checking for early abandoning opportunities on both front.
+
+The envelopes computation is also implemented, using Lemire's method.
 
 ## Benchmarks
 The [published paper](https://link.springer.com/article/10.1007/s10618-021-00782-4)
