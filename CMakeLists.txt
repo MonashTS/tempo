@@ -9,6 +9,8 @@ option(BUILD_TESTING "Build tests." ON)
 project(tempo)
 set(CMAKE_CXX_STANDARD 20)
 
+
+
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 # CPP tempo distances
 
@@ -22,7 +24,8 @@ target_include_directories(tempo PUBLIC src)
 # All the tests are compiled into one executable.
 # Recursing into src/tempo will add the tests per component to the target created here
 if(BUILD_TESTING)
-    add_subdirectory(test/Catch2-3.1.0)
+    # Catch2 Dependencies: fetch content!
+    add_subdirectory(test/Catch2)
     add_executable(tests test/tests.cpp)
     target_include_directories(tests PRIVATE test)
     target_link_libraries(tests PRIVATE tempo Catch2::Catch2WithMain)

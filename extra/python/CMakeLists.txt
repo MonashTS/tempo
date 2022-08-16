@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(pytempo)
 
+
 # Get PYBIND library
-add_subdirectory(external/pybind11-2.10.0)
+add_subdirectory(external/pybind11)
 
 
 # Create the python bindings
