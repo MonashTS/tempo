@@ -1,106 +1,36 @@
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# CMake configuration
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-cmake_minimum_required(VERSION 3.19)
-include(cmake/basis.cmake)
-include(cmake/read_version.cmake)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+cmake_minimum_required(VERSION 3.20)
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# C++ and Interface target
+# Configurable options
+option(BUILD_TESTING "Build tests." ON)
+
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+# Project
+project(tempo)
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-#add_definitions("-fverbose-asm")
 
-# Use an INTERFACE library to add option to target.
-# To be used with target_link_library(target PRIVATE project_option)
-add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_20)
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+# CPP tempo distances
 
-if(MSVC)
-    target_compile_options(project_options INTERFACE /W3)
-else()
-    target_compile_options(project_options INTERFACE -Wall -Wextra)
-    target_compile_definitions(project_options INTERFACE $<$<CONFIG:DEBUG>:_GLIBCXX_ASSERTIONS>)
+### Distances
+# Create a STATIC library with position independent code instantiating our headers
+add_library(tempo STATIC)
+set_target_properties(tempo PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(tempo PUBLIC src)
+
+### Testing
+# All the tests are compiled into one executable.
+# Recursing into src/tempo will add the tests per component to the target created here
+if(BUILD_TESTING)
+    add_subdirectory(test/Catch2-3.1.0)
+    add_executable(tests test/tests.cpp)
+    target_include_directories(tests PRIVATE test)
+    target_link_libraries(tests PRIVATE tempo Catch2::Catch2WithMain)
 endif()
 
+### Get the sources and tests
+add_subdirectory(src/tempo)
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# Project configuration
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# Read version from file
-read_version(VERSION include/tempo/utils/version.hpp)
-project(tempo VERSION ${VERSION} LANGUAGES CXX)
-
-find_package(Threads REQUIRED)
-
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# Creating the library
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-set(TEMPO_SRC
-        # --- --- --- Readers
-        src/tempo/reader/readingtools.hpp
-        include/tempo/reader/ts/ts.hpp
-        src/tempo/reader/ts/ts.cpp
-        # --- --- --- TSeries
-        include/tempo/tseries/dataset.hpp
-        include/tempo/tseries/indexSet.hpp
-        include/tempo/tseries/transform.hpp
-        include/tempo/tseries/tseries.hpp
-        # --- --- --- Univariate
-        # --- --- --- --- Classifiers
-        # --- --- --- --- --- NN1
-        include/tempo/univariate/classifiers/nn1/nn1.hpp
-        # --- --- --- --- --- PF 2018
-        include/tempo/univariate/classifiers/proximity_forest_2018/pf.hpp
-        include/tempo/univariate/classifiers/proximity_forest_2018/splitters/splitters.hpp
-        include/tempo/univariate/classifiers/proximity_forest_2018/splitters/distances_splitters.hpp
-        # --- --- --- --- Distances
-        include/tempo/univariate/distances/distances.hpp
-        include/tempo/univariate/distances/dtw/lowerbound/envelopes.hpp
-        include/tempo/univariate/distances/dtw/lowerbound/lb_enhanced.hpp
-        include/tempo/univariate/distances/dtw/lowerbound/lb_keogh.hpp
-        include/tempo/univariate/distances/dtw/lowerbound/lb_webb.hpp
-        include/tempo/univariate/distances/dtw/adtw.hpp
-        include/tempo/univariate/distances/dtw/dtw.hpp
-        include/tempo/univariate/distances/dtw/cdtw.hpp
-        include/tempo/univariate/distances/dtw/wdtw.hpp
-        include/tempo/univariate/distances/elementwise/elementwise.hpp
-        include/tempo/univariate/distances/erp/erp.hpp
-        include/tempo/univariate/distances/lcss/lcss.hpp
-        include/tempo/univariate/distances/msm/msm.hpp
-        include/tempo/univariate/distances/msm/wmsm.hpp
-        include/tempo/univariate/distances/twe/twe.hpp
-        # --- --- --- --- Distances - FastEE
-        include/tempo/univariate/distances/dtw/fastee/cdtw.hpp
-        # --- --- --- --- Transforms
-        include/tempo/univariate/transforms/derivative.hpp
-        # --- --- --- Utils
-        include/tempo/utils/utils/rand.hpp
-        include/tempo/utils/utils/stats.hpp
-        include/tempo/utils/utils/timing.hpp
-        include/tempo/utils/utils/unsignedutils.hpp
-        include/tempo/utils/utils.hpp
-        include/tempo/utils/capsule.hpp
-        include/tempo/utils/uncopyable.hpp
-        include/tempo/utils/version.hpp
-        include/tempo/utils/jsonvalue.hpp
-        include/tempo/utils/partasks.hpp
-        include/tempo/utils/progressmonitor.hpp
-        include/tempo/univariate/distances/loocv.hpp)
-
-add_library(tempo STATIC ${TEMPO_SRC})
-set_target_properties(tempo PROPERTIES VERSION ${VERSION})
-target_include_directories(tempo PUBLIC "include")
-target_include_directories(tempo PRIVATE "src")
-target_link_libraries(tempo INTERFACE Threads::Threads)
-
-add_executable(test_tempo ${TEMPO_SRC})
-target_include_directories(test_tempo PUBLIC "include")
-target_include_directories(test_tempo PRIVATE "src")
-
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-# Adding the tests
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-add_subdirectory(tests)
+# Python bindings
+add_subdirectory(extra)
