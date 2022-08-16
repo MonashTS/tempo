@@ -75,7 +75,7 @@ contains benchmarks that can be found [here](https://github.com/HerrmannM/paper-
 Download the sources and link to Tempo adding in your CMakeLists.txt:
 ```cmake
 add_subdirectory(path_to_tempo)
-target_link_libraries(pytempo PRIVATE tempo)
+target_link_libraries(<your target> PRIVATE tempo)
 ```
 
 ## Python bindings
