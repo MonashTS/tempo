@@ -17,9 +17,13 @@ _deps
 .idea
 
 # Python bindings
-bindings/python/build
-bindings/python/dist
-bindings/python/pytempo.egg-info
+extra/python/build
+extra/python/dist
+extra/python/pytempo.egg-info
 
 # Generated files
 generated*
+
+# Other
+/extra/python/external/pybind11-2.10.0/
+/test/Catch2-3.1.0/

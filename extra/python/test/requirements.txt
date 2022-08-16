@@ -1,0 +1,10 @@
+attrs==22.1.0
+iniconfig==1.1.1
+numpy==1.23.1
+packaging==21.3
+pluggy==1.0.0
+py==1.11.0
+pyparsing==3.0.9
+pytest==7.1.2
+tomli==2.0.1
+wheel==0.37.1
