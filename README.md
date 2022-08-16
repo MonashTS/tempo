@@ -33,9 +33,7 @@ url={https://doi.org/10.1007/s10618-021-00782-4}
 }
 ```
 
-# Features
-
-## Elastic distances (C++, Python3)
+# Elastic distances (C++, Python3)
 Starting point of our library, we provide implementations of the most commonly used elastic distances.
 Our implementations in C++ (and Java, available in v0.0.1) are early abandoned and pruned, and we offer [Python3 bindings](#python3-bindings).
 Available distances are
@@ -47,6 +45,12 @@ Available distances are
  * LCSS
  * MSM
  * TWE
+
+The C++ and Python bindings allow, for some distances, to change the cost function of the alignments.
+Only the C++ header code in the [distance/core](src/tempo/distance/core) allows full customisation.
+The compiled library version, available in Python,
+uses the f(a,b)=|a-b|^e cost function, where e is tunable.
+The code is specialised for the common cases where e=1.0 and e=2.0.
 
 Our implementations have a O(n) space complexity and tightly integrate pruning with early abandoning,
 providing high performance and scalability.
@@ -65,7 +69,11 @@ before calling the version with cut-off.
 This allows to prune computation even when no cut-off point is provided
 (no early abandoning can occur under these conditions).
 
-### Benchmarks
+## Note:
+Warping windows w are commonly expressed as a ratio of the length of the series, e.g. `w=0.1`.
+In tempo, the window parameter is the actual window size, e.g. `w=14`.
+
+## Benchmarks
 The [published paper](https://link.springer.com/article/10.1007/s10618-021-00782-4)
 contains benchmarks that can be found [here](https://github.com/HerrmannM/paper-2021-EAPElasticDist).
 
@@ -106,10 +114,6 @@ Distances must be called with numpy arrays.
 Have a look at the example [extra/python/test/example.py](bindings/python/example.py).
 
 Python bindings are made with [pybind11](https://github.com/pybind/pybind11).
-
-## Note:
-Warping windows w are commonly expressed as a ratio of the length of the series, e.g. `w=0.1`.
-In tempo, the window parameter is the actual window size, e.g. `w=14`.
 
 # About
 Tempo is a project of the [Time Series Classification team from Monash University](https://www.monash.edu/it/dsai/machine-learning).
