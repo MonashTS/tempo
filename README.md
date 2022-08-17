@@ -103,31 +103,45 @@ target_link_libraries(<your target> PRIVATE tempo)
 
 ## Python bindings
 Bindings tested for Python3. All commands here assume a Python3 environment.
-Ensure that the `wheel` packages is installed (e.g. with `pip install wheel`).
 It is recommended to use a virtual environment.
-
-The following command are assumed to be typed in the `extra/python/test` directory.
-```bash
-python3 -m venv venv
-source ./venv/bin/activate
-pip install -r requirements.txt
-```
-
-And this commands from the `extra/python` directory.
-The commands must be modified according to your system.
-In particular, the name of the created wheel will be different,
-but will always be in the `dist`
-directory.
-```bash
-python3 setup.py bdist_wheel
-pip install dist/pytempo-0.0.2-cp310-cp310-linux_x86_64.whl # To adapt!
-pytest -s test 
-```
 
 Distances must be called with numpy arrays.
 Have a look at the example [extra/python/test/example.py](bindings/python/example.py).
 
 Python bindings are made with [pybind11](https://github.com/pybind/pybind11).
+
+In the following instructions, the generated wheel in the `dist` directory may have a difference name.
+
+### Linux
+tested on Clion with
+* Compiler: g++ (GCC) 12.1.1 20220730
+* Architecture: x86_amd64
+
+The following command are assumed to be typed in the `extra/python/` directory.
+```bash
+python3 -m venv venv
+source ./venv/bin/activate
+pip install -r test/requirements.txt
+python3 setup.py bdist_wheel
+pip install dist/pytempo-0.0.2-cp310-cp310-linux_x86_64.whl # May be different!
+pytest -s test 
+```
+
+### Windows
+Tested on Tested Using CLion and Visual Studio 2022 Community Edition Compiler with
+* Compiler: MSVC 19.31.31107.0
+* Architecture: x86_amd64
+
+
+```bash
+python -m venv env
+.\env\Scripts\activate
+pip install -r test/requirements.txt
+python setup.py bdist_wheel 
+pip install --force-reinstall dist/pytempo-0.0.2-cp310-cp310-win_amd64.whl # May be different !
+pytest -s test 
+```
+
 
 # About
 Tempo is a project of the [Time Series Classification team from Monash University](https://www.monash.edu/it/dsai/machine-learning).
