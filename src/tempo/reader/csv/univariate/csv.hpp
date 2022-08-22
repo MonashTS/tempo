@@ -5,9 +5,9 @@
 #include <vector>
 #include <set>
 
-#include "../reader_output.hpp"
+#include "../../reader_output.hpp"
 
-namespace tempo::reader {
+namespace tempo::reader::univariate {
 
   enum CSVLabel { NONE, FIRST, LAST };
 

@@ -1,7 +1,7 @@
 #include "csv.hpp"
 #include "csv.template.cpp"
 
-namespace tempo::reader {
+namespace tempo::reader::univariate {
 
   // Implementation through template explicit instantiation
 

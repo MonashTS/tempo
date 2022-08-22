@@ -9,22 +9,18 @@
 TEST_CASE("CSV reader") {
 
   using F = double;
+  using namespace tempo::reader::univariate;
 
-  std::string filename = "src/tempo/reader/csv/test.csv";
+  std::string filename = "src/tempo/reader/csv/univariate/test_univariate.csv";
   if (!std::filesystem::exists(filename)) {
     throw std::runtime_error("Cannot access file " + filename + "\nCWD = " + std::filesystem::current_path().string());
   }
 
   std::ifstream input(filename, std::ios::binary);
 
-  tempo::reader::CSVReaderParam params(
-    tempo::reader::CSVLabel::FIRST,
-    false,
-    ',',
-    {'%', '@'}
-  );
+  CSVReaderParam params(CSVLabel::FIRST, false, ',', {'%', '@'});
 
-  tempo::reader::Result<F> vresult = tempo::reader::read_csv<F>(input, tempo::reader::LabelEncoder(), params);
+  tempo::reader::Result<F> vresult = read_csv<F>(input, tempo::reader::LabelEncoder(), params);
   tempo::reader::ResultData<F> const& result = std::get<1>(vresult);
 
   // Check that we read the correct number lines

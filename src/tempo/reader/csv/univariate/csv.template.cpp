@@ -1,7 +1,7 @@
 #include "csv.hpp"
 #include <rapidcsv.h>
 
-namespace tempo::reader {
+namespace tempo::reader::univariate {
 
   namespace {
     template<std::floating_point F>
@@ -36,6 +36,7 @@ namespace tempo::reader {
     sep_params.mHasCR = false;
     sep_params.mTrim = true;
     sep_params.mSeparator = params.field_sep;
+    sep_params.mAutoQuote = true;
 
     // Converter
     rapidcsv::ConverterParams conv_params;
@@ -118,6 +119,7 @@ namespace tempo::reader {
     r.series_with_nan = std::move(series_with_nan);
     r.length_min = length_min;
     r.length_max = length_max;
+    r.nb_dimensions = 1;
 
     if (params.label_position!=CSVLabel::NONE) {
       r.labels = std::move(labels);
@@ -129,6 +131,4 @@ namespace tempo::reader {
     return {std::move(r)};
   }
 
-
-
-} // End of namespace tempo::reader
+} // End of namespace tempo::reader::univariate

@@ -16,6 +16,10 @@ namespace tempo::reader {
   /// Label type
   using L = std::string;
 
+  /** Label Encoder
+   *  Allow to manipulate the 'EL' (an integral type) instead of strings.
+   *  This allows to represent labels with simple vector - particularly useful for python/numpy bindings
+   */
   class LabelEncoder {
 
     /// Set of labels for the dataset, with index encoding
@@ -52,11 +56,13 @@ namespace tempo::reader {
 
     /// Create a new encoder from an iterable collection of labels
     template<typename Collection>
-    explicit LabelEncoder(Collection const& labels) { update(labels); }
+    explicit LabelEncoder(Collection const& labels) { update<Collection>(labels); }
 
     /// Copy other into this, then add unknown labels from the iterable collection 'labels'
     template<typename Collection>
-    LabelEncoder(LabelEncoder other, Collection const& labels) : LabelEncoder(std::move(other)) { update(labels); }
+    LabelEncoder(LabelEncoder other, Collection const& labels) : LabelEncoder(std::move(other)) {
+      update<Collection>(labels);
+    }
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -93,10 +99,13 @@ namespace tempo::reader {
     std::set<size_t> series_with_nan;
 
     /// Smallest length read
-    size_t length_min;
+    size_t length_min{};
 
     /// Largest length read
-    size_t length_max;
+    size_t length_max{};
+
+    /// Number of dimensions
+    size_t nb_dimensions{};
 
     // --- --- ---
 
@@ -110,12 +119,10 @@ namespace tempo::reader {
 
     ResultData() = default;
 
-
   };
 
   /// Result type for the readers; any error shall be written in the variant's string
   template<std::floating_point F>
   using Result = std::variant<std::string, ResultData<F>>;
-
 
 } // End of namespace tempo
