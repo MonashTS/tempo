@@ -20,7 +20,7 @@ namespace tempo::distance {
     /// Lower Bound initial negative value: allow to deal with numerical instability.
     /// The lower bound will be (really really) marginally less tight.
     template<typename F>
-    constexpr F INITLB{-pow(F(10), -(std::numeric_limits<F>::digits10 - 1))};
+    const F INITLB{-pow(F(10), -(std::numeric_limits<F>::digits10 - 1))};
 
     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Numeric
